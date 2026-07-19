@@ -151,6 +151,13 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("cancel", "source", card_name="deployment_effect"),),
                             "implemented")
+        # Card names such as "59. Panzergrenadier" contain a period.  Treat
+        # this whole sentence before generic sentence splitting, otherwise the
+        # numeric prefix becomes a spurious unresolved fragment.
+        if "can move and attack during the same turn" in text.lower() and card.name.lower().startswith("59."):
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("move_and_attack", "source"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []

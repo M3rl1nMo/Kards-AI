@@ -11030,19 +11030,6 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "source",
-          "amount": 0,
-          "attack": 0,
-          "defense": 0,
-          "card_name": null,
-          "scope": "",
-          "min_cost": 0,
-          "set_cost": null,
-          "duration": null,
-          "condition": null
-        },
-        {
           "kind": "move_and_attack",
           "target": "source",
           "amount": 0,
@@ -11056,11 +11043,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "59.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "62_infantry_regiment",

@@ -175,6 +175,7 @@ class KeywordMovementMechanicsTests(unittest.TestCase):
         )
         state.battlefield["support_line"] = ["u1", "enemy"]
         engine = NativeRuleEngine(self.cards)
+        self.assertEqual(engine.rule_for("59_panzergrenadier").status, "implemented")
         engine.execute("59_panzergrenadier", "on_deploy", state,
                        EffectContext("p1", "59_panzergrenadier", "u1"))
         MoveUnitAction("p1", "u1").execute(state, self.cards)
