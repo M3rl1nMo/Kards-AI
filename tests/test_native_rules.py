@@ -808,6 +808,23 @@ class NativeRuleTests(unittest.TestCase):
 
         self.assertIn("ambush", unit.status.get("added_abilities", []))
 
+    def test_rule_driven_move_respects_frontline_capacity(self) -> None:
+        state = self.state()
+        mover = UnitState("mover", "garrison", 1, 3, "p1", "support_line")
+        state.players["p1"].units.append(mover)
+        state.battlefield["support_line"].append(mover.instance_id)
+        for index in range(5):
+            unit = UnitState("front-{0}".format(index), "garrison", 1, 3, "p1", "frontline")
+            state.players["p1"].units.append(unit)
+            state.battlefield["frontline"].append(unit.instance_id)
+
+        self.engine._move_units("frontline", RuleAction("move_to_frontline", "selected_target"),
+                                state, EffectContext("p1", target_unit_id=mover.instance_id))
+
+        self.assertEqual(mover.position, "support_line")
+        self.assertIn("native_rule_frontline_full_or_uncontrolled",
+                      [entry["event"] for entry in state.event_log])
+
 
 if __name__ == "__main__":
     unittest.main()

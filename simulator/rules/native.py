@@ -1878,6 +1878,9 @@ class NativeRuleEngine:
             if position == "support_line" and unit.status.get("cannot") in ("retreat", True):
                 state.event_log.append({"event": "unit_cannot_retreat", "unit_id": unit.instance_id})
                 continue
+            if position == "frontline" and not BattlefieldRules.can_move_to_frontline(state, unit):
+                state.event_log.append({"event": "native_rule_frontline_full_or_uncontrolled", "unit_id": unit.instance_id})
+                continue
             owner = state.players[unit.owner_id]
             if position == "support_line" and sum(candidate.position == "support_line" for candidate in owner.units) >= 4:
                 state.event_log.append({"event": "native_rule_support_line_full", "unit_id": unit.instance_id})
