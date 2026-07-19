@@ -34,7 +34,8 @@ A card is `implemented` only when **every** parsed action maps to a kind the exe
 
 | Kind | Occurrences |
 |---|---:|
-| control_effect | 12 |
+| control_effect | 13 |
+| destroy_undamaged | 1 |
 | frontline_limit | 1 |
 
 Unresolved cards remain non-executable by design. The mechanism-level implementation of the stubbed kinds above is owned by the simulator execution layer; this report only surfaces them honestly.
