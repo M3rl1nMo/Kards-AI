@@ -335,7 +335,7 @@ def _sentences(text: str) -> tuple[str, ...]:
 # Kinds whose effect is reversible at a turn boundary; these carry a `duration`.
 _TEMPORARY_KINDS = {
     "buff", "modify_attack", "modify_defense", "set_attack", "suppress", "grant_ability",
-    "modify_hand_cost", "op_cost_rule",
+    "modify_hand_cost", "op_cost_rule", "operation_cost_rule",
 }
 
 
@@ -611,17 +611,17 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "your units operate for 2 less this turn and are fully repaired" in original_lower:
         return (RuleAction("op_cost_rule", "owner", amount=-2), RuleAction("repair", "friendly_units"))
     if "your units operate for 1 less this turn" in original_lower:
-        return (RuleAction("op_cost_rule", "owner", amount=-1),)
+        return (RuleAction("operation_cost_rule", "owner", amount=-1),)
     if "if it is destroyed, your units operate for 1 less this turn" in original_lower:
         return (RuleAction("op_cost_rule", "owner", amount=-1),)
     if "your bombers operate for 2 less this turn" in original_lower:
-        return (RuleAction("op_cost_rule", "owner", amount=-2, scope="bomber"),)
+        return (RuleAction("operation_cost_rule", "owner", amount=-2, scope="bomber"),)
     if "your air units operate for free this turn" in original_lower:
-        return (RuleAction("op_cost_rule", "owner", set_cost=0, scope="air"),)
+        return (RuleAction("operation_cost_rule", "owner", set_cost=0, scope="air"),)
     if "enemy air units cost +2 to operate" in original_lower:
-        return (RuleAction("op_cost_rule", "enemy_hand", amount=2, scope="air"),)
+        return (RuleAction("operation_cost_rule", "enemy_hand", amount=2, scope="air"),)
     if "units deployed by the enemy have +2 operation cost" in original_lower:
-        return (RuleAction("op_cost_rule", "enemy_hand", amount=2),)
+        return (RuleAction("operation_cost_rule", "enemy_hand", amount=2),)
     if "it costs 1 less to deploy and operate" in original_lower:
         return (RuleAction("modify_deployment_cost", "source", amount=-1),
                 RuleAction("modify_operation_cost", "source", amount=-1))

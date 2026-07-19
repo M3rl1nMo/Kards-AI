@@ -7591,7 +7591,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "salvage",
+          "card_name": "blitz",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -7604,7 +7604,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "blitz",
+          "card_name": "salvage",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -12443,7 +12443,7 @@
           "condition": null
         },
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "owner",
           "amount": -1,
           "attack": 0,
@@ -12456,10 +12456,8 @@
           "condition": "If it is destroyed"
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "If it is destroyed, your units operate for 1 less this turn."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "dornier_do_17z",
@@ -12909,7 +12907,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "shock",
+          "card_name": "blitz",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -12922,7 +12920,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "blitz",
+          "card_name": "shock",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -14217,7 +14215,7 @@
           "condition": null
         },
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "owner",
           "amount": -1,
           "attack": 0,
@@ -14230,10 +14228,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your units operate for 1 less this turn."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "root_out_the_enemy",
@@ -19970,7 +19966,7 @@
       ],
       "actions": [
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "owner",
           "amount": 0,
           "attack": 0,
@@ -19996,10 +19992,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your air units operate for free this turn."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "desperate_measures",
@@ -20819,7 +20813,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "fury",
+          "card_name": "blitz",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -20832,7 +20826,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "blitz",
+          "card_name": "fury",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -23882,7 +23876,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "guard",
+          "card_name": "ambush",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -23895,7 +23889,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "ambush",
+          "card_name": "guard",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -26405,7 +26399,7 @@
       ],
       "actions": [
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "enemy_hand",
           "amount": 2,
           "attack": 0,
@@ -26418,10 +26412,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Enemy air units cost +2 to operate."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "51st_rifle_brigade",
@@ -32514,7 +32506,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "guard",
+          "card_name": "blitz",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -32527,7 +32519,7 @@
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": "blitz",
+          "card_name": "guard",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -37266,7 +37258,7 @@
       ],
       "actions": [
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "owner",
           "amount": -2,
           "attack": 0,
@@ -37279,10 +37271,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Deployment: Your bombers operate for 2 less this turn."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "b26_marauder",
@@ -37809,7 +37799,7 @@
       ],
       "actions": [
         {
-          "kind": "op_cost_rule",
+          "kind": "operation_cost_rule",
           "target": "enemy_hand",
           "amount": 2,
           "attack": 0,
@@ -37822,10 +37812,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Units deployed by the enemy have +2 operation cost."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "pb2y_coronado",

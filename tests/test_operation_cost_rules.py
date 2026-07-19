@@ -47,6 +47,10 @@ class OperationCostRuleTests(unittest.TestCase):
         NativeRuleEngine.revert_temporary(state, "p1", state.turn_number)
         self.assertEqual(_operation_cost(bomber, self.cards.get(bomber.card_id)), base_bomber)
 
+    def test_precise_operation_cost_cards_are_fully_covered(self) -> None:
+        for card_id in ("pursuit", "dawn_operations", "a20_havoc", "37_mm_antiaircraft_gun", "p40_n5"):
+            self.assertEqual(self.engine.rule_for(card_id).status, "implemented", card_id)
+
     def test_future_matching_unit_receives_persistent_rule_once(self) -> None:
         state = self.state()
         self.engine.execute("a20_havoc", "on_deploy", state, EffectContext("p1", "a20_havoc", "bomber"))
@@ -56,4 +60,3 @@ class OperationCostRuleTests(unittest.TestCase):
         self.assertEqual(_operation_cost(fresh, self.cards.get(fresh.card_id)), max(0, base - 2))
         apply_op_cost_rules(state, "p1", fresh, self.cards)
         self.assertEqual(_operation_cost(fresh, self.cards.get(fresh.card_id)), max(0, base - 2))
-

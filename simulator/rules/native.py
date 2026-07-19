@@ -865,7 +865,7 @@ class NativeRuleEngine:
             })
             state.event_log.append({"event": "hand_cost_modified", "player_id": owner, "amount": action.amount, "set_cost": action.set_cost})
             return
-        if action.kind == "op_cost_rule":
+        if action.kind in {"op_cost_rule", "operation_cost_rule"}:
             owner = opponent_id(state, context.player_id) if action.target == "enemy_hand" else context.player_id
             player = state.players[owner]
             rule_id = "op-rule-{0}-{1}".format(context.source_unit_id or context.source_card_id or "rule", len(player.op_cost_rules) + 1)
