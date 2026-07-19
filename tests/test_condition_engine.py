@@ -16,6 +16,7 @@ from simulator.cards.loader import CardDatabase
 from simulator.effects.resolver import EffectContext
 from simulator.rules.condition import evaluate
 from simulator.rules.native import NativeRuleEngine
+from simulator.core.state import GameState, PlayerState, UnitState
 
 
 class ConditionEngineTests(unittest.TestCase):
@@ -45,6 +46,22 @@ class ConditionEngineTests(unittest.TestCase):
 
     def test_evaluator_unknown_condition_is_lenient(self) -> None:
         self.assertTrue(evaluate("if enemy has 3 or more units.", "on_play", EffectContext("p1"), self.cards))
+
+    def test_evaluator_models_common_board_state_conditions(self) -> None:
+        state = GameState(
+            current_player="p1",
+            players={
+                "p1": PlayerState("p1", "Britain", units=[UnitState("self", "garrison", 4, 3, "p1", "frontline")]),
+                "p2": PlayerState("p2", "Germany", units=[UnitState("e1", "m3a3_honey", 2, 3, "p2"), UnitState("e2", "m3a3_honey", 2, 3, "p2")]),
+            },
+            battlefield={"frontline": ["self"], "support_line": ["e1", "e2"]},
+        )
+        ctx = EffectContext("p1", source_unit_id="self")
+        self.assertTrue(evaluate("if enemy has 2 or more units.", "on_play", ctx, self.cards, state))
+        self.assertTrue(evaluate("if you control a unit with 4 or more attack.", "on_play", ctx, self.cards, state))
+        self.assertFalse(evaluate("if you control another unit with 4 or more attack.", "on_play", ctx, self.cards, state))
+        self.assertTrue(evaluate("if you control the frontline.", "on_play", ctx, self.cards, state))
+        self.assertTrue(evaluate("if you have no cards in hand.", "on_play", ctx, self.cards, state))
 
     # --- End-to-end: condition NOT met -> action skipped ---
     def test_nakajima_does_not_buff_on_non_intel_play(self) -> None:
