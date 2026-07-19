@@ -516,7 +516,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "triggers twice" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "trigger an extra time" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "trigger all destruction effects of" in original_lower: return (RuleAction("repeat_effect", "source"),)
-    if "damage to stirling mk" in original_lower: return (RuleAction("control_effect", "source"),)
+    if "damage to stirling mk" in original_lower:
+        return (RuleAction("redirect_named_unit_damage", "source", card_name="STIRLING Mk I S3"),)
     if "destroy target undamaged unit" in original_lower:
         return (
             RuleAction("destroy_undamaged", "selected_target"),

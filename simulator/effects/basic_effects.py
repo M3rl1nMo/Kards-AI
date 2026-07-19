@@ -9,6 +9,21 @@ from simulator.core.turn import TurnManager
 
 def damage(state: GameState, target: UnitState | str, amount: int, source_player: str | None = None) -> None:
     if isinstance(target, UnitState):
+        redirectors = [
+            unit for unit in state.players[target.owner_id].units
+            if unit.instance_id != target.instance_id
+            and unit.status.get("redirect_damage_from_card_id") == target.card_id
+        ]
+        if redirectors:
+            redirector = redirectors[0]
+            state.event_log.append({
+                "event": "unit_damage_redirected",
+                "from_unit_id": target.instance_id,
+                "to_unit_id": redirector.instance_id,
+                "amount": amount,
+            })
+            damage(state, redirector, amount, source_player)
+            return
         # Immune units take no damage.
         if target.status.get("immune"):
             state.event_log.append({"event": "damage_ignored_immune", "target_id": target.instance_id})

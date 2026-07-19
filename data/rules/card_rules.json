@@ -687,12 +687,12 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "redirect_named_unit_damage",
           "target": "source",
           "amount": 0,
           "attack": 0,
           "defense": 0,
-          "card_name": null,
+          "card_name": "STIRLING Mk I S3",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -700,11 +700,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Damage to STIRLING Mk I S3 is dealt to this unit instead.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "gladiator_mk_i",

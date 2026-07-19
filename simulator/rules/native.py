@@ -526,6 +526,12 @@ class NativeRuleEngine:
             if unit is not None:
                 unit.status["hq_damage_redirect_to_enemy_hq"] = True
             return
+        if action.kind == "redirect_named_unit_damage" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            protected_card_id = self._by_name.get((action.card_name or "").upper())
+            if unit is not None and protected_card_id is not None:
+                unit.status["redirect_damage_from_card_id"] = protected_card_id
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

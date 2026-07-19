@@ -9,6 +9,7 @@ from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
 from simulator.core.hq import HQResolver
 from simulator.effects.resolver import EffectContext, EffectResolver
+from simulator.effects import basic_effects
 from simulator.rules.native import NativeRuleEngine
 
 
@@ -114,6 +115,21 @@ class NativeRuleTests(unittest.TestCase):
         enemy.defense = self.cards.get(enemy.card_id).defense or 0
         PlayCardAction("p1", "night_bombing", target_unit_id=enemy.instance_id).execute(state, self.cards)
         self.assertFalse(any(unit.instance_id == enemy.instance_id for unit in state.players["p2"].units))
+
+    def test_named_unit_damage_can_be_redirected_to_escort(self) -> None:
+        state = self.state()
+        stirling = self.cards.get("stirling_mk_i_s3")
+        escort = self.cards.get("gladiator_escort")
+        bomber = UnitState("stirling", stirling.id, stirling.attack or 0, stirling.defense or 0, "p1", "support_line")
+        protector = UnitState("escort", escort.id, escort.attack or 0, escort.defense or 0, "p1", "support_line")
+        state.players["p1"].units.extend([bomber, protector])
+        state.battlefield["support_line"].extend([bomber.instance_id, protector.instance_id])
+        self.engine.execute(escort.id, "on_deploy", state, EffectContext("p1", escort.id, protector.instance_id))
+
+        basic_effects.damage(state, bomber, 1, "p2")
+        self.assertEqual(bomber.defense, stirling.defense)
+        self.assertEqual(protector.defense, (escort.defense or 0) - 1)
+        self.assertTrue(any(event.get("event") == "unit_damage_redirected" for event in state.event_log))
 
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
