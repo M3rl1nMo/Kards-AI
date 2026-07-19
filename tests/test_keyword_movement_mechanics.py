@@ -10,7 +10,8 @@ repair, and move_to_support_line (retreat). Also asserts that conditional
 from pathlib import Path
 import unittest
 
-from simulator.actions.action import PlayCardAction
+from simulator.actions.action import AttackAction, MoveUnitAction, PlayCardAction
+from simulator.actions.validator import ActionValidationError
 from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
 from simulator.effects.resolver import EffectContext
@@ -143,6 +144,41 @@ class KeywordMovementMechanicsTests(unittest.TestCase):
                                state, EffectContext("p1", target_unit_id="u1"))
         self.assertEqual(damaged.defense, 5)  # restored to card.defense
         self.assertTrue(any(e.get("event") == "unit_repaired" for e in state.event_log))
+
+    # --- Operation sequencing: move versus attack ---
+
+    def test_regular_unit_cannot_attack_after_moving(self) -> None:
+        state = self._state(
+            p1_units=(("u1", "greif", 3, 4),),
+            p2_units=(("enemy", "m3a3_honey", 2, 3),),
+        )
+        state.battlefield["support_line"] = ["u1", "enemy"]
+        MoveUnitAction("p1", "u1").execute(state, self.cards)
+        with self.assertRaises(ActionValidationError):
+            AttackAction("p1", "u1", "enemy").validate(state, self.cards)
+
+    def test_blitz_tank_can_move_and_attack_on_deployment_turn(self) -> None:
+        state = self._state(
+            p1_units=(("u1", "panzer_iia", 2, 2),),
+            p2_units=(("enemy", "m3a3_honey", 2, 3),),
+        )
+        state.battlefield["support_line"] = ["u1", "enemy"]
+        unit = state.players["p1"].units[0]
+        unit.status["deployed_this_turn"] = True
+        MoveUnitAction("p1", "u1").execute(state, self.cards)
+        AttackAction("p1", "u1", "enemy").validate(state, self.cards)
+
+    def test_explicit_move_and_attack_rule_overrides_operation_limit(self) -> None:
+        state = self._state(
+            p1_units=(("u1", "59_panzergrenadier", 2, 3),),
+            p2_units=(("enemy", "m3a3_honey", 2, 3),),
+        )
+        state.battlefield["support_line"] = ["u1", "enemy"]
+        engine = NativeRuleEngine(self.cards)
+        engine.execute("59_panzergrenadier", "on_deploy", state,
+                       EffectContext("p1", "59_panzergrenadier", "u1"))
+        MoveUnitAction("p1", "u1").execute(state, self.cards)
+        AttackAction("p1", "u1", "enemy").validate(state, self.cards)
 
     # --- Native: move_to_support_line (retreat) ---
 

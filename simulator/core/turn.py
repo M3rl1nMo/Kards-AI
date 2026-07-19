@@ -25,6 +25,7 @@ class TurnManager:
             unit.status.pop("attacked_this_turn", None)
             unit.status.pop("attack_count", None)
             unit.status.pop("deployed_this_turn", None)
+            unit.status.pop("moved_this_turn", None)
             unit.status.pop("ambush_used_this_round", None)
         if draw_card:
             TurnManager.draw_card(state, player_id)

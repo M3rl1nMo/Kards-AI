@@ -11043,7 +11043,7 @@
           "condition": null
         },
         {
-          "kind": "control_effect",
+          "kind": "move_and_attack",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -11059,7 +11059,6 @@
       "status": "partial",
       "unresolved_fragments": [
         "59.",
-        "Panzergrenadier can move and attack during the same turn.",
         "[engine does not implement kind=control_effect]"
       ]
     },
@@ -17222,7 +17221,7 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "move_and_attack",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -17235,11 +17234,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your Alpine units can move and attack during the same turn.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "semovente_da_7518",

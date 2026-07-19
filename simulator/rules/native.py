@@ -511,6 +511,18 @@ class NativeRuleEngine:
             if unit:
                 unit.status["frontline_limit"] = action.amount
             return
+        if action.kind == "move_and_attack" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit is not None:
+                unit.status["can_move_and_attack"] = True
+            return
+        if action.kind == "move_and_attack_aura" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit is not None:
+                scopes = unit.status.setdefault("move_and_attack_auras", [])
+                if action.scope and action.scope not in scopes:
+                    scopes.append(action.scope)
+            return
         if action.kind == "next_order_damage_bonus":
             player = state.players[context.player_id]
             player.status["next_order_damage_bonus"] = max(0, action.amount)

@@ -210,6 +210,8 @@ class AttackAction(Action):
             raise ActionValidationError("Unit cannot attack from this line")
         if attacker.status.get("deployed_this_turn") and not KeywordEngine.can_attack_on_deploy(card, attacker):
             raise ActionValidationError("Unit cannot attack on its deployment turn")
+        if attacker.status.get("moved_this_turn") and not _can_move_and_attack(state, attacker, card, cards):
+            raise ActionValidationError("Unit cannot move and attack in the same turn")
         if self.target_unit_id is not None:
             target = find_unit(state, self.target_unit_id)
             if target.owner_id == self.player_id:
@@ -348,6 +350,9 @@ class MoveUnitAction(Action):
         unit = find_unit(state, self.unit_id)
         if unit.owner_id != self.player_id or not BattlefieldRules.can_move_to_frontline(state, unit):
             raise ActionValidationError("Unit cannot move to the frontline")
+        card = cards.get(unit.card_id)
+        if unit.status.get("deployed_this_turn") and not KeywordEngine.can_attack_on_deploy(card, unit):
+            raise ActionValidationError("Unit cannot move on its deployment turn")
         if state.players[self.player_id].resources.kredits < _operation_cost(unit, cards.get(unit.card_id)):
             raise ActionValidationError("Insufficient kredits for operation")
 
@@ -364,6 +369,7 @@ class MoveUnitAction(Action):
         state.battlefield["support_line"].remove(unit.instance_id)
         state.battlefield["frontline"].append(unit.instance_id)
         unit.position = "frontline"
+        unit.status["moved_this_turn"] = True
         bonus = unit.status.get("frontline_attack_bonus")
         if isinstance(bonus, int) and not unit.status.get("frontline_attack_bonus_applied"):
             unit.attack += bonus
@@ -521,3 +527,23 @@ def _cap_combat_damage(unit: UnitState, amount: int) -> int:
     if isinstance(cap, int) and cap >= 0:
         return min(amount, cap)
     return amount
+
+
+def _can_move_and_attack(state: GameState, unit: UnitState, card, cards: CardDatabase) -> bool:
+    """Whether a unit may take both move and attack operations this turn.
+
+    KARDS Blitz allows a newly deployed unit to operate.  The official Blitz
+    rule grants the move-and-attack combination to tanks; other unit types use
+    one operation unless a card's explicit continuous text grants the combo.
+    """
+    if card.type == "tank" and KeywordEngine.can_attack_on_deploy(card, unit):
+        return True
+    if unit.status.get("can_move_and_attack"):
+        return True
+    owner = state.players[unit.owner_id]
+    for source in owner.units:
+        scopes = source.status.get("move_and_attack_auras", ())
+        for scope in scopes:
+            if scope == "alpine" and KeywordEngine.has(card, "alpine", unit):
+                return True
+    return False
