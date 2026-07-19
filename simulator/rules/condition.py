@@ -28,6 +28,44 @@ def evaluate(
     if not condition:
         return True
     c = condition.lower()
+    metadata = getattr(context, "metadata", {}) or {}
+    event_player_id = metadata.get("event_player_id", getattr(context, "player_id", ""))
+    listener_player_id = getattr(context, "player_id", "")
+    event_target_owner_id = metadata.get("event_target_owner_id")
+    # Battlefield listeners receive the same event as the acting card.  These
+    # clauses distinguish the listener's owner from the player that caused the
+    # event; without this, a card reading "when an enemy unit attacks" either
+    # never fires or incorrectly fires for its controller's own attacks.
+    if "at the start of your turn" in c:
+        return event == "on_turn_start"
+    if "at the end of your turn" in c or "at the end of turn" in c:
+        return event == "on_turn_end"
+    if "when deployed" in c:
+        return event == "on_deploy"
+    if "when this unit attacks" in c or "after each time this unit attacks" in c:
+        return event == "on_attack" and (
+            not metadata.get("event_source_unit_id")
+            or metadata.get("event_source_unit_id") == getattr(context, "source_unit_id", None)
+        )
+    if "friendly unit is attacked" in c:
+        return event == "on_attack" and event_target_owner_id == listener_player_id
+    if "enemy unit attacks" in c or "enemy attacks" in c:
+        return event == "on_attack" and bool(event_player_id) and event_player_id != listener_player_id
+    if "when a unit attacks" in c or "when another unit attacks" in c:
+        return event == "on_attack"
+    if "enemy deploys" in c or "enemy unit is deployed" in c:
+        if event != "on_deploy" or not event_player_id or event_player_id == listener_player_id:
+            return False
+        if "tank unit" in c:
+            deployed = _played_card(context, cards)
+            return deployed is not None and deployed.type == "tank"
+        return True
+    if "when a unit is deployed" in c:
+        return event == "on_deploy"
+    if "friendly unit is destroyed" in c:
+        return event == "on_destroy" and event_player_id == listener_player_id
+    if "enemy unit is destroyed" in c:
+        return event == "on_destroy" and bool(event_player_id) and event_player_id != listener_player_id
     # Event-gated self-buffs.
     if "enemy hq" in c:
         return event == "on_enemy_hq_damaged"

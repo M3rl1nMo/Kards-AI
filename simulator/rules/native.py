@@ -118,9 +118,25 @@ class NativeRuleEngine:
         """Run matching triggers on a stable snapshot of battlefield units."""
         fired = 0
         units = [unit for player in state.players.values() for unit in tuple(player.units)]
+        event_metadata = {
+            **context.metadata,
+            "event_player_id": context.player_id,
+            "event_source_unit_id": context.source_unit_id,
+        }
+        if context.target_unit_id:
+            try:
+                target = find_unit(state, context.target_unit_id)
+                if target is not None:
+                    event_metadata["event_target_owner_id"] = target.owner_id
+            except Exception:
+                # A preceding effect may have removed the target (for example
+                # an order followed by a command-played event).  The event is
+                # still valid; it simply has no living target owner.
+                pass
         for unit in units:
             if unit.card_id not in self.cards:
                 continue
+            rule = self.rule_for(unit.card_id)
             if event in {"on_turn_start", "on_turn_end"} and unit.owner_id != context.player_id:
                 continue
             if event == "on_card_drawn" and unit.owner_id != context.player_id:
@@ -129,18 +145,57 @@ class NativeRuleEngine:
                 continue
             if event in {"on_targeted_by_enemy_effect", "on_targeted_by_enemy_attack"} and context.target_unit_id and unit.instance_id != context.target_unit_id:
                 continue
-            if event in {"on_attack", "on_damage_dealt", "on_combat_damage_dealt", "on_enemy_hq_damaged", "on_survives_combat"} and context.source_unit_id and unit.instance_id != context.source_unit_id:
+            if event == "on_attack" and context.source_unit_id and unit.instance_id != context.source_unit_id:
+                if not self._is_battlefield_listener(rule, event):
+                    continue
+            if event == "on_deploy":
+                # A unit's own Deployment text is executed directly by
+                # PlayCardAction.  This broadcast is only for cards which
+                # explicitly listen for another unit entering play.
+                if context.metadata.get("broadcast_listeners"):
+                    if not self._is_battlefield_listener(rule, event):
+                        continue
+                elif context.source_unit_id and unit.instance_id != context.source_unit_id:
+                    continue
+            if event in {"on_damage_dealt", "on_combat_damage_dealt", "on_enemy_hq_damaged", "on_survives_combat"} and context.source_unit_id and unit.instance_id != context.source_unit_id:
                 continue
             if event == "on_damage" and context.target_unit_id and unit.instance_id != context.target_unit_id:
                 continue
+            listener_target_id = context.target_unit_id
+            # For "When an enemy unit attacks, Retreat it", the pronoun
+            # refers to the attacker rather than the defended unit.  Friendly
+            # attacked listeners, in contrast, intentionally retain the
+            # defender as their selected target.
+            if event == "on_attack" and "enemy unit attacks" in rule.source_text.lower():
+                listener_target_id = context.source_unit_id
             unit_context = EffectContext(
                 unit.owner_id, unit.card_id, unit.instance_id,
-                context.target_unit_id, event, context.metadata,
+                listener_target_id, event, event_metadata,
             )
             if self.execute(unit.card_id, event, state, unit_context):
                 fired += 1
         state.event_log.append({"event": "native_event_emitted", "trigger": event, "fired": fired})
         return fired
+
+    @staticmethod
+    def _is_battlefield_listener(rule: CardRule, event: str) -> bool:
+        """Whether text describes an event caused by another battlefield unit.
+
+        The parser shares event names between a unit's own triggers and global
+        listeners.  Keeping this decision here prevents a deployment/attack
+        broadcast from replaying every existing unit's own text.
+        """
+        text = rule.source_text.lower()
+        if event == "on_attack":
+            return any(phrase in text for phrase in (
+                "friendly unit is attacked", "enemy unit attacks", "enemy attacks",
+                "when a unit attacks", "when another unit attacks",
+            ))
+        if event == "on_deploy":
+            return any(phrase in text for phrase in (
+                "enemy deploys", "enemy unit is deployed", "when a unit is deployed",
+            ))
+        return False
 
     def emit_deaths_since(self, state, start_index: int) -> int:
         """Dispatch destruction rules recorded by primitive state transitions."""
@@ -165,6 +220,27 @@ class NativeRuleEngine:
                                                 "card_id": hand_card_id, "amount": bonuses[hand_card_id]})
                 if self.execute(card_id, "on_destroy", state, EffectContext(player_id, card_id, event="on_destroy")):
                     fired += 1
+                # The destroyed card's own Destruction effect above is not a
+                # broadcast.  Remaining units may still listen to a friendly
+                # or enemy unit being destroyed.
+                destroyed_context = EffectContext(
+                    player_id, card_id, unit_id, unit_id, event="on_destroy",
+                    metadata={"event_player_id": player_id, "event_source_unit_id": unit_id},
+                )
+                for listener_player in state.players.values():
+                    for listener in tuple(listener_player.units):
+                        if listener.card_id not in self.cards:
+                            continue
+                        listener_rule = self.rule_for(listener.card_id)
+                        listener_text = listener_rule.source_text.lower()
+                        if not ("friendly unit is destroyed" in listener_text or "enemy unit is destroyed" in listener_text):
+                            continue
+                        listener_context = EffectContext(
+                            listener.owner_id, listener.card_id, listener.instance_id,
+                            unit_id, event="on_destroy", metadata=destroyed_context.metadata,
+                        )
+                        if self.execute(listener.card_id, "on_destroy", state, listener_context):
+                            fired += 1
                 if unit_id:
                     self._cleanup_continuous_effects(state, player_id, unit_id)
         return fired

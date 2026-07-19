@@ -760,6 +760,41 @@ class NativeRuleTests(unittest.TestCase):
         PlayCardAction("p1", "40_royal_marine", target_unit_id=target.instance_id).execute(state, self.cards)
         self.assertLess(target.defense, before)
 
+    def test_enemy_attack_listener_targets_the_attacker(self) -> None:
+        """In-play reactions hear another unit's attack, not just self attacks."""
+        state = self.state()
+        merchant_card = self.cards.get("the_merchant_navy")
+        merchant = UnitState("merchant", merchant_card.id, merchant_card.attack or 0,
+                             merchant_card.defense or 0, "p1", "support_line")
+        attacker = state.players["p2"].units[0]
+        attacker.position = "frontline"
+        defender = UnitState("defender", "garrison", 1, 3, "p1", "frontline")
+        state.players["p1"].units.extend((merchant, defender))
+        state.battlefield["support_line"].append(merchant.instance_id)
+        state.battlefield["frontline"] = [attacker.instance_id, defender.instance_id]
+
+        self.engine.emit("on_attack", state, EffectContext("p2", attacker.card_id,
+                         attacker.instance_id, defender.instance_id, event="on_attack"))
+
+        self.assertEqual(attacker.position, "support_line")
+
+    def test_enemy_deployment_listener_receives_deployed_unit(self) -> None:
+        """A listener can alter the newly deployed enemy without replaying own text."""
+        state = self.state()
+        trap_card = self.cards.get("lost_convoy")
+        trap = UnitState("trap", trap_card.id, trap_card.attack or 0,
+                         trap_card.defense or 0, "p1", "support_line")
+        deployed = state.players["p2"].units[0]
+        state.players["p1"].units.append(trap)
+        state.battlefield["support_line"].append(trap.instance_id)
+        before = deployed.attack
+
+        self.engine.emit("on_deploy", state, EffectContext("p2", deployed.card_id,
+                         deployed.instance_id, deployed.instance_id, event="on_deploy",
+                         metadata={"played_card_id": deployed.card_id, "broadcast_listeners": True}))
+
+        self.assertEqual(deployed.attack, before - 2)
+
 
 if __name__ == "__main__":
     unittest.main()

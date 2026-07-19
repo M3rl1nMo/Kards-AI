@@ -175,6 +175,17 @@ class PlayCardAction(Action):
                     state.event_log.append({"event": "deployment_effect_suppressed", "card_id": card.id, "unit_id": instance_id})
                 else:
                     engine_for(cards).execute(card.id, "on_deploy", state, context)
+                # Broadcast only explicit battlefield listeners such as
+                # "When the enemy deploys a unit".  Own Deployment rules were
+                # already executed above and must not be replayed.
+                engine_for(cards).emit(
+                    "on_deploy", state,
+                    EffectContext(
+                        self.player_id, card.id, instance_id, instance_id,
+                        event="on_deploy",
+                        metadata={"played_card_id": card.id, "broadcast_listeners": True},
+                    ),
+                )
                 # Persistent named deployment auras (for example, a source
                 # which says its named units get stats when deployed) are
                 # evaluated after the new unit's own Deployment effect has
