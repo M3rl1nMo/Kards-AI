@@ -130,6 +130,11 @@ class GameState:
                 units=[UnitState(**unit) for unit in data.get("units", ())],
                 active_countermeasures=copy.deepcopy(data.get("active_countermeasures", ())),
                 fatigue_damage=int(data.get("fatigue_damage", 0)),
+                cost_modifiers=copy.deepcopy(data.get("cost_modifiers", ())),
+                op_cost_rules=copy.deepcopy(data.get("op_cost_rules", ())),
+                temporary_effects=copy.deepcopy(data.get("temporary_effects", ())),
+                scheduled=copy.deepcopy(data.get("scheduled", ())),
+                status=copy.deepcopy(data.get("status", {})),
             )
             for player_id, data in payload["players"].items()
         }
@@ -144,6 +149,7 @@ class GameState:
             event_log=copy.deepcopy(payload.get("event_log", ())),
             mulligan_pending=list(payload.get("mulligan_pending", ())),
             rng_seed=payload.get("rng_seed"),
+            pending_cancels=copy.deepcopy(payload.get("pending_cancels", ())),
         )
 
     @classmethod
