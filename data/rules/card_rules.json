@@ -38153,9 +38153,9 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "combat_damage_cap",
           "target": "source",
-          "amount": 0,
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -38166,11 +38166,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Combat damage dealt to this unit is reduced to 1.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "75th_rangers",

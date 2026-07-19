@@ -134,6 +134,36 @@ class NativeRuleTests(unittest.TestCase):
         self.assertFalse(state.players["p2"].units)
         self.assertEqual(para.defense, para_card.defense)
 
+    def test_combat_damage_cap_only_limits_combat_damage(self) -> None:
+        state = self.state()
+        california_card = self.cards.get("2nd_california")
+        california = UnitState(
+            "california", california_card.id, california_card.attack or 0,
+            california_card.defense or 6, "p1", "frontline",
+        )
+        attacker = UnitState("attacker", "m3a3_honey", 5, 8, "p2", "frontline")
+        state.players["p1"].units = [california]
+        state.players["p2"].units = [attacker]
+        state.current_player = "p2"
+        state.players["p2"].resources = ResourceState(5, 5)
+        state.battlefield = {"frontline": [california.instance_id, attacker.instance_id], "support_line": []}
+        self.engine.emit("on_deploy", state, EffectContext("p1", california.card_id, california.instance_id))
+        self.assertEqual(california.status.get("combat_damage_cap"), 1)
+
+        defense_before = california.defense
+        AttackAction("p2", attacker.instance_id, california.instance_id).execute(state, self.cards)
+        self.assertEqual(california.defense, defense_before - 1)
+
+        # The wording is limited to combat: direct order/effect damage still
+        # uses the normal damage pipeline without the cap.
+        before_effect_damage = california.defense
+        EffectResolver(self.cards).resolve(
+            {"type": "damage", "target": "selected_target", "value": {"amount": 3}},
+            state,
+            EffectContext("p2", target_unit_id=california.instance_id),
+        )
+        self.assertEqual(california.defense, before_effect_damage - 3)
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]

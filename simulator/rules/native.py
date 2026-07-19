@@ -403,6 +403,16 @@ class NativeRuleEngine:
                 unit.status["cannot_attack_hq"] = True
             state.event_log.append({"event": "cannot_attack_hq_applied", "source_unit_id": context.source_unit_id})
             return
+        if action.kind == "combat_damage_cap" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["combat_damage_cap"] = max(0, action.amount)
+            state.event_log.append({
+                "event": "combat_damage_cap_applied",
+                "source_unit_id": context.source_unit_id,
+                "amount": action.amount,
+            })
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)

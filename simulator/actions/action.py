@@ -267,6 +267,7 @@ class AttackAction(Action):
             damage *= 2
         if attacker.status.get("triple_damage") == cards.get(target.card_id).type:
             damage *= 3
+        damage = _cap_combat_damage(target, damage)
         death_start = len(state.event_log)
         resolver.resolve({"type": "damage", "target": "selected_target", "value": {"amount": damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id))
         engine_for(cards).emit("on_damage_dealt", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, metadata={"damage_amount": damage}))
@@ -283,7 +284,8 @@ class AttackAction(Action):
         live_unit_ids = {unit.instance_id for player in state.players.values() for unit in player.units}
         if attacker.instance_id in live_unit_ids and target.instance_id in live_unit_ids:
             death_start = len(state.event_log)
-            resolver.resolve({"type": "damage", "target": "self", "value": {"amount": target.attack}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+            return_damage = _cap_combat_damage(attacker, target.attack)
+            resolver.resolve({"type": "damage", "target": "self", "value": {"amount": return_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
             engine_for(cards).emit_damage_since(state, death_start)
             engine_for(cards).emit_deaths_since(state, death_start)
         if attacker.instance_id in {unit.instance_id for player in state.players.values() for unit in player.units}:
@@ -475,3 +477,16 @@ def _target_tax(state: GameState, target_unit_id: str | None, acting_player_id: 
         return 0
     tax = target.status.get("target_or_attack_tax", 0)
     return tax if isinstance(tax, int) and tax > 0 else 0
+
+
+def _cap_combat_damage(unit: UnitState, amount: int) -> int:
+    """Apply a unit's persistent cap to incoming combat damage only.
+
+    Rule effects such as 2nd California explicitly mention *combat* damage;
+    order and triggered-effect damage must therefore continue through the
+    ordinary damage resolver unchanged.
+    """
+    cap = unit.status.get("combat_damage_cap")
+    if isinstance(cap, int) and cap >= 0:
+        return min(amount, cap)
+    return amount

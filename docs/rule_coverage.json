@@ -4,8 +4,8 @@
   "note": "Reads engine-coverage-aware status from data/rules/card_rules.json.",
   "total_cards": 1488,
   "status_counts": {
-    "implemented": 1458,
-    "partial": 30,
+    "implemented": 1459,
+    "partial": 29,
     "unresolved": 0
   },
   "categories": {
@@ -147,14 +147,14 @@
     },
     "damage_combat": {
       "label": "Damage, combat, destroy, repair, heal, HQ defense",
-      "card_count": 10,
-      "fragment_count": 10,
+      "card_count": 9,
+      "fragment_count": 9,
       "planned_action": "damage/destroy/pin/heal via EffectResolver + native",
       "status": "pending",
       "reason": "Damage/combat effect not yet mapped to a verified Action.",
       "by_type": {
         "fighter": 2,
-        "infantry": 4,
+        "infantry": 3,
         "countermeasure": 1,
         "tank": 2,
         "artillery": 1
@@ -168,7 +168,6 @@
         "type_89_chiro",
         "katyusha",
         "seahawk",
-        "2nd_california",
         "m6"
       ],
       "fragments": [
@@ -227,13 +226,6 @@
           "type": "fighter",
           "fragment": "Enemy cards deal 1 less damage.",
           "classified_from": "Enemy cards deal 1 less damage."
-        },
-        {
-          "card_id": "2nd_california",
-          "card_name": "2nd CALIFORNIA",
-          "type": "infantry",
-          "fragment": "Combat damage dealt to this unit is reduced to 1.",
-          "classified_from": "Combat damage dealt to this unit is reduced to 1."
         },
         {
           "card_id": "m6",
@@ -405,15 +397,15 @@
     },
     "ambiguous": {
       "label": "Insufficient source text / semantic ambiguity",
-      "card_count": 26,
-      "fragment_count": 31,
+      "card_count": 25,
+      "fragment_count": 30,
       "planned_action": "needs human / official KARDS rule confirmation",
       "status": "pending",
       "reason": "Source text is insufficient or semantically ambiguous.",
       "by_type": {
         "countermeasure": 2,
         "fighter": 2,
-        "infantry": 10,
+        "infantry": 9,
         "tank": 4,
         "order": 7,
         "artillery": 2,
@@ -443,7 +435,6 @@
         "kv2",
         "fortunes_of_war",
         "seahawk",
-        "2nd_california",
         "night_bombing",
         "m6"
       ],
@@ -641,13 +632,6 @@
           "card_id": "seahawk",
           "card_name": "SEAHAWK",
           "type": "fighter",
-          "fragment": "[engine does not implement kind=control_effect]",
-          "classified_from": "[engine does not implement kind=control_effect]"
-        },
-        {
-          "card_id": "2nd_california",
-          "card_name": "2nd CALIFORNIA",
-          "type": "infantry",
           "fragment": "[engine does not implement kind=control_effect]",
           "classified_from": "[engine does not implement kind=control_effect]"
         },
