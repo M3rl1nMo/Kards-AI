@@ -152,6 +152,20 @@ class NativeRuleTests(unittest.TestCase):
                             EffectContext("p1", source.card_id, source.instance_id, target.instance_id))
         self.assertEqual(target.status.get("redirect_damage_from_card_id"), "stirling_mk_i_s3")
 
+    def test_mayhem_swaps_selected_hand_unit_with_friendly_battlefield_unit(self) -> None:
+        state = self.state()
+        state.players["p1"].hand = ["mayhem", "m3a3_honey"]
+        target_card = self.cards.get("gladiator_escort")
+        target = UnitState("target", target_card.id, target_card.attack or 0, target_card.defense or 0, "p1", "support_line")
+        state.players["p1"].units.append(target)
+        state.battlefield["support_line"].append(target.instance_id)
+
+        PlayCardAction("p1", "mayhem", target_unit_id=target.instance_id, selected_card_id="m3a3_honey").execute(state, self.cards)
+        self.assertIn(target.card_id, state.players["p1"].hand)
+        replacement = next(unit for unit in state.players["p1"].units if unit.card_id == "m3a3_honey")
+        self.assertEqual(replacement.position, "support_line")
+        self.assertTrue(any(event.get("event") == "hand_battlefield_unit_swapped" for event in state.event_log))
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')

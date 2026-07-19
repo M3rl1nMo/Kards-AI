@@ -550,6 +550,31 @@ class NativeRuleEngine:
                 replayed += 1
             state.event_log.append({"event": "non_targeting_deployment_replayed", "count": replayed, "player_id": context.player_id})
             return
+        if action.kind == "swap_hand_unit_with_friendly" and context.target_unit_id:
+            selected_card_id = context.metadata.get("selected_card_id")
+            target = find_unit(state, context.target_unit_id)
+            if not isinstance(selected_card_id, str) or target is None or target.owner_id != context.player_id:
+                state.event_log.append({"event": "hand_battlefield_swap_failed", "reason": "invalid_selection"})
+                return
+            owner = state.players[context.player_id]
+            selected_card = self.cards.get(selected_card_id) if selected_card_id in self.cards else None
+            if selected_card is None or not selected_card.is_unit or selected_card_id not in owner.hand:
+                state.event_log.append({"event": "hand_battlefield_swap_failed", "reason": "invalid_hand_unit"})
+                return
+            owner.hand.remove(selected_card_id)
+            owner.units.remove(target)
+            owner.hand.append(target.card_id)
+            position = target.position
+            instance_id = "{0}-swap-{1}".format(selected_card_id, len(state.event_log) + 1)
+            replacement = UnitState(instance_id, selected_card_id, selected_card.attack or 0,
+                                    selected_card.defense or 0, context.player_id, position)
+            owner.units.append(replacement)
+            line = state.battlefield[position]
+            line[line.index(target.instance_id)] = replacement.instance_id
+            state.event_log.append({"event": "hand_battlefield_unit_swapped", "player_id": context.player_id,
+                                    "hand_card_id": selected_card_id, "returned_card_id": target.card_id,
+                                    "unit_id": replacement.instance_id})
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

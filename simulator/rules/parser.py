@@ -166,6 +166,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("hq_damage_redirect_to_enemy_hq", "source"),),
                             "implemented")
+        if "choose a unit in hand" in text.lower() and "swap it with a friendly unit on the battlefield" in text.lower():
+            return CardRule(card.id, text, ("on_play",),
+                            (RuleAction("swap_hand_unit_with_friendly", "selected_friendly"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -522,6 +526,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
         return (RuleAction("replay_non_targeting_deployment", "friendly_units"),)
     if "trigger a non-targeted deployment effect on a friendly unit" in original_lower:
         return (RuleAction("replay_non_targeting_deployment", "selected_friendly"),)
+    if "choose a unit in hand" in original_lower and "swap it with a friendly unit on the battlefield" in original_lower:
+        return (RuleAction("swap_hand_unit_with_friendly", "selected_friendly"),)
     if "destroy target undamaged unit" in original_lower:
         return (
             RuleAction("destroy_undamaged", "selected_target"),

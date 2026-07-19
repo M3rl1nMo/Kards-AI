@@ -36,6 +36,7 @@ class PlayCardAction(Action):
     card_id: str
     position: str = "support_line"
     target_unit_id: str | None = None
+    selected_card_id: str | None = None
 
     def validate(self, state: GameState, cards: CardDatabase) -> None:
         require_active_player(state, self.player_id)
@@ -58,6 +59,12 @@ class PlayCardAction(Action):
         if card.type == "countermeasure" and active:
             return
         rule = engine_for(cards).rule_for(card.id)
+        if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions):
+            if self.selected_card_id is None or self.selected_card_id not in player.hand:
+                raise ActionValidationError("This card requires a unit selected from hand")
+            selected_card = cards.get(self.selected_card_id) if self.selected_card_id in cards else None
+            if selected_card is None or not selected_card.is_unit:
+                raise ActionValidationError("Selected hand card must be a unit")
         if card.type != "countermeasure" and rule.needs_target:
             if self.target_unit_id is None:
                 raise ActionValidationError("This card requires a unit target")
@@ -122,7 +129,8 @@ class PlayCardAction(Action):
             state.battlefield[self.position].append(instance_id)
             apply_op_cost_rules(state, self.player_id, unit, cards)
             state.event_log.append({"event": "unit_deployed", "player_id": self.player_id, "card_id": self.card_id, "unit_id": instance_id})
-            context = EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id)
+            context = EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id,
+                                    metadata={"selected_card_id": self.selected_card_id} if self.selected_card_id else {})
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, instance_id, self.target_unit_id, event="on_targeted_by_enemy_effect"))
             has_deployment_effect = "deployment:" in (card.text or "").lower()
@@ -153,7 +161,8 @@ class PlayCardAction(Action):
                 return state
             state.graveyard.setdefault(self.player_id, []).append(self.card_id)
             state.event_log.append({"event": "command_played", "player_id": self.player_id, "card_id": self.card_id})
-            context = EffectContext(self.player_id, self.card_id, target_unit_id=self.target_unit_id)
+            context = EffectContext(self.player_id, self.card_id, target_unit_id=self.target_unit_id,
+                                    metadata={"selected_card_id": self.selected_card_id} if self.selected_card_id else {})
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, target_unit_id=self.target_unit_id, event="on_targeted_by_enemy_effect"))
             engine_for(cards).execute(card.id, "on_play", state, context)

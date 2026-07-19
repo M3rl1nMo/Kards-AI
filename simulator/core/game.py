@@ -83,12 +83,19 @@ class Simulator:
         for card_id in player.hand:
             card = self.cards.get(card_id)
             positions = ("support_line",)  # KARDS units deploy to the support line.
-            targets = all_units if rule_engine.rule_for(card_id).needs_target else [None]
+            rule = rule_engine.rule_for(card_id)
+            targets = all_units if rule.needs_target else [None]
+            selected_hand_cards = (
+                [candidate_id for candidate_id in player.hand if candidate_id in self.cards and self.cards.get(candidate_id).is_unit and candidate_id != card_id]
+                if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions)
+                else [None]
+            )
             for position in positions:
                 for target_unit_id in targets:
-                    action = PlayCardAction(player_id, card_id, position, target_unit_id)
-                    if _is_valid(action, self.state, self.cards):
-                        actions.append(action)
+                    for selected_card_id in selected_hand_cards:
+                        action = PlayCardAction(player_id, card_id, position, target_unit_id, selected_card_id)
+                        if _is_valid(action, self.state, self.cards):
+                            actions.append(action)
         enemy_id = opponent_id(self.state, player_id)
         for unit in player.units:
             move = MoveUnitAction(player_id, unit.instance_id)
