@@ -178,6 +178,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("suppress_deployment_effects", "source"),),
                             "implemented")
+        if "random effects always choose this unit" in text.lower():
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("random_effect_target_priority", "source"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -553,7 +557,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
             RuleAction("buff_deployed_matching_name", "source", attack=1, defense=1, card_name=name, scope="name"),
         )
     if "combat damage dealt to this unit is reduced to 1" in original_lower: return (RuleAction("combat_damage_cap", "source", amount=1),)
-    if "random effects always choose this unit" in original_lower: return (RuleAction("control_effect", "source"),)
+    if "random effects always choose this unit" in original_lower: return (RuleAction("random_effect_target_priority", "source"),)
     if "non-combat, non-attack damage dealt by your units" in original_lower: return (RuleAction("noncombat_unit_damage_bonus", "source", amount=1),)
     if "when your hq is damaged" in original_lower and "deal that amount of damage to this unit instead" in original_lower:
         return (RuleAction("hq_damage_redirect_to_source", "source"),)

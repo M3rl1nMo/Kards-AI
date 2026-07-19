@@ -11,6 +11,7 @@ from simulator.core.hq import HQResolver
 from simulator.effects.resolver import EffectContext, EffectResolver
 from simulator.effects import basic_effects
 from simulator.rules.native import NativeRuleEngine
+from simulator.rules.parser import RuleAction
 
 
 ROOT = Path(__file__).parents[1]
@@ -197,6 +198,19 @@ class NativeRuleTests(unittest.TestCase):
         PlayCardAction("p1", "welsh_guards", target_unit_id=target.instance_id).execute(state, self.cards)
         self.assertEqual(target.defense, before)
         self.assertTrue(any(event.get("event") == "deployment_effect_suppressed" for event in state.event_log))
+
+    def test_royal_scots_is_prioritized_by_random_enemy_effects(self) -> None:
+        state = self.state()
+        scots_card = self.cards.get("royal_scots")
+        scots = UnitState("scots", scots_card.id, scots_card.attack or 0, scots_card.defense or 0, "p2", "support_line")
+        other = UnitState("other", "m3a3_honey", 2, 3, "p2", "support_line")
+        state.players["p2"].units = [scots, other]
+        state.battlefield["support_line"] = [scots.instance_id, other.instance_id]
+        self.engine.execute(scots.card_id, "on_deploy", state, EffectContext("p2", scots.card_id, scots.instance_id))
+        before_scots, before_other = scots.defense, other.defense
+        self.engine._execute_action(RuleAction("damage", "random_enemy", amount=1), state, EffectContext("p1", "pak_36_fi"))
+        self.assertEqual(scots.defense, before_scots - 1)
+        self.assertEqual(other.defense, before_other)
 
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any

@@ -600,6 +600,11 @@ class NativeRuleEngine:
             if unit is not None:
                 unit.status["suppress_deployment_effects"] = True
             return
+        if action.kind == "random_effect_target_priority" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit is not None:
+                unit.status["random_effect_target_priority"] = True
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:
@@ -1305,7 +1310,10 @@ class NativeRuleEngine:
             if not candidates:
                 state.event_log.append({"event": "native_rule_no_random_target", "source_card_id": context.source_card_id})
                 return
-            target = random.Random((state.rng_seed or 0) + len(state.event_log)).choice(candidates)
+            priority = [unit for unit in candidates if unit.status.get("random_effect_target_priority")]
+            target = priority[0] if priority else random.Random((state.rng_seed or 0) + len(state.event_log)).choice(candidates)
+            if priority:
+                state.event_log.append({"event": "random_target_priority_applied", "unit_id": target.instance_id})
             context = EffectContext(context.player_id, context.source_card_id, context.source_unit_id, target.instance_id, context.event, context.metadata)
             selector = "selected_target"
         else:

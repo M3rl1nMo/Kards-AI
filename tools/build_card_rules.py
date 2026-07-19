@@ -73,6 +73,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "swap_hand_unit_with_friendly",
     "shock_tactics_choice",
     "suppress_deployment_effects",
+    "random_effect_target_priority",
     "noncombat_unit_damage_bonus",
     "ground_damage_bonus",
     "enemy_card_damage_reduction",

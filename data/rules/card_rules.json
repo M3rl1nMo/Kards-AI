@@ -2439,7 +2439,7 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "random_effect_target_priority",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -2449,14 +2449,11 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": "If in hand or on the battlefield"
+          "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "If in hand or on the battlefield, random effects always choose this unit.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "sdf",
