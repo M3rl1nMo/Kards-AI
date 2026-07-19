@@ -12,6 +12,7 @@ from simulator.effects.resolver import EffectContext, EffectResolver
 from simulator.effects import basic_effects
 from simulator.rules.native import NativeRuleEngine
 from simulator.rules.parser import RuleAction
+from simulator.rules.battlefield import BattlefieldRules
 
 
 ROOT = Path(__file__).parents[1]
@@ -225,6 +226,23 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual((target.attack, target.defense), (yak.attack, yak.defense))
         self.assertIn("from_the_people", state.players["p1"].hand)
         self.assertTrue(any(event.get("event") == "unit_converted" for event in state.event_log))
+
+    def test_black_prince_retreats_enemy_frontline_and_discards_overflow(self) -> None:
+        state = self.state()
+        black_card = self.cards.get("black_prince")
+        black = UnitState("black", black_card.id, black_card.attack or 0, black_card.defense or 0, "p1", "support_line")
+        state.players["p1"].units.append(black)
+        enemy_support = [UnitState("s{0}".format(i), "m3a3_honey", 2, 3, "p2", "support_line") for i in range(4)]
+        enemy_front = [UnitState("f{0}".format(i), "m3a3_honey", 2, 3, "p2", "frontline") for i in range(5)]
+        state.players["p2"].units = [*enemy_support, *enemy_front]
+        state.battlefield = {"frontline": [unit.instance_id for unit in enemy_front],
+                             "support_line": [black.instance_id, *[unit.instance_id for unit in enemy_support]]}
+        self.engine.execute(black.card_id, "on_deploy", state, EffectContext("p1", black.card_id, black.instance_id))
+        self.assertEqual(sum(unit.position == "support_line" for unit in state.players["p2"].units), 4)
+        self.assertEqual(sum(unit.position == "frontline" for unit in state.players["p2"].units), 0)
+        self.assertEqual(len(state.players["p2"].hand), 4)
+        self.assertEqual(len(state.graveyard["p2"]), 1)
+        self.assertEqual(BattlefieldRules.frontline_limit(state), 2)
 
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any

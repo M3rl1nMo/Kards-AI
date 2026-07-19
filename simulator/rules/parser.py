@@ -186,6 +186,11 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("random_effect_target_priority", "source"),),
                             "implemented")
+        if "only 2 units can occupy the frontline" in text.lower() and "retreat all units in it" in text.lower():
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("frontline_limit", "source", amount=2),
+                             RuleAction("retreat_enemy_frontline_all", "enemy_units")),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []

@@ -5280,8 +5280,8 @@
           "condition": null
         },
         {
-          "kind": "move_to_support_line",
-          "target": "selected_target",
+          "kind": "retreat_enemy_frontline_all",
+          "target": "enemy_units",
           "amount": 0,
           "attack": 0,
           "defense": 0,
@@ -5293,10 +5293,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "[engine does not implement kind=frontline_limit]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "black_watch",

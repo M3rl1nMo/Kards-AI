@@ -629,6 +629,42 @@ class NativeRuleEngine:
             state.event_log.append({"event": "unit_converted", "unit_id": target.instance_id,
                                     "from_card_id": target_card.id, "to_card_id": yak.id})
             return
+        if action.kind == "retreat_enemy_frontline_all":
+            enemy_id = opponent_id(state, context.player_id)
+            enemy = state.players[enemy_id]
+            frontline_units = [unit for unit in enemy.units if unit.position == "frontline"]
+            free_slots = max(0, 4 - sum(unit.position == "support_line" for unit in enemy.units))
+            # Return only as many support units as are needed to make room.
+            # A full hand discards the displaced support unit instead.
+            needed = max(0, len(frontline_units) - free_slots)
+            supports = [unit for unit in enemy.units if unit.position == "support_line"]
+            for unit in reversed(supports[:needed]):
+                if unit.instance_id in state.battlefield["support_line"]:
+                    state.battlefield["support_line"].remove(unit.instance_id)
+                enemy.units.remove(unit)
+                if len(enemy.hand) < 9:
+                    enemy.hand.append(unit.card_id)
+                    event = "black_prince_support_returned"
+                else:
+                    state.graveyard.setdefault(enemy_id, []).append(unit.card_id)
+                    event = "black_prince_support_discarded"
+                self._cleanup_continuous_effects(state, enemy_id, unit.instance_id)
+                state.event_log.append({"event": event, "unit_id": unit.instance_id, "card_id": unit.card_id})
+            # Retreat frontline units in stable front-line order.  Any unit
+            # still without a support slot is discarded as specified.
+            for unit in tuple(frontline_units):
+                if unit.instance_id in state.battlefield["frontline"]:
+                    state.battlefield["frontline"].remove(unit.instance_id)
+                if sum(candidate.position == "support_line" for candidate in enemy.units) < 4:
+                    unit.position = "support_line"
+                    state.battlefield["support_line"].append(unit.instance_id)
+                    state.event_log.append({"event": "black_prince_frontline_retreated", "unit_id": unit.instance_id})
+                else:
+                    enemy.units.remove(unit)
+                    state.graveyard.setdefault(enemy_id, []).append(unit.card_id)
+                    self._cleanup_continuous_effects(state, enemy_id, unit.instance_id)
+                    state.event_log.append({"event": "black_prince_frontline_discarded", "unit_id": unit.instance_id, "card_id": unit.card_id})
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:
