@@ -212,6 +212,20 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(scots.defense, before_scots - 1)
         self.assertEqual(other.defense, before_other)
 
+    def test_out_with_the_old_triggers_destruction_then_replaces_unit(self) -> None:
+        state = self.state()
+        target_card = self.cards.get("polikarpov_po2ii")
+        target = UnitState("po2", target_card.id, target_card.attack or 0, (target_card.defense or 0) - 1, "p1", "support_line")
+        state.players["p1"].units.append(target)
+        state.battlefield["support_line"].append(target.instance_id)
+        state.players["p1"].hand = ["out_with_the_old"]
+        PlayCardAction("p1", "out_with_the_old", target_unit_id=target.instance_id).execute(state, self.cards)
+        yak = self.cards.get("yak_9")
+        self.assertEqual(target.card_id, yak.id)
+        self.assertEqual((target.attack, target.defense), (yak.attack, yak.defense))
+        self.assertIn("from_the_people", state.players["p1"].hand)
+        self.assertTrue(any(event.get("event") == "unit_converted" for event in state.event_log))
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')

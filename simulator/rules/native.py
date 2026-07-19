@@ -605,6 +605,30 @@ class NativeRuleEngine:
             if unit is not None:
                 unit.status["random_effect_target_priority"] = True
             return
+        if action.kind == "trigger_destroy_and_convert" and context.target_unit_id:
+            target = find_unit(state, context.target_unit_id)
+            target_card = self.cards.get(target.card_id) if target is not None else None
+            yak_id = self._by_name.get((action.card_name or "YAK 9").upper())
+            yak = self.cards.get(yak_id) if yak_id else None
+            if (target is None or target_card is None or yak is None
+                    or target_card.nation != "Soviet" or target_card.type not in {"fighter", "bomber"}
+                    or target.defense >= (target_card.defense or 0)):
+                state.event_log.append({"event": "destroy_convert_failed", "unit_id": context.target_unit_id})
+                return
+            # The destruction rule belongs to the target's owner.  It is
+            # deliberately invoked before replacement, while the original
+            # card identity is still available to its trigger resolver.
+            self.execute(target.card_id, "on_destroy", state,
+                         EffectContext(target.owner_id, target.card_id, target.instance_id,
+                                       event="on_destroy", metadata={"triggered_by": context.source_card_id}))
+            target.card_id = yak.id
+            target.attack = yak.attack or 0
+            target.defense = yak.defense or 0
+            target.modifiers.clear()
+            target.status.clear()
+            state.event_log.append({"event": "unit_converted", "unit_id": target.instance_id,
+                                    "from_card_id": target_card.id, "to_card_id": yak.id})
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

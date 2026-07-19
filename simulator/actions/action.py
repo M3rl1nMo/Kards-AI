@@ -104,6 +104,12 @@ class PlayCardAction(Action):
                 printed_defense = cards.get(target.card_id).defense
                 if printed_defense is None or target.defense != printed_defense:
                     raise ActionValidationError("This card requires an undamaged unit target")
+            if any(action.kind == "trigger_destroy_and_convert" for action in rule.actions):
+                target_card = cards.get(target.card_id)
+                if target_card.nation != "Soviet" or target_card.type not in {"fighter", "bomber"}:
+                    raise ActionValidationError("This card requires a Soviet air unit target")
+                if target_card.defense is None or target.defense >= target_card.defense:
+                    raise ActionValidationError("This card requires a damaged unit target")
         elif self.target_unit_id is not None:
             raise ActionValidationError("This card does not take a unit target")
         target_tax = _target_tax(state, self.target_unit_id, self.player_id)

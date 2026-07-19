@@ -178,6 +178,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("suppress_deployment_effects", "source"),),
                             "implemented")
+        if "trigger the destruction effects on a damaged soviet air unit" in text.lower() and "convert it into yak 9" in text.lower():
+            return CardRule(card.id, text, ("on_play",),
+                            (RuleAction("trigger_destroy_and_convert", "selected_target", card_name="YAK 9"),),
+                            "implemented")
         if "random effects always choose this unit" in text.lower():
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("random_effect_target_priority", "source"),),
