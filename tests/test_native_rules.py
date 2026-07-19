@@ -131,6 +131,27 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(protector.defense, (escort.defense or 0) - 1)
         self.assertTrue(any(event.get("event") == "unit_damage_redirected" for event in state.event_log))
 
+    def test_air_escort_replays_non_targeting_deployment_effects(self) -> None:
+        state = self.state()
+        escort = self.cards.get("gladiator_escort")
+        unit = UnitState("escort", escort.id, escort.attack or 0, escort.defense or 0, "p1", "support_line")
+        state.players["p1"].units.append(unit)
+        state.battlefield["support_line"].append(unit.instance_id)
+        self.engine.execute("air_escort", "on_play", state, EffectContext("p1", "air_escort"))
+        self.assertEqual(unit.status.get("redirect_damage_from_card_id"), "stirling_mk_i_s3")
+
+    def test_savoia_replays_selected_friendly_non_targeting_deployment(self) -> None:
+        state = self.state()
+        escort = self.cards.get("gladiator_escort")
+        source_card = self.cards.get("savoiamarchetti_sm_79")
+        source = UnitState("savoia", source_card.id, source_card.attack or 0, source_card.defense or 0, "p1", "support_line")
+        target = UnitState("escort", escort.id, escort.attack or 0, escort.defense or 0, "p1", "support_line")
+        state.players["p1"].units.extend([source, target])
+        state.battlefield["support_line"].extend([source.instance_id, target.instance_id])
+        self.engine.execute(source.card_id, "on_deploy", state,
+                            EffectContext("p1", source.card_id, source.instance_id, target.instance_id))
+        self.assertEqual(target.status.get("redirect_damage_from_card_id"), "stirling_mk_i_s3")
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')

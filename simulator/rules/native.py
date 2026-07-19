@@ -532,6 +532,24 @@ class NativeRuleEngine:
             if unit is not None and protected_card_id is not None:
                 unit.status["redirect_damage_from_card_id"] = protected_card_id
             return
+        if action.kind == "replay_non_targeting_deployment":
+            candidates = _resolve_units(action.target, state, context)
+            replayed = 0
+            for unit in candidates:
+                # Replaying the source would allow a self-referential replay
+                # card to recurse forever. Non-targeting deployment text on
+                # other friendly units is the actual reusable effect here.
+                if unit.instance_id == context.source_unit_id:
+                    continue
+                rule = self.rule_for(unit.card_id)
+                if "on_deploy" not in rule.triggers or rule.needs_target:
+                    continue
+                self.execute(unit.card_id, "on_deploy", state,
+                             EffectContext(unit.owner_id, unit.card_id, unit.instance_id,
+                                           event="on_deploy", metadata={"replayed_deployment": True}))
+                replayed += 1
+            state.event_log.append({"event": "non_targeting_deployment_replayed", "count": replayed, "player_id": context.player_id})
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

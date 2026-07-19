@@ -518,6 +518,10 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "trigger all destruction effects of" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "damage to stirling mk" in original_lower:
         return (RuleAction("redirect_named_unit_damage", "source", card_name="STIRLING Mk I S3"),)
+    if "trigger non-targeting deployment effects on friendly units on the battlefield" in original_lower:
+        return (RuleAction("replay_non_targeting_deployment", "friendly_units"),)
+    if "trigger a non-targeted deployment effect on a friendly unit" in original_lower:
+        return (RuleAction("replay_non_targeting_deployment", "selected_friendly"),)
     if "destroy target undamaged unit" in original_lower:
         return (
             RuleAction("destroy_undamaged", "selected_target"),
@@ -546,10 +550,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "also counts as a tank" in original_lower: return (RuleAction("grant_trait", "source", card_name="tank"),)
     if "has +2 attack while in the frontline" in original_lower: return (RuleAction("frontline_attack_bonus", "source", amount=2),)
     if "swap a position with a friendly unit" in original_lower: return (RuleAction("swap_with_friendly", "selected_friendly"),)
-    if "trigger non-targeting deployment effects on friendly" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
     if "this unit costs 1 more each time you lose" in original_lower: return (RuleAction("control_effect", "source"),)
     if "your alpine units can move and attack" in original_lower: return (RuleAction("move_and_attack_aura", "source", scope="alpine"),)
-    if "trigger a non-targeted deployment effect on a friendly" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
     if "the next damage order you give this turn deals +1" in original_lower: return (RuleAction("next_order_damage_bonus", "owner", amount=1, duration="this_turn"),)
     if "deals 0-1 additional damage" in original_lower: return (RuleAction("random_combat_damage", "source", amount=1),)
     if "deal excess damage to the enemy hq" in original_lower: return (RuleAction("hq_excess", "source"),)

@@ -69,6 +69,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "hq_damage_redirect_to_source",
     "hq_damage_redirect_to_enemy_hq",
     "redirect_named_unit_damage",
+    "replay_non_targeting_deployment",
     "noncombat_unit_damage_bonus",
     "ground_damage_bonus",
     "enemy_card_damage_reduction",
