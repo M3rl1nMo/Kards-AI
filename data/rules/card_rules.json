@@ -38350,12 +38350,25 @@
       ],
       "actions": [
         {
-          "kind": "destroy",
+          "kind": "destroy_undamaged",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
           "defense": 0,
           "card_name": null,
+          "scope": "",
+          "min_cost": 0,
+          "set_cost": null,
+          "duration": null,
+          "condition": null
+        },
+        {
+          "kind": "control_effect",
+          "target": "enemy_units",
+          "amount": 0,
+          "attack": 0,
+          "defense": 0,
+          "card_name": "randomly rearrange enemy units",
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
@@ -38378,7 +38391,10 @@
       ],
       "status": "partial",
       "unresolved_fragments": [
+        "Destroy target undamaged unit",
         "randomly rearrange enemy units on the battlefield.",
+        "[engine does not implement kind=destroy_undamaged]",
+        "[engine does not implement kind=control_effect] randomly rearrange enemy units",
         "[engine does not implement kind=control_effect]"
       ]
     },

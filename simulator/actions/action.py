@@ -83,6 +83,10 @@ class PlayCardAction(Action):
             max_destroy_cost = next((action.amount for action in rule.actions if action.kind == "destroy_cost_lte"), None)
             if max_destroy_cost is not None and cards.get(target.card_id).kredits > max_destroy_cost:
                 raise ActionValidationError("Target exceeds this card's destroy cost limit")
+            if any(action.kind == "destroy_undamaged" for action in rule.actions):
+                printed_defense = cards.get(target.card_id).defense
+                if printed_defense is None or target.defense != printed_defense:
+                    raise ActionValidationError("This card requires an undamaged unit target")
         elif self.target_unit_id is not None:
             raise ActionValidationError("This card does not take a unit target")
         target_tax = _target_tax(state, self.target_unit_id, self.player_id)

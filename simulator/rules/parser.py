@@ -517,6 +517,11 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "trigger an extra time" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "trigger all destruction effects of" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "damage to stirling mk" in original_lower: return (RuleAction("control_effect", "source"),)
+    if "destroy target undamaged unit" in original_lower:
+        return (
+            RuleAction("destroy_undamaged", "selected_target"),
+            RuleAction("control_effect", "enemy_units", card_name="randomly rearrange enemy units"),
+        )
     # A named deployment aura has two independent continuous pieces: a
     # hand-cost modifier while the source remains in play, and a stat bonus
     # applied exactly once as each matching unit enters play.  Keep this as a

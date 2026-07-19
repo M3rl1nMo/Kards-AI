@@ -301,6 +301,16 @@ class NativeRuleEngine:
             unit.defense = self.cards.get(unit.card_id).defense or unit.defense
             state.event_log.append({"event": "unit_retreated_and_repaired", "unit_id": unit.instance_id})
             return
+        if action.kind == "destroy_undamaged" and context.target_unit_id:
+            unit = find_unit(state, context.target_unit_id)
+            card = self.cards.get(unit.card_id) if unit is not None else None
+            if unit is None or card is None or unit.defense != card.defense:
+                state.event_log.append({"event": "native_rule_undamaged_destroy_failed", "unit_id": context.target_unit_id})
+                return
+            start = len(state.event_log)
+            basic_effects.destroy(state, unit)
+            self.emit_deaths_since(state, start)
+            return
         if action.kind == "grant_ability":
             ability = (action.card_name or "").strip()
             if not ability:
