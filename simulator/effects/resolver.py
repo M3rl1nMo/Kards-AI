@@ -62,7 +62,11 @@ class EffectResolver:
             amount += self._unit_damage_bonus(state, context)
             amount = max(0, amount - self._enemy_card_damage_reduction(state, context))
             for target in targets:
-                basic_effects.damage(state, target, amount, context.player_id)
+                final_amount = amount
+                if isinstance(target, UnitState) and self._friendly_order_damage_uses_armor(state, context, target):
+                    from simulator.rules.keywords import KeywordEngine
+                    final_amount = max(0, final_amount - KeywordEngine.heavy_armor(self.cards.get(target.card_id), target))
+                basic_effects.damage(state, target, final_amount, context.player_id)
         elif kind == "heal":
             for target in targets:
                 basic_effects.heal(state, target, amount)
@@ -177,6 +181,14 @@ class EffectResolver:
         return sum(
             value for unit in state.players[defender_id].units
             if isinstance((value := unit.status.get("enemy_card_damage_reduction")), int) and value > 0
+        )
+
+    def _friendly_order_damage_uses_armor(self, state: GameState, context: EffectContext, target: UnitState) -> bool:
+        return (
+            context.source_card_id in self.cards
+            and self.cards.get(context.source_card_id).type == "order"
+            and target.owner_id == context.player_id
+            and any(unit.status.get("friendly_order_damage_armor") for unit in state.players[context.player_id].units)
         )
 
     def _targets(self, selector: str, state: GameState, context: EffectContext) -> list[UnitState | str]:

@@ -448,6 +448,11 @@ class NativeRuleEngine:
             if unit:
                 unit.status["enemy_card_damage_reduction"] = max(0, action.amount)
             return
+        if action.kind == "friendly_order_damage_armor" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["friendly_order_damage_armor"] = True
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)

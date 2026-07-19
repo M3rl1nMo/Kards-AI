@@ -32311,7 +32311,7 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "friendly_order_damage_armor",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -32324,11 +32324,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Order damage to a friendly unit is reduced by its Heavy Armor.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "strategic_focus",
