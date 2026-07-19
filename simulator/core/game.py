@@ -90,12 +90,19 @@ class Simulator:
                 if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions)
                 else [None]
             )
+            has_high_attack = any(unit.attack >= 4 for unit in player.units)
+            selected_options = (
+                [None] if has_high_attack else ["blitz", "shock"]
+                if any(action.kind == "shock_tactics_choice" for action in rule.actions)
+                else [None]
+            )
             for position in positions:
                 for target_unit_id in targets:
                     for selected_card_id in selected_hand_cards:
-                        action = PlayCardAction(player_id, card_id, position, target_unit_id, selected_card_id)
-                        if _is_valid(action, self.state, self.cards):
-                            actions.append(action)
+                        for selected_option in selected_options:
+                            action = PlayCardAction(player_id, card_id, position, target_unit_id, selected_card_id, selected_option)
+                            if _is_valid(action, self.state, self.cards):
+                                actions.append(action)
         enemy_id = opponent_id(self.state, player_id)
         for unit in player.units:
             move = MoveUnitAction(player_id, unit.instance_id)

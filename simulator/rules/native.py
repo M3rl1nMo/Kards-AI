@@ -575,6 +575,26 @@ class NativeRuleEngine:
                                     "hand_card_id": selected_card_id, "returned_card_id": target.card_id,
                                     "unit_id": replacement.instance_id})
             return
+        if action.kind == "shock_tactics_choice" and context.target_unit_id:
+            target = find_unit(state, context.target_unit_id)
+            target_card = self.cards.get(target.card_id) if target is not None else None
+            if target is None or target_card is None or target_card.type not in {"infantry", "tank", "artillery"}:
+                state.event_log.append({"event": "shock_tactics_failed", "reason": "invalid_target"})
+                return
+            if any(unit.attack >= 4 for unit in state.players[context.player_id].units):
+                abilities = ("blitz", "shock")
+            else:
+                option = context.metadata.get("selected_option")
+                if option not in {"blitz", "shock"}:
+                    state.event_log.append({"event": "shock_tactics_failed", "reason": "choice_required"})
+                    return
+                abilities = (option,)
+            granted = target.status.setdefault("added_abilities", [])
+            for ability in abilities:
+                if ability not in granted:
+                    granted.append(ability)
+            state.event_log.append({"event": "shock_tactics_applied", "unit_id": target.instance_id, "abilities": list(abilities)})
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

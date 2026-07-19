@@ -170,6 +170,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_play",),
                             (RuleAction("swap_hand_unit_with_friendly", "selected_friendly"),),
                             "implemented")
+        if "choose one" in text.lower() and "give a ground unit blitz or shock" in text.lower():
+            return CardRule(card.id, text, ("on_play",),
+                            (RuleAction("shock_tactics_choice", "selected_target", scope="ground"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []

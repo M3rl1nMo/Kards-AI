@@ -166,6 +166,24 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(replacement.position, "support_line")
         self.assertTrue(any(event.get("event") == "hand_battlefield_unit_swapped" for event in state.event_log))
 
+    def test_shock_tactics_uses_explicit_choice_or_grants_both(self) -> None:
+        state = self.state()
+        state.players["p1"].hand = ["shock_tactics"]
+        target = UnitState("ground", "m3a3_honey", 2, 3, "p1", "support_line")
+        state.players["p1"].units.append(target)
+        state.battlefield["support_line"].append(target.instance_id)
+        PlayCardAction("p1", "shock_tactics", target_unit_id=target.instance_id, selected_option="shock").execute(state, self.cards)
+        self.assertEqual(target.status.get("added_abilities"), ["shock"])
+
+        state = self.state()
+        state.players["p1"].hand = ["shock_tactics"]
+        target = UnitState("ground", "m3a3_honey", 2, 3, "p1", "support_line")
+        high_attack = UnitState("high", "m3a3_honey", 4, 3, "p1", "support_line")
+        state.players["p1"].units.extend([target, high_attack])
+        state.battlefield["support_line"].extend([target.instance_id, high_attack.instance_id])
+        PlayCardAction("p1", "shock_tactics", target_unit_id=target.instance_id).execute(state, self.cards)
+        self.assertEqual(set(target.status.get("added_abilities", [])), {"blitz", "shock"})
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')

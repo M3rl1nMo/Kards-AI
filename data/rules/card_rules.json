@@ -28544,50 +28544,21 @@
       ],
       "actions": [
         {
-          "kind": "grant_ability",
+          "kind": "shock_tactics_choice",
           "target": "selected_target",
-          "amount": 0,
-          "attack": 0,
-          "defense": 0,
-          "card_name": "blitz",
-          "scope": "ground",
-          "min_cost": 0,
-          "set_cost": null,
-          "duration": null,
-          "condition": null
-        },
-        {
-          "kind": "grant_ability",
-          "target": "selected_target",
-          "amount": 0,
-          "attack": 0,
-          "defense": 0,
-          "card_name": "shock",
-          "scope": "ground",
-          "min_cost": 0,
-          "set_cost": null,
-          "duration": null,
-          "condition": null
-        },
-        {
-          "kind": "control_effect",
-          "target": "friendly_units",
           "amount": 0,
           "attack": 0,
           "defense": 0,
           "card_name": null,
-          "scope": "",
+          "scope": "ground",
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": "if you control a unit with 4 or more attack."
+          "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Apply both if you control a unit with 4 or more attack.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "siberian_transfer",
