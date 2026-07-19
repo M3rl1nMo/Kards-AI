@@ -1,0 +1,1265 @@
+{
+  "schema_version": 1,
+  "generated_by": "tools/classify_coverage.py",
+  "note": "Reads engine-coverage-aware status from data/rules/card_rules.json.",
+  "total_cards": 1488,
+  "status_counts": {
+    "implemented": 1412,
+    "partial": 76,
+    "unresolved": 0
+  },
+  "categories": {
+    "resource_cost": {
+      "label": "Resource / cost modification (incl. first-per-turn)",
+      "card_count": 11,
+      "fragment_count": 11,
+      "planned_action": "cost_modifier model on PlayerState + card_play_cost hook",
+      "status": "pending",
+      "reason": "Cost text not yet parsed into a player cost modifier.",
+      "by_type": {
+        "infantry": 3,
+        "fighter": 4,
+        "tank": 1,
+        "order": 1,
+        "artillery": 1,
+        "bomber": 1
+      },
+      "card_ids": [
+        "raf_ground_crew",
+        "3rd_canadian_division",
+        "bf_110_c_zerstrer",
+        "panzer_ivj",
+        "the_great_expanse",
+        "37_mm_antiaircraft_gun",
+        "beriev_be4",
+        "the_deuce",
+        "l4_grasshopper",
+        "p40_n5",
+        "b24d"
+      ],
+      "fragments": [
+        {
+          "card_id": "raf_ground_crew",
+          "card_name": "RAF GROUND CREW",
+          "type": "infantry",
+          "fragment": "Your Spitfires cost 2 less to deploy and get +1+1 when deployed.",
+          "classified_from": "Your Spitfires cost 2 less to deploy and get +1+1 when deployed."
+        },
+        {
+          "card_id": "3rd_canadian_division",
+          "card_name": "3rd CANADIAN DIVISION",
+          "type": "infantry",
+          "fragment": "Your Salvaged units cost 2 less to deploy.",
+          "classified_from": "Your Salvaged units cost 2 less to deploy."
+        },
+        {
+          "card_id": "bf_110_c_zerstrer",
+          "card_name": "BF 110 C ZERSTÖRER",
+          "type": "fighter",
+          "fragment": "Increase operation cost by 1 after each time this unit attacks.",
+          "classified_from": "Increase operation cost by 1 after each time this unit attacks."
+        },
+        {
+          "card_id": "panzer_ivj",
+          "card_name": "PANZER IV-J",
+          "type": "tank",
+          "fragment": "Increase the operation cost by 1 after each time this unit attacks.",
+          "classified_from": "Increase the operation cost by 1 after each time this unit attacks."
+        },
+        {
+          "card_id": "the_great_expanse",
+          "card_name": "THE GREAT EXPANSE",
+          "type": "order",
+          "fragment": "Set your kredit slots to equal the enemy kredit slots.",
+          "classified_from": "Set your kredit slots to equal the enemy kredit slots."
+        },
+        {
+          "card_id": "37_mm_antiaircraft_gun",
+          "card_name": "37 mm ANTI-AIRCRAFT GUN",
+          "type": "artillery",
+          "fragment": "Enemy air units cost +2 to operate.",
+          "classified_from": "Enemy air units cost +2 to operate."
+        },
+        {
+          "card_id": "beriev_be4",
+          "card_name": "BERIEV BE-4",
+          "type": "fighter",
+          "fragment": "Your units cost 2 less to deploy.",
+          "classified_from": "Your units cost 2 less to deploy."
+        },
+        {
+          "card_id": "the_deuce",
+          "card_name": "THE DEUCE",
+          "type": "infantry",
+          "fragment": "Your Covert units cost 1 less to deploy.",
+          "classified_from": "Your Covert units cost 1 less to deploy."
+        },
+        {
+          "card_id": "l4_grasshopper",
+          "card_name": "L-4 GRASSHOPPER",
+          "type": "fighter",
+          "fragment": "Your Sherman units cost 1 less to deploy and have Blitz.",
+          "classified_from": "Your Sherman units cost 1 less to deploy and have Blitz."
+        },
+        {
+          "card_id": "p40_n5",
+          "card_name": "P-40 N-5",
+          "type": "fighter",
+          "fragment": "Units deployed by the enemy have +2 operation cost.",
+          "classified_from": "Units deployed by the enemy have +2 operation cost."
+        },
+        {
+          "card_id": "b24d",
+          "card_name": "B-24D",
+          "type": "bomber",
+          "fragment": "Costs 3 less to deploy if you control a unit with 3 or more operation cost.",
+          "classified_from": "Costs 3 less to deploy if you control a unit with 3 or more operation cost."
+        }
+      ]
+    },
+    "attribute_change": {
+      "label": "Directed or global attribute changes",
+      "card_count": 5,
+      "fragment_count": 7,
+      "planned_action": "buff/debuff/modify_* via EffectResolver",
+      "status": "pending",
+      "reason": "Stat change not yet mapped to a verified Action.",
+      "by_type": {
+        "infantry": 6,
+        "order": 1
+      },
+      "card_ids": [
+        "59_panzergrenadier",
+        "39_panzergrenadier",
+        "kagoshima_regiment",
+        "shock_tactics",
+        "12th_infantry_regiment"
+      ],
+      "fragments": [
+        {
+          "card_id": "59_panzergrenadier",
+          "card_name": "59. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "Panzergrenadier can move and attack during the same turn.",
+          "classified_from": "Panzergrenadier can move and attack during the same turn."
+        },
+        {
+          "card_id": "39_panzergrenadier",
+          "card_name": "39. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "Deployment: Swap a position with a friendly unit.",
+          "classified_from": "Deployment: Swap a position with a friendly unit."
+        },
+        {
+          "card_id": "39_panzergrenadier",
+          "card_name": "39. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect] Swap a position with a friendly unit.",
+          "classified_from": "Swap a position with a friendly unit."
+        },
+        {
+          "card_id": "kagoshima_regiment",
+          "card_name": "KAGOSHIMA REGIMENT",
+          "type": "infantry",
+          "fragment": "HQs cannot gain defense.",
+          "classified_from": "HQs cannot gain defense."
+        },
+        {
+          "card_id": "shock_tactics",
+          "card_name": "SHOCK TACTICS",
+          "type": "order",
+          "fragment": "Apply both if you control a unit with 4 or more attack.",
+          "classified_from": "Apply both if you control a unit with 4 or more attack."
+        },
+        {
+          "card_id": "12th_infantry_regiment",
+          "card_name": "12th INFANTRY REGIMENT",
+          "type": "infantry",
+          "fragment": "This unit gets +X+X where X is kredits spent.",
+          "classified_from": "This unit gets +X+X where X is kredits spent."
+        },
+        {
+          "card_id": "12th_infantry_regiment",
+          "card_name": "12th INFANTRY REGIMENT",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=kredit_effect] This unit gets +X+X where X is kredits spent.",
+          "classified_from": "This unit gets +X+X where X is kredits spent."
+        }
+      ]
+    },
+    "movement": {
+      "label": "Movement, retreat, frontline control, deployment",
+      "card_count": 10,
+      "fragment_count": 11,
+      "planned_action": "move/spawn/return_to_hand via EffectResolver + native",
+      "status": "pending",
+      "reason": "Zone/movement effect not yet mapped to a verified Action.",
+      "by_type": {
+        "tank": 2,
+        "countermeasure": 1,
+        "order": 5,
+        "bomber": 2,
+        "fighter": 1
+      },
+      "card_ids": [
+        "black_prince",
+        "heartland_defense",
+        "air_escort",
+        "f1m2_pete",
+        "c6n_saiun",
+        "pilot_escape",
+        "mayhem",
+        "night_bombing",
+        "m26_pershing",
+        "b29_superfortress"
+      ],
+      "fragments": [
+        {
+          "card_id": "black_prince",
+          "card_name": "BLACK PRINCE",
+          "type": "tank",
+          "fragment": "Only 2 units can occupy the frontline.",
+          "classified_from": "Only 2 units can occupy the frontline."
+        },
+        {
+          "card_id": "heartland_defense",
+          "card_name": "HEARTLAND DEFENSE",
+          "type": "countermeasure",
+          "fragment": "When your HQ receives damage, add a SISSI to your support line.",
+          "classified_from": "When your HQ receives damage, add a SISSI to your support line."
+        },
+        {
+          "card_id": "air_escort",
+          "card_name": "AIR ESCORT",
+          "type": "order",
+          "fragment": "Trigger non-targeting deployment effects on friendly units on the battlefield.",
+          "classified_from": "Trigger non-targeting deployment effects on friendly units on the battlefield."
+        },
+        {
+          "card_id": "f1m2_pete",
+          "card_name": "F1M2 PETE",
+          "type": "bomber",
+          "fragment": "Cannot be attacked by ground units while in the support line.",
+          "classified_from": "Cannot be attacked by ground units while in the support line."
+        },
+        {
+          "card_id": "c6n_saiun",
+          "card_name": "C6N SAIUN",
+          "type": "fighter",
+          "fragment": "Cannot be attacked by ground units while in the support line.",
+          "classified_from": "Cannot be attacked by ground units while in the support line."
+        },
+        {
+          "card_id": "pilot_escape",
+          "card_name": "PILOT ESCAPE",
+          "type": "order",
+          "fragment": "It costs 1 less to deploy and operate.",
+          "classified_from": "It costs 1 less to deploy and operate."
+        },
+        {
+          "card_id": "mayhem",
+          "card_name": "MAYHEM",
+          "type": "order",
+          "fragment": "Swap it with a friendly unit on the battlefield.",
+          "classified_from": "Swap it with a friendly unit on the battlefield."
+        },
+        {
+          "card_id": "mayhem",
+          "card_name": "MAYHEM",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect] Swap it with a friendly unit on the battlefield.",
+          "classified_from": "Swap it with a friendly unit on the battlefield."
+        },
+        {
+          "card_id": "night_bombing",
+          "card_name": "NIGHT BOMBING",
+          "type": "order",
+          "fragment": "randomly rearrange enemy units on the battlefield.",
+          "classified_from": "randomly rearrange enemy units on the battlefield."
+        },
+        {
+          "card_id": "m26_pershing",
+          "card_name": "M26 PERSHING",
+          "type": "tank",
+          "fragment": "While in the frontline, your HQ cannot be reduced below 1 defense.",
+          "classified_from": "While in the frontline, your HQ cannot be reduced below 1 defense."
+        },
+        {
+          "card_id": "b29_superfortress",
+          "card_name": "B-29 SUPERFORTRESS",
+          "type": "bomber",
+          "fragment": "Costs 3 less to deploy if you control the frontline.",
+          "classified_from": "Costs 3 less to deploy if you control the frontline."
+        }
+      ]
+    },
+    "draw_search": {
+      "label": "Draw, search, reveal, Develop, spawn, copy, shuffle, discard",
+      "card_count": 1,
+      "fragment_count": 1,
+      "planned_action": "draw/develop/search/copy primitives (seeded RNG)",
+      "status": "pending",
+      "reason": "Zone operation not yet mapped to a verified Action.",
+      "by_type": {
+        "fighter": 1
+      },
+      "card_ids": [
+        "lublin_rxiii"
+      ],
+      "fragments": [
+        {
+          "card_id": "lublin_rxiii",
+          "card_name": "LUBLIN R-XIII",
+          "type": "fighter",
+          "fragment": "Cards you play have Intel 1.\\r\\nDeployment: Reveal target Covert unit.",
+          "classified_from": "Cards you play have Intel 1.\\r\\nDeployment: Reveal target Covert unit."
+        }
+      ]
+    },
+    "damage_combat": {
+      "label": "Damage, combat, destroy, repair, heal, HQ defense",
+      "card_count": 14,
+      "fragment_count": 14,
+      "planned_action": "damage/destroy/pin/heal via EffectResolver + native",
+      "status": "pending",
+      "reason": "Damage/combat effect not yet mapped to a verified Action.",
+      "by_type": {
+        "fighter": 3,
+        "infantry": 6,
+        "countermeasure": 1,
+        "tank": 2,
+        "order": 1,
+        "artillery": 1
+      },
+      "card_ids": [
+        "gladiator_escort",
+        "the_rangers",
+        "185th_brigade",
+        "royal_ulster_rifles",
+        "sisu",
+        "110_panzergrenadier",
+        "type_89_chiro",
+        "home_defense",
+        "katyusha",
+        "593rd_jasco",
+        "seagull",
+        "seahawk",
+        "2nd_california",
+        "m6"
+      ],
+      "fragments": [
+        {
+          "card_id": "gladiator_escort",
+          "card_name": "GLADIATOR ESCORT",
+          "type": "fighter",
+          "fragment": "Damage to STIRLING Mk I S3 is dealt to this unit instead.",
+          "classified_from": "Damage to STIRLING Mk I S3 is dealt to this unit instead."
+        },
+        {
+          "card_id": "the_rangers",
+          "card_name": "THE RANGERS",
+          "type": "infantry",
+          "fragment": "Increase the non-combat, non-attack damage dealt by your units by 1.",
+          "classified_from": "Increase the non-combat, non-attack damage dealt by your units by 1."
+        },
+        {
+          "card_id": "185th_brigade",
+          "card_name": "185th BRIGADE",
+          "type": "infantry",
+          "fragment": "Deals +3 damage to HQs.",
+          "classified_from": "Deals +3 damage to HQs."
+        },
+        {
+          "card_id": "royal_ulster_rifles",
+          "card_name": "ROYAL ULSTER RIFLES",
+          "type": "infantry",
+          "fragment": "When your HQ is damaged, deal that amount of damage to this unit instead.",
+          "classified_from": "When your HQ is damaged, deal that amount of damage to this unit instead."
+        },
+        {
+          "card_id": "sisu",
+          "card_name": "SISU",
+          "type": "countermeasure",
+          "fragment": "When your HQ is to take damage, the enemy HQ takes the damage instead.",
+          "classified_from": "When your HQ is to take damage, the enemy HQ takes the damage instead."
+        },
+        {
+          "card_id": "110_panzergrenadier",
+          "card_name": "110. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "Your ground units with 4 or more attack deal +3 damage.",
+          "classified_from": "Your ground units with 4 or more attack deal +3 damage."
+        },
+        {
+          "card_id": "type_89_chiro",
+          "card_name": "TYPE 89 Chi-Ro",
+          "type": "tank",
+          "fragment": "When a HQ gains defense, it takes that much damage instead.",
+          "classified_from": "When a HQ gains defense, it takes that much damage instead."
+        },
+        {
+          "card_id": "home_defense",
+          "card_name": "HOME DEFENSE",
+          "type": "order",
+          "fragment": "Costs 4 if your HQ is at 10 or less.",
+          "classified_from": "Costs 4 if your HQ is at 10 or less."
+        },
+        {
+          "card_id": "katyusha",
+          "card_name": "KATYUSHA",
+          "type": "artillery",
+          "fragment": "When KATYUSHA attacks, it deals 0-1 additional damage.",
+          "classified_from": "When KATYUSHA attacks, it deals 0-1 additional damage."
+        },
+        {
+          "card_id": "593rd_jasco",
+          "card_name": "593rd JASCO",
+          "type": "infantry",
+          "fragment": "Damage dealt to your HQ is reduced by 1.",
+          "classified_from": "Damage dealt to your HQ is reduced by 1."
+        },
+        {
+          "card_id": "seagull",
+          "card_name": "SEAGULL",
+          "type": "fighter",
+          "fragment": "Your HQ cannot lose more than 4 defense each turn.",
+          "classified_from": "Your HQ cannot lose more than 4 defense each turn."
+        },
+        {
+          "card_id": "seahawk",
+          "card_name": "SEAHAWK",
+          "type": "fighter",
+          "fragment": "Enemy cards deal 1 less damage.",
+          "classified_from": "Enemy cards deal 1 less damage."
+        },
+        {
+          "card_id": "2nd_california",
+          "card_name": "2nd CALIFORNIA",
+          "type": "infantry",
+          "fragment": "Combat damage dealt to this unit is reduced to 1.",
+          "classified_from": "Combat damage dealt to this unit is reduced to 1."
+        },
+        {
+          "card_id": "m6",
+          "card_name": "M6",
+          "type": "tank",
+          "fragment": "Your HQ takes 1 less damage for each of your units with 4 or more attack.",
+          "classified_from": "Your HQ takes 1 less damage for each of your units with 4 or more attack."
+        }
+      ]
+    },
+    "choice_target": {
+      "label": "Choice, target selection, randomness, deterministic RNG",
+      "card_count": 1,
+      "fragment_count": 1,
+      "planned_action": "target selector AST + seeded RNG choice",
+      "status": "pending",
+      "reason": "Needs deterministic target/choice selection.",
+      "by_type": {
+        "infantry": 1
+      },
+      "card_ids": [
+        "royal_scots"
+      ],
+      "fragments": [
+        {
+          "card_id": "royal_scots",
+          "card_name": "ROYAL SCOTS",
+          "type": "infantry",
+          "fragment": "If in hand or on the battlefield, random effects always choose this unit.",
+          "classified_from": "If in hand or on the battlefield, random effects always choose this unit."
+        }
+      ]
+    },
+    "temporary": {
+      "label": "Temporary effects, duration, delayed triggers, expiry",
+      "card_count": 11,
+      "fragment_count": 12,
+      "planned_action": "effect with expiry/event scope (no permanent mutation)",
+      "status": "pending",
+      "reason": "Temporary effect needs expiry/event scope, not permanent mutation.",
+      "by_type": {
+        "countermeasure": 1,
+        "order": 11
+      },
+      "card_ids": [
+        "national_fire_service",
+        "shifting_attack",
+        "breakthrough",
+        "u48",
+        "pursuit",
+        "km_tirpitz",
+        "imperial_decree",
+        "out_of_the_mist",
+        "elusive_force",
+        "embargo",
+        "campaign_trail"
+      ],
+      "fragments": [
+        {
+          "card_id": "national_fire_service",
+          "card_name": "NATIONAL FIRE SERVICE",
+          "type": "countermeasure",
+          "fragment": "When your HQ receives damage this turn, reduce the damage to 1.",
+          "classified_from": "When your HQ receives damage this turn, reduce the damage to 1."
+        },
+        {
+          "card_id": "shifting_attack",
+          "card_name": "SHIFTING ATTACK",
+          "type": "order",
+          "fragment": "It costs 0 kredits to deploy this turn.",
+          "classified_from": "It costs 0 kredits to deploy this turn."
+        },
+        {
+          "card_id": "shifting_attack",
+          "card_name": "SHIFTING ATTACK",
+          "type": "order",
+          "fragment": "[engine does not implement kind=kredit_effect] It costs 0 kredits to deploy this turn.",
+          "classified_from": "It costs 0 kredits to deploy this turn."
+        },
+        {
+          "card_id": "breakthrough",
+          "card_name": "BREAKTHROUGH",
+          "type": "order",
+          "fragment": "If it is destroyed, your units operate for 1 less this turn.",
+          "classified_from": "If it is destroyed, your units operate for 1 less this turn."
+        },
+        {
+          "card_id": "u48",
+          "card_name": "U-48",
+          "type": "order",
+          "fragment": "The enemy cannot deploy units next turn.",
+          "classified_from": "The enemy cannot deploy units next turn."
+        },
+        {
+          "card_id": "pursuit",
+          "card_name": "PURSUIT",
+          "type": "order",
+          "fragment": "Your units operate for 1 less this turn.",
+          "classified_from": "Your units operate for 1 less this turn."
+        },
+        {
+          "card_id": "km_tirpitz",
+          "card_name": "KM TIRPITZ",
+          "type": "order",
+          "fragment": "The enemy cannot deploy units next turn.",
+          "classified_from": "The enemy cannot deploy units next turn."
+        },
+        {
+          "card_id": "imperial_decree",
+          "card_name": "IMPERIAL DECREE",
+          "type": "order",
+          "fragment": "The next damage order you give this turn deals +1 damage.",
+          "classified_from": "The next damage order you give this turn deals +1 damage."
+        },
+        {
+          "card_id": "out_of_the_mist",
+          "card_name": "OUT OF THE MIST",
+          "type": "order",
+          "fragment": "If it is destroyed this turn, Salvage it.",
+          "classified_from": "If it is destroyed this turn, Salvage it."
+        },
+        {
+          "card_id": "elusive_force",
+          "card_name": "ELUSIVE FORCE",
+          "type": "order",
+          "fragment": "The enemy cannot give orders next turn.",
+          "classified_from": "The enemy cannot give orders next turn."
+        },
+        {
+          "card_id": "embargo",
+          "card_name": "EMBARGO",
+          "type": "order",
+          "fragment": "The enemy gets 2 fewer kredits next turn.",
+          "classified_from": "The enemy gets 2 fewer kredits next turn."
+        },
+        {
+          "card_id": "campaign_trail",
+          "card_name": "CAMPAIGN TRAIL",
+          "type": "order",
+          "fragment": "Your units operate for 2 less this turn and are fully repaired at the end of the turn.",
+          "classified_from": "Your units operate for 2 less this turn and are fully repaired at the end of the turn."
+        }
+      ]
+    },
+    "keyword": {
+      "label": "Keyword / ability semantics",
+      "card_count": 9,
+      "fragment_count": 9,
+      "planned_action": "KeywordEngine / AbilityEngine semantics",
+      "status": "pending",
+      "reason": "Catalog ability not yet wired into combat/rule flow.",
+      "by_type": {
+        "infantry": 2,
+        "countermeasure": 1,
+        "tank": 2,
+        "order": 2,
+        "artillery": 1,
+        "bomber": 1
+      },
+      "card_ids": [
+        "the_bleeders",
+        "hit_the_drop_point",
+        "stug_iiig",
+        "tip_of_the_spear",
+        "obice_da_7513",
+        "nakajima_b5n2",
+        "legions",
+        "stretch_the_line",
+        "kv2"
+      ],
+      "fragments": [
+        {
+          "card_id": "the_bleeders",
+          "card_name": "THE BLEEDERS",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=buff_on_played_ability] bond",
+          "classified_from": "bond"
+        },
+        {
+          "card_id": "hit_the_drop_point",
+          "card_name": "HIT THE DROP POINT",
+          "type": "countermeasure",
+          "fragment": "Can affect a Covert unit.",
+          "classified_from": "Can affect a Covert unit."
+        },
+        {
+          "card_id": "stug_iiig",
+          "card_name": "STUG III-G",
+          "type": "tank",
+          "fragment": "Damage from this unit ignores Heavy Armor.",
+          "classified_from": "Damage from this unit ignores Heavy Armor."
+        },
+        {
+          "card_id": "tip_of_the_spear",
+          "card_name": "TIP OF THE SPEAR",
+          "type": "order",
+          "fragment": "Can target Covert units.",
+          "classified_from": "Can target Covert units."
+        },
+        {
+          "card_id": "obice_da_7513",
+          "card_name": "OBICE DA 75/13",
+          "type": "artillery",
+          "fragment": "Your Alpine units can move and attack during the same turn.",
+          "classified_from": "Your Alpine units can move and attack during the same turn."
+        },
+        {
+          "card_id": "nakajima_b5n2",
+          "card_name": "NAKAJIMA B5N2",
+          "type": "bomber",
+          "fragment": "[engine does not implement kind=buff_on_played_ability] intel",
+          "classified_from": "intel"
+        },
+        {
+          "card_id": "legions",
+          "card_name": "LEGIONS",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=buff_on_played_ability] intel",
+          "classified_from": "intel"
+        },
+        {
+          "card_id": "stretch_the_line",
+          "card_name": "STRETCH THE LINE",
+          "type": "order",
+          "fragment": "Intel equal to friendly LEGIONS.",
+          "classified_from": "Intel equal to friendly LEGIONS."
+        },
+        {
+          "card_id": "kv2",
+          "card_name": "KV-2",
+          "type": "tank",
+          "fragment": "Order damage to a friendly unit is reduced by its Heavy Armor.",
+          "classified_from": "Order damage to a friendly unit is reduced by its Heavy Armor."
+        }
+      ]
+    },
+    "countermeasure": {
+      "label": "Countermeasure trigger, cancel, consume",
+      "card_count": 1,
+      "fragment_count": 1,
+      "planned_action": "CountermeasureResolver trigger/cancel/consume",
+      "status": "pending",
+      "reason": "Countermeasure trigger/cancel/consume not fully implemented.",
+      "by_type": {
+        "countermeasure": 1
+      },
+      "card_ids": [
+        "evasive_action"
+      ],
+      "fragments": [
+        {
+          "card_id": "evasive_action",
+          "card_name": "EVASIVE ACTION",
+          "type": "countermeasure",
+          "fragment": "Trigger this card when the enemy deploys a unit with a deployment effect.",
+          "classified_from": "Trigger this card when the enemy deploys a unit with a deployment effect."
+        }
+      ]
+    },
+    "condition": {
+      "label": "Conditions, thresholds, history state, zone judgement",
+      "card_count": 2,
+      "fragment_count": 3,
+      "planned_action": "conditional Action wrapper + history predicates",
+      "status": "pending",
+      "reason": "Conditional/threshold/history effect not yet implemented.",
+      "by_type": {
+        "infantry": 1,
+        "order": 2
+      },
+      "card_ids": [
+        "39th_bologna_regiment",
+        "fortunes_of_war"
+      ],
+      "fragments": [
+        {
+          "card_id": "39th_bologna_regiment",
+          "card_name": "39th BOLOGNA REGIMENT",
+          "type": "infantry",
+          "fragment": "If in your hand, this unit costs 1 more each time you lose a unit.",
+          "classified_from": "If in your hand, this unit costs 1 more each time you lose a unit."
+        },
+        {
+          "card_id": "fortunes_of_war",
+          "card_name": "FORTUNES OF WAR",
+          "type": "order",
+          "fragment": "Trigger the Destruction effects on a target unit as if it was yours",
+          "classified_from": "Trigger the Destruction effects on a target unit as if it was yours"
+        },
+        {
+          "card_id": "fortunes_of_war",
+          "card_name": "FORTUNES OF WAR",
+          "type": "order",
+          "fragment": "remove the effect if an enemy unit.",
+          "classified_from": "remove the effect if an enemy unit."
+        }
+      ]
+    },
+    "special": {
+      "label": "Irreducible special mechanics",
+      "card_count": 1,
+      "fragment_count": 1,
+      "planned_action": "mechanism-level Handler (never card-named)",
+      "status": "pending",
+      "reason": "Irreducible mechanic; candidate for a mechanism-level Handler.",
+      "by_type": {
+        "infantry": 1
+      },
+      "card_ids": [
+        "60th_cavalry_regiment"
+      ],
+      "fragments": [
+        {
+          "card_id": "60th_cavalry_regiment",
+          "card_name": "60th CAVALRY REGIMENT",
+          "type": "infantry",
+          "fragment": "Players can only give one order each turn.",
+          "classified_from": "Players can only give one order each turn."
+        }
+      ]
+    },
+    "ambiguous": {
+      "label": "Insufficient source text / semantic ambiguity",
+      "card_count": 54,
+      "fragment_count": 61,
+      "planned_action": "needs human / official KARDS rule confirmation",
+      "status": "pending",
+      "reason": "Source text is insufficient or semantically ambiguous.",
+      "by_type": {
+        "countermeasure": 5,
+        "infantry": 17,
+        "fighter": 8,
+        "tank": 6,
+        "order": 18,
+        "artillery": 2,
+        "bomber": 5
+      },
+      "card_ids": [
+        "evasive_action",
+        "buffs",
+        "gladiator_escort",
+        "layforce",
+        "1st_gurkha_rifles",
+        "national_fire_service",
+        "royal_scots",
+        "the_rangers",
+        "185th_brigade",
+        "royal_ulster_rifles",
+        "black_prince",
+        "heartland_defense",
+        "sisu",
+        "hit_the_drop_point",
+        "59_panzergrenadier",
+        "stug_iiig",
+        "u48",
+        "tip_of_the_spear",
+        "110_panzergrenadier",
+        "km_tirpitz",
+        "savoia_cavalleria",
+        "air_escort",
+        "39th_bologna_regiment",
+        "obice_da_7513",
+        "savoiamarchetti_sm_79",
+        "imperial_decree",
+        "distant_front",
+        "isolation",
+        "out_of_the_mist",
+        "elusive_force",
+        "f1m2_pete",
+        "c6n_saiun",
+        "kagoshima_regiment",
+        "type_89_chiro",
+        "the_great_expanse",
+        "a6m221_zero",
+        "home_defense",
+        "stretch_the_line",
+        "lublin_rxiii",
+        "out_with_the_old",
+        "60th_cavalry_regiment",
+        "katyusha",
+        "shock_tactics",
+        "petlyakov_pe2ft",
+        "kv2",
+        "593rd_jasco",
+        "embargo",
+        "seagull",
+        "fortunes_of_war",
+        "seahawk",
+        "2nd_california",
+        "night_bombing",
+        "m6",
+        "m26_pershing"
+      ],
+      "fragments": [
+        {
+          "card_id": "evasive_action",
+          "card_name": "EVASIVE ACTION",
+          "type": "countermeasure",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "buffs",
+          "card_name": "BUFFS",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=buff_on_enemy_target]",
+          "classified_from": "[engine does not implement kind=buff_on_enemy_target]"
+        },
+        {
+          "card_id": "gladiator_escort",
+          "card_name": "GLADIATOR ESCORT",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "layforce",
+          "card_name": "LAYFORCE",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=buff_on_enemy_target]",
+          "classified_from": "[engine does not implement kind=buff_on_enemy_target]"
+        },
+        {
+          "card_id": "1st_gurkha_rifles",
+          "card_name": "1st GURKHA RIFLES",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=attack_on_order_played]",
+          "classified_from": "[engine does not implement kind=attack_on_order_played]"
+        },
+        {
+          "card_id": "national_fire_service",
+          "card_name": "NATIONAL FIRE SERVICE",
+          "type": "countermeasure",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "royal_scots",
+          "card_name": "ROYAL SCOTS",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "the_rangers",
+          "card_name": "THE RANGERS",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "185th_brigade",
+          "card_name": "185th BRIGADE",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=hq_damage_bonus]",
+          "classified_from": "[engine does not implement kind=hq_damage_bonus]"
+        },
+        {
+          "card_id": "royal_ulster_rifles",
+          "card_name": "ROYAL ULSTER RIFLES",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "black_prince",
+          "card_name": "BLACK PRINCE",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "heartland_defense",
+          "card_name": "HEARTLAND DEFENSE",
+          "type": "countermeasure",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "sisu",
+          "card_name": "SISU",
+          "type": "countermeasure",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "hit_the_drop_point",
+          "card_name": "HIT THE DROP POINT",
+          "type": "countermeasure",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "59_panzergrenadier",
+          "card_name": "59. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "59.",
+          "classified_from": "59."
+        },
+        {
+          "card_id": "59_panzergrenadier",
+          "card_name": "59. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "stug_iiig",
+          "card_name": "STUG III-G",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=ignore_heavy_armor]",
+          "classified_from": "[engine does not implement kind=ignore_heavy_armor]"
+        },
+        {
+          "card_id": "u48",
+          "card_name": "U-48",
+          "type": "order",
+          "fragment": "[engine does not implement kind=enemy_cannot_deploy]",
+          "classified_from": "[engine does not implement kind=enemy_cannot_deploy]"
+        },
+        {
+          "card_id": "tip_of_the_spear",
+          "card_name": "TIP OF THE SPEAR",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "110_panzergrenadier",
+          "card_name": "110. PANZERGRENADIER",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "km_tirpitz",
+          "card_name": "KM TIRPITZ",
+          "type": "order",
+          "fragment": "[engine does not implement kind=enemy_cannot_deploy]",
+          "classified_from": "[engine does not implement kind=enemy_cannot_deploy]"
+        },
+        {
+          "card_id": "savoia_cavalleria",
+          "card_name": "SAVOIA CAVALLERIA",
+          "type": "infantry",
+          "fragment": "Also counts as a tank.",
+          "classified_from": "Also counts as a tank."
+        },
+        {
+          "card_id": "savoia_cavalleria",
+          "card_name": "SAVOIA CAVALLERIA",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "air_escort",
+          "card_name": "AIR ESCORT",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "39th_bologna_regiment",
+          "card_name": "39th BOLOGNA REGIMENT",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "obice_da_7513",
+          "card_name": "OBICE DA 75/13",
+          "type": "artillery",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "savoiamarchetti_sm_79",
+          "card_name": "SAVOIA-MARCHETTI SM.79",
+          "type": "bomber",
+          "fragment": "Deployment: Trigger a non-targeted deployment effect on a friendly unit.",
+          "classified_from": "Deployment: Trigger a non-targeted deployment effect on a friendly unit."
+        },
+        {
+          "card_id": "savoiamarchetti_sm_79",
+          "card_name": "SAVOIA-MARCHETTI SM.79",
+          "type": "bomber",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "imperial_decree",
+          "card_name": "IMPERIAL DECREE",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "distant_front",
+          "card_name": "DISTANT FRONT",
+          "type": "order",
+          "fragment": "[engine does not implement kind=delayed_return]",
+          "classified_from": "[engine does not implement kind=delayed_return]"
+        },
+        {
+          "card_id": "isolation",
+          "card_name": "ISOLATION",
+          "type": "order",
+          "fragment": "[engine does not implement kind=delayed_return]",
+          "classified_from": "[engine does not implement kind=delayed_return]"
+        },
+        {
+          "card_id": "out_of_the_mist",
+          "card_name": "OUT OF THE MIST",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "elusive_force",
+          "card_name": "ELUSIVE FORCE",
+          "type": "order",
+          "fragment": "[engine does not implement kind=enemy_cannot_order]",
+          "classified_from": "[engine does not implement kind=enemy_cannot_order]"
+        },
+        {
+          "card_id": "f1m2_pete",
+          "card_name": "F1M2 PETE",
+          "type": "bomber",
+          "fragment": "[engine does not implement kind=immune_to_ground_in_support]",
+          "classified_from": "[engine does not implement kind=immune_to_ground_in_support]"
+        },
+        {
+          "card_id": "c6n_saiun",
+          "card_name": "C6N SAIUN",
+          "type": "fighter",
+          "fragment": "Countermeasures cannot trigger.",
+          "classified_from": "Countermeasures cannot trigger."
+        },
+        {
+          "card_id": "c6n_saiun",
+          "card_name": "C6N SAIUN",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=immune_to_ground_in_support]",
+          "classified_from": "[engine does not implement kind=immune_to_ground_in_support]"
+        },
+        {
+          "card_id": "c6n_saiun",
+          "card_name": "C6N SAIUN",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=countermeasure_lock]",
+          "classified_from": "[engine does not implement kind=countermeasure_lock]"
+        },
+        {
+          "card_id": "kagoshima_regiment",
+          "card_name": "KAGOSHIMA REGIMENT",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=hq_defense_lock]",
+          "classified_from": "[engine does not implement kind=hq_defense_lock]"
+        },
+        {
+          "card_id": "type_89_chiro",
+          "card_name": "TYPE 89 Chi-Ro",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "the_great_expanse",
+          "card_name": "THE GREAT EXPANSE",
+          "type": "order",
+          "fragment": "[engine does not implement kind=set_kredit_slots_equal]",
+          "classified_from": "[engine does not implement kind=set_kredit_slots_equal]"
+        },
+        {
+          "card_id": "a6m221_zero",
+          "card_name": "A6M2-21 ZERO",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=modify_cost]",
+          "classified_from": "[engine does not implement kind=modify_cost]"
+        },
+        {
+          "card_id": "home_defense",
+          "card_name": "HOME DEFENSE",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "stretch_the_line",
+          "card_name": "STRETCH THE LINE",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "lublin_rxiii",
+          "card_name": "LUBLIN R-XIII",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "out_with_the_old",
+          "card_name": "OUT WITH THE OLD",
+          "type": "order",
+          "fragment": "Trigger the destruction effects on a damaged Soviet air unit",
+          "classified_from": "Trigger the destruction effects on a damaged Soviet air unit"
+        },
+        {
+          "card_id": "out_with_the_old",
+          "card_name": "OUT WITH THE OLD",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "60th_cavalry_regiment",
+          "card_name": "60th CAVALRY REGIMENT",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=enemy_cannot_order]",
+          "classified_from": "[engine does not implement kind=enemy_cannot_order]"
+        },
+        {
+          "card_id": "katyusha",
+          "card_name": "KATYUSHA",
+          "type": "artillery",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "shock_tactics",
+          "card_name": "SHOCK TACTICS",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "petlyakov_pe2ft",
+          "card_name": "PETLYAKOV Pe-2FT",
+          "type": "bomber",
+          "fragment": "Deployment effects do not trigger.",
+          "classified_from": "Deployment effects do not trigger."
+        },
+        {
+          "card_id": "petlyakov_pe2ft",
+          "card_name": "PETLYAKOV Pe-2FT",
+          "type": "bomber",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "kv2",
+          "card_name": "KV-2",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "593rd_jasco",
+          "card_name": "593rd JASCO",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "embargo",
+          "card_name": "EMBARGO",
+          "type": "order",
+          "fragment": "[engine does not implement kind=enemy_kredit_change]",
+          "classified_from": "[engine does not implement kind=enemy_kredit_change]"
+        },
+        {
+          "card_id": "seagull",
+          "card_name": "SEAGULL",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=hq_defense_cap]",
+          "classified_from": "[engine does not implement kind=hq_defense_cap]"
+        },
+        {
+          "card_id": "fortunes_of_war",
+          "card_name": "FORTUNES OF WAR",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "seahawk",
+          "card_name": "SEAHAWK",
+          "type": "fighter",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "2nd_california",
+          "card_name": "2nd CALIFORNIA",
+          "type": "infantry",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "night_bombing",
+          "card_name": "NIGHT BOMBING",
+          "type": "order",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "m6",
+          "card_name": "M6",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        },
+        {
+          "card_id": "m26_pershing",
+          "card_name": "M26 PERSHING",
+          "type": "tank",
+          "fragment": "[engine does not implement kind=control_effect]",
+          "classified_from": "[engine does not implement kind=control_effect]"
+        }
+      ]
+    }
+  }
+}

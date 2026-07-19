@@ -1,0 +1,151 @@
+"""Serializable game state designed for fast branchable AI simulations."""
+
+from __future__ import annotations
+
+import copy
+import json
+from dataclasses import asdict, dataclass, field
+from enum import Enum
+from typing import Any
+
+
+class GameStatus(str, Enum):
+    IN_PROGRESS = "in_progress"
+    PLAYER_ONE_WON = "player_one_won"
+    PLAYER_TWO_WON = "player_two_won"
+    DRAW = "draw"
+
+
+@dataclass
+class ResourceState:
+    """KARDS resource pool. Names stay explicit to avoid future rule ambiguity."""
+
+    kredits: int = 0
+    max_kredits: int = 0
+
+
+@dataclass
+class Headquarters:
+    """Runtime headquarters model; all HQ changes go through HQResolver."""
+
+    max_health: int = 20
+    current_health: int = 20
+    nation: str | None = None
+    defense_modifier: int = 0
+    damage_cap_per_turn: int = 0
+    immune_until_end_of_turn: bool = False
+    active_effects: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class UnitState:
+    instance_id: str
+    card_id: str
+    attack: int
+    defense: int
+    owner_id: str
+    position: str = "support_line"
+    modifiers: list[dict[str, Any]] = field(default_factory=list)
+    status: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PlayerState:
+    player_id: str
+    nation: str | None = None
+    deck: list[str] = field(default_factory=list)
+    hand: list[str] = field(default_factory=list)
+    resources: ResourceState = field(default_factory=ResourceState)
+    hq: Headquarters = field(default_factory=Headquarters)
+    units: list[UnitState] = field(default_factory=list)
+    active_countermeasures: list[dict[str, Any]] = field(default_factory=list)
+    fatigue_damage: int = 0
+    # Reusable, serializable cost-modifier registries (no unstructured blobs).
+    # cost_modifiers: kredit-cost changes for cards played from hand.
+    #   entry: {"kind": "hand_cost", "amount": int, "set_cost": int|None,
+    #           "scope": "all"|"order"|"ability"|"exclude_nation",
+    #           "filter_value": str, "min_cost": int, "expires_turn": int|None}
+    # op_cost_rules: operation-cost changes applied when a unit is deployed.
+    #   entry: {"amount": int, "set_cost": int|None, "scope": "all"|"type"|"ability"|"name",
+    #           "filter_value": str}
+    cost_modifiers: list[dict[str, Any]] = field(default_factory=list)
+    op_cost_rules: list[dict[str, Any]] = field(default_factory=list)
+    # Temporary (duration-bounded) effect reversals tracked for native rules.
+    # Each entry: {"turn": int (turn at which to revert), "reverts": [revert-op]}.
+    # revert-op for a stat change: {"unit_id": str, "attr": "attack"|"defense",
+    #   "delta": int}; for a grant: {"unit_id": str, "remove_ability": str}.
+    temporary_effects: list[dict[str, Any]] = field(default_factory=list)
+    # Scheduled one-shot actions deferred to a future turn phase (delayed
+    # discard / return-to-hand). Entry:
+    #   {"trigger": "end_of_turn"|"start_of_next_turn"|"end_of_next_turn",
+    #    "unit_id": str, "kind": "discard"|"return_to_hand",
+    #    "source_card_id": str, "wait": int}
+    # `wait` counts how many of the owner's end_turns to skip before firing
+    # (used by "end of your next turn" so it fires on the 2nd end_turn).
+    scheduled: list[dict[str, Any]] = field(default_factory=list)
+    status: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.hq.nation is None:
+            self.hq.nation = self.nation
+
+
+@dataclass
+class GameState:
+    """Complete mutable state; actions in later phases are its sole mutator."""
+
+    current_player: str
+    players: dict[str, PlayerState]
+    turn_number: int = 1
+    battlefield: dict[str, list[str]] = field(default_factory=lambda: {"frontline": [], "support_line": []})
+    graveyard: dict[str, list[str]] = field(default_factory=dict)
+    removed_cards: list[str] = field(default_factory=list)
+    game_status: GameStatus = GameStatus.IN_PROGRESS
+    event_log: list[dict[str, Any]] = field(default_factory=list)
+    mulligan_pending: list[str] = field(default_factory=list)
+    rng_seed: int | None = None
+    pending_cancels: list[dict[str, Any]] = field(default_factory=list)
+
+    def clone(self) -> "GameState":
+        """Return an isolated deep copy suitable for tree search branching."""
+        return copy.deepcopy(self)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe state snapshot."""
+        return asdict(self)
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "GameState":
+        players = {
+            player_id: PlayerState(
+                player_id=data["player_id"],
+                nation=data.get("nation"),
+                deck=list(data.get("deck", ())),
+                hand=list(data.get("hand", ())),
+                resources=ResourceState(**data.get("resources", {})),
+                hq=Headquarters(**data["hq"]) if "hq" in data else Headquarters(current_health=int(data.get("hq_health", 20))),
+                units=[UnitState(**unit) for unit in data.get("units", ())],
+                active_countermeasures=copy.deepcopy(data.get("active_countermeasures", ())),
+                fatigue_damage=int(data.get("fatigue_damage", 0)),
+            )
+            for player_id, data in payload["players"].items()
+        }
+        return cls(
+            current_player=payload["current_player"],
+            players=players,
+            turn_number=int(payload.get("turn_number", 1)),
+            battlefield={key: list(value) for key, value in payload.get("battlefield", {}).items()},
+            graveyard={key: list(value) for key, value in payload.get("graveyard", {}).items()},
+            removed_cards=list(payload.get("removed_cards", ())),
+            game_status=GameStatus(payload.get("game_status", GameStatus.IN_PROGRESS)),
+            event_log=copy.deepcopy(payload.get("event_log", ())),
+            mulligan_pending=list(payload.get("mulligan_pending", ())),
+            rng_seed=payload.get("rng_seed"),
+        )
+
+    @classmethod
+    def from_json(cls, payload: str) -> "GameState":
+        return cls.from_dict(json.loads(payload))

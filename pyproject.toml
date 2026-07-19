@@ -1,0 +1,9 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kards-ai-simulator"
+version = "0.1.0"
+description = "Deterministic, extensible KARDS rules simulator for AI training"
+requires-python = ">=3.9"

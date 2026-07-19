@@ -1,0 +1,58 @@
+"""Centralized headquarters damage, healing, defence, and victory resolution."""
+
+from __future__ import annotations
+
+from simulator.core.state import GameState, GameStatus
+
+
+class HQResolver:
+    """The only game-rules component allowed to mutate HQ health."""
+
+    @staticmethod
+    def damage(state: GameState, target_player_id: str, amount: int, source_player_id: str | None = None) -> int:
+        hq = state.players[target_player_id].hq
+        # Check friendly units for HQ defense cap/lock/immune flags.
+        for unit in state.players[target_player_id].units:
+            if unit.status.get("hq_defense_lock"):
+                state.event_log.append({"event": "hq_damage_blocked", "player_id": target_player_id, "reason": "hq_defense_lock"})
+                return 0
+            if unit.status.get("hq_defense_cap") and hq.current_health - max(0, int(amount) - hq.defense_modifier) < (unit.status.get("hq_defense_cap") or 1):
+                amount = max(0, hq.current_health - (unit.status.get("hq_defense_cap") or 1) + hq.defense_modifier)
+        applied = max(0, int(amount) - hq.defense_modifier)
+        hq.current_health -= applied
+        state.event_log.append({"event": "hq_damaged", "player_id": target_player_id, "amount": applied, "source_player_id": source_player_id})
+        HQResolver.check_victory(state, source_player_id)
+        return applied
+
+    @staticmethod
+    def heal(state: GameState, target_player_id: str, amount: int) -> int:
+        hq = state.players[target_player_id].hq
+        before = hq.current_health
+        hq.current_health = min(hq.max_health, hq.current_health + max(0, int(amount)))
+        applied = hq.current_health - before
+        state.event_log.append({"event": "hq_healed", "player_id": target_player_id, "amount": applied})
+        return applied
+
+    @staticmethod
+    def modify_defense(state: GameState, target_player_id: str, amount: int) -> int:
+        hq = state.players[target_player_id].hq
+        hq.defense_modifier = max(0, hq.defense_modifier + int(amount))
+        state.event_log.append({"event": "hq_defense_modified", "player_id": target_player_id, "amount": int(amount), "defense_modifier": hq.defense_modifier})
+        return hq.defense_modifier
+
+    @staticmethod
+    def check_victory(state: GameState, source_player_id: str | None = None) -> GameStatus:
+        if state.game_status != GameStatus.IN_PROGRESS:
+            return state.game_status
+        defeated = [player_id for player_id, player in state.players.items() if player.hq.current_health <= 0]
+        if not defeated:
+            return state.game_status
+        if len(defeated) == len(state.players):
+            state.game_status = GameStatus.DRAW
+            winner = None
+        else:
+            winner = source_player_id or next(player_id for player_id in state.players if player_id not in defeated)
+            state.game_status = GameStatus.PLAYER_ONE_WON if winner == "p1" else GameStatus.PLAYER_TWO_WON
+        state.event_log.append({"event": "victory", "winner_id": winner, "defeated_player_ids": defeated})
+        state.event_log.append({"event": "game_over", "status": state.game_status.value})
+        return state.game_status

@@ -1,0 +1,645 @@
+# KARDS 待确认清单 (partial 卡)
+
+生成自 data/rules/card_rules.json 的 361 张 partial 卡。
+
+分类说明:
+- **PRINCIPLE**: 可用 Evan 确认的三条通用原则直接消解语义(只差执行层机制)。
+- **ENGINE_GAP**: 文本清晰,但引擎无对应机制(另一个 AI 的 backlog)。
+- **AURA**: 持续/光环效果,需生命周期绑定机制。
+- **UNKNOWN / ?待确认**: 文本本身有多种合理解读,仍需要进游戏确认。
+
+统计: PRINCIPLE=63  ENGINE_GAP=264  AURA=34  UNKNOWN=0
+
+## 引擎机制缺失(文本清晰,执行层backlog)
+
+- **10th_guards_regiment** — 引擎未实现机制:cannot
+  - 原文: Cannot Retreat or be Suppressed.
+- **110_panzergrenadier** — 引擎未实现机制:special_effect
+  - 原文: Your ground units with 4 or more attack deal +3 damage.
+- **114th_infantry_regiment** — 引擎未实现机制:special_effect
+  - 原文: When a friendly Destruction effect triggers, it triggers twice.
+- **122nd_korsun** — 引擎未实现机制:special_effect
+  - 原文: Costs 1 less to deploy for each of your units.
+- **128th_rifles** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: Ambush.
+- **12th_infantry_regiment** — 引擎未实现机制:spend_kredits
+  - 原文: Deployment: Spend your remaining kredits. This unit gets +X+X where X is kredits spent.
+- **13e_dragons** — 引擎未实现机制:control_effect
+  - 原文: Cannot be deployed if you have deployed a unit this turn.
+- **13th_engineers_battalion** — 引擎未实现机制:gain_kredit_slot_on_deploy
+  - 原文: Gain an extra kredit slot when you deploy a unit with 3 or more operation cost.
+- **152e_rgiment** — 引擎未实现机制:kredit_effect
+  - 原文: Cannot be deployed unless you have 6 or more kredit slots.
+- **158th_bushmasters** — 引擎未实现机制:special_effect
+  - 原文: When a unit is fully repaired, distribute the damage repaired between random enemies.
+- **15th_recce** — 引擎未实现机制:target_select
+  - 原文: Deployment: Target a unit. \r\n15th RECCE gets +1+1 and Guard when the targeted unit deals damage.
+- **18_infantry_regiment** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Moves into the frontline if possible.
+- **190th_guard_rifles** — 引擎未实现机制:cannot
+  - 原文: Cannot attack or move. Becomes Veteran when you have destroyed 4 enemy units.
+- **1st_cavalry_troop** — 引擎未实现机制:special_effect
+  - 原文: When you deploy a unit, add its operation cost as attack to this unit.
+- **1st_florida** — 引擎未实现机制:special_effect
+  - 原文: Destruction: A random friendly unit gets attack and defense equal to the attack of this unit.
+- **1st_grenadier_regiment** — 引擎未实现机制:special_effect
+  - 原文: Enemy units that damage anything but this unit are destroyed.
+- **1st_texas_infantry** — 引擎未实现机制:double_stats
+  - 原文: Double attack and defense when you gain an extra kredit slot.
+- **1st_yokosuka** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Receives +1 attack for each friendly unit with 0 operation cost.
+- **214th_amur** — 引擎未实现机制:special_effect
+  - 原文: Your T-34 units have +1 Heavy Armor and operate for 1 less.
+- **22nd_marines_vet** — 引擎未实现机制:double_damage
+  - 原文: Deals double damage if there is a Navy card on top of your deck.
+- **24th_uan** — 引擎未实现机制:special_effect
+  - 原文: Is dealt 1 damage at the end of your turn unless a unit was destroyed.
+- **252nd_rifles_vet** — 引擎未实现机制:cannot
+  - 原文: Cannot be pinned or suppressed. Takes 1 less combat damage from ground units.
+- **269th_rifles_vet** — 引擎未实现机制:aura_buff
+  - 原文: Your tanks operate for 1 less.
+- **2nd_california** — 引擎未实现机制:special_effect
+  - 原文: Combat damage dealt to this unit is reduced to 1.
+- **2nd_infantry_regiment** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Get the combat keywords of a target unit.
+- **2nd_marines_battalion** — 引擎未实现机制:special_effect
+  - 原文: Combat damage dealt to this unit is doubled.
+- **327th_pathfinders_vet** — 引擎未实现机制:special_effect
+  - 原文: At the start of your turn, a random enemy unit Retreats.
+- **33rd_livorno_regiment** — 引擎未实现机制:special_effect
+  - 原文: Reduce attack of this unit by 1 each time it is attacked, to a minimum of 1.
+- **35th_mountain_rifles** — 引擎未实现机制:special_effect
+  - 原文: If this unit is removed from your deck, it enters the battlefield instead.
+- **37mm_m1_aa_gun** — 引擎未实现机制:special_effect
+  - 原文: When this unit attacks, reset the attack of the defending unit.
+- **388th_independent** — 引擎未实现机制:special_effect
+  - 原文: Destruction: The enemy draws a card.
+- **39_panzergrenadier** — 引擎未实现机制:control_effect
+  - 原文: Has +2 attack while in the frontline. Deployment: Swap a position with a friendly unit.
+- **40_royal_marine** — 引擎未实现机制:grant_trait
+  - 原文: Deployment: Fight target enemy unit. \r\nDestruction: If this unit isn't Navy, put on top of your deck with the Navy type.
+- **48th_armored_infantry** — 引擎未实现机制:special_effect
+  - 原文: Reduce damage to this unit by 2 for each adjacent unit.
+- **51e_rgiment** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Choose One - Gain +3 attack and Blitz OR gain +3 defense and Guard.
+- **56_jger_regiment** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: -1 Operation Cost.
+- **57th_rifles** — 引擎未实现机制:special_effect
+  - 原文: When you deploy or add a T-34 tank, it fights a random enemy unit.
+- **59_panzergrenadier** — 引擎未实现机制:special_effect
+  - 原文: 59. Panzergrenadier can move and attack during the same turn.
+- **60th_cavalry_regiment** — 引擎未实现机制:special_effect
+  - 原文: Players can only give one order each turn.
+- **676th_regiment** — 引擎未实现机制:special_effect
+  - 原文: Gains +2 attack and Shock every time it takes damage.
+- **6th_airlanding_brigade** — 引擎未实现机制:special_effect
+  - 原文: When a friendly unit would deal 1 combat damage, it deals 3 instead.
+- **738_jger_regiment** — 引擎未实现机制:target_select
+  - 原文: Deployment: Target a unit. \r\nDraw a card when it is destroyed.
+- **73rd_infantry_regiment** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Trigger the destruction effects of all friendly units destroyed since the start of your last turn.
+- **75mm_field_artillery** — 引擎未实现机制:special_effect
+  - 原文: Enemies adjacent to target attacked by 75mm FIELD ARTILLERY are dealt 1 damage.
+- **77th_guards** — 引擎未实现机制:special_effect
+  - 原文: When you deploy or add a unit, give it a random combat keyword.
+- **85mm_d44_field_gun** — 引擎未实现机制:special_effect
+  - 原文: Units damaged by 85mm D-44 FIELD GUN and their adjacent units get pinned.
+- **87_grenadier** — 引擎未实现机制:special_effect
+  - 原文: Give +2+2 when the enemy triggers your countermeasure.
+- **92nd_naval_brigade** — 引擎未实现机制:lose_kredits
+  - 原文: Reveal: Lose 3 kredits at the start of your next turn.
+- **99th_kholm** — 引擎未实现机制:lose_kredits
+  - 原文: Deployment: Lose 1 kredit at the start of your next turn.
+- **a20_havoc** — 引擎未实现机制:aura_buff
+  - 原文: Deployment: Your bombers operate for 2 less this turn.
+- **a6m221_zero** — 引擎未实现机制:special_effect
+  - 原文: The first card played by the enemy each turn costs double.
+- **a6m3_zeke** — 引擎未实现机制:special_effect
+  - 原文: Enemy countermeasures cost 2 more to activate.
+- **ace_of_spades** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Deal 3 damage to an enemy. \r\nBecomes Veteran at the start of your turn.
+- **ace_of_spades_vet** — 引擎未实现机制:special_effect
+  - 原文: At the start of your turn, send all units to hand.
+- **advanced_reich_rd** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add TYPE XXI U-BOAT to hand OR add URANPROJEKT to hand.
+- **agency_africa** — 引擎未实现机制:special_effect
+  - 原文: Add to hand a copy of a random known card in the enemy hand.
+- **air_escort** — 引擎未实现机制:special_effect
+  - 原文: Trigger non-targeting deployment effects on friendly units on the battlefield.
+- **air_strips** — 引擎未实现机制:special_effect
+  - 原文: Add BREDA Ba.65 to hand and RM ROMA on top of your deck.
+- **airdrop** — 引擎未实现机制:special_effect
+  - 原文: Retreat an enemy unit in the frontline. If it is now empty, add two 2nd PARACHUTE to it.
+- **armaments** — 引擎未实现机制:special_effect
+  - 原文: Deal 4 damage to any target. Deal 8 if this card spent 4+ turns in your deck.
+- **arming_the_resistance** — 引擎未实现机制:add_to_enemy_deck
+  - 原文: Deal 5 damage to target unit. Add a RESISTANCE card to the enemy deck for each excess damage.
+- **b26_marauder** — 引擎未实现机制:special_effect
+  - 原文: Your non-targeting deployment effects trigger twice.
+- **b4_203mm_howitzer** — 引擎未实现机制:special_effect
+  - 原文: Units damaged by this unit get -3 attack until end of turn.
+- **beaufighter_tf_mk_x** — 引擎未实现机制:special_effect
+  - 原文: Any unit that attacks this unit takes 3 damage first.
+- **betasom** — 引擎未实现机制:grant_trait
+  - 原文: Develop a Navy card. The top card of your deck has the Navy type until the end of your next turn.
+- **bf_109e7_trop** — 引擎未实现机制:special_effect
+  - 原文: Deployment: +1+1 if you control a tank or infantry. +3+3 if you control both.
+- **bf_110_c_zerstrer** — 引擎未实现机制:special_effect
+  - 原文: Increase operation cost by 1 after each time this unit attacks.
+- **black_prince** — 引擎未实现机制:special_effect
+  - 原文: Only 2 units can occupy the frontline. Deployment: Retreat all units in it.
+- **blenheim_mk_i** — 引擎未实现机制:double_damage
+  - 原文: Deals double damage if the frontline is empty.
+- **bolster_the_ranks** — 引擎未实现机制:special_effect
+  - 原文: Give target unit plus attack and defense equal to its operation cost, then set it to 0.
+- **bp43_armored_train** — 引擎未实现机制:special_effect
+  - 原文: Can't attack. At the end of your turn, add a LIGHT INFANTRY to the same front.
+- **bpf** — 引擎未实现机制:repeat_effect
+  - 原文: Convert a random card in the enemy hand into PLAN. Repeat if there is a Navy card on top of your deck.
+- **c6n_saiun** — 引擎未实现机制:countermeasure_lock
+  - 原文: Cannot be attacked by ground units while in the support line. Countermeasures cannot trigger.
+- **calliope** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Distribute 2 damage randomly between the target and adjacent enemies.
+- **cannone_da_47** — 引擎未实现机制:special_effect
+  - 原文: Takes 1 damage at the end of your turn unless you control more units than the enemy.
+- **chain_home** — 引擎未实现机制:special_effect
+  - 原文: Change the attack of a friendly unit to be equal to its defense. It fights a random enemy unit.
+- **close_call** — 引擎未实现机制:cancel
+  - 原文: Counter an order or deployment effect that targets a friendly unit.
+- **cobelligerents** — 引擎未实现机制:special_effect
+  - 原文: Target enemy unit is shuffled into your deck.
+- **cold_trap** — 引擎未实现机制:special_effect
+  - 原文: When an enemy unit attacks, add a SISSI as defender.
+- **colonial_dreams** — 引擎未实现机制:special_effect
+  - 原文: The player with the most units in hand draws 2 cards.
+- **commando_raid** — 引擎未实现机制:special_effect
+  - 原文: Deal 1 damage. Add two No. 10 COMMANDO units to your support line.
+- **costly_victory** — 引擎未实现机制:special_effect
+  - 原文: Destroy target unit. Remove cards from the top of your deck equal to its attack.
+- **crossfire** — 引擎未实现机制:repeat_effect
+  - 原文: Deal 1 damage to each enemy unit. Repeat this effect if any unit is destroyed.
+- **dawn_operations** — 引擎未实现机制:aura_buff
+  - 原文: Your air units operate for free this turn. Lose a kredit slot.
+- **depths_of_winter** — 引擎未实现机制:special_effect
+  - 原文: Remove all units from the battlefield. Replace them with LIGHT INFANTRY units.
+- **desert_push** — 引擎未实现机制:special_effect
+  - 原文: Fully repair target ground unit. If it is pinned, remove pin.
+- **desert_raid** — 引擎未实现机制:aura_buff
+  - 原文: All units deal 1 combat damage until your next turn.
+- **dilemma** — 引擎未实现机制:swap_attack_opcost
+  - 原文: Swap the attack and operation cost of target unit.
+- **dornier_do_217** — 引擎未实现机制:special_effect
+  - 原文: When DORNIER DO 217 destroys a unit, the enemy must discard a card at random.
+- **dowding_system** — 引擎未实现机制:cancel
+  - 原文: Counter an enemy order with cost 4 or more.
+- **duty_is_a_mountain** — 引擎未实现机制:special_effect
+  - 原文: Give your units: \"Destruction effects on this unit trigger an extra time.\"
+- **elusive_force** — 引擎未实现机制:enemy_cannot_order
+  - 原文: The enemy cannot give orders next turn.
+- **embargo** — 引擎未实现机制:enemy_kredit_change
+  - 原文: The enemy gets 2 fewer kredits next turn.
+- **escaut_plan** — 引擎未实现机制:special_effect
+  - 原文: Target unit moves into the frontline, if possible. Give it Ambush, if this is the first order this turn.
+- **evasive_action** — 引擎未实现机制:special_effect
+  - 原文: Trigger this card when the enemy deploys a unit with a deployment effect. Cancel the effect.
+- **exhaust_all_options** — 引擎未实现机制:special_effect
+  - 原文: Pin target unit and adjacent units. Pin units deployed and added by the enemy next turn.
+- **exiled_forces** — 引擎未实现机制:special_effect
+  - 原文: Add a copy of target unit to your support line. Destroy it in 3 turns.
+- **expanded_reich_rd** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add SYNTHETIC OIL to hand OR add ADVANCED REICH R&D to hand.
+- **expanded_royal_research** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add SYNTHETIC RUBBER to hand OR add ADVANCED ROYAL RESEARCH to hand.
+- **expanded_us_research** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add PRESSURIZED CABIN to hand OR add ADVANCED US RESEARCH to hand.
+- **expeditionary_corps** — 引擎未实现机制:add_to_enemy_deck
+  - 原文: Deployment: Add a RESISTANCE card to the enemy deck.
+- **extended_barrage** — 引擎未实现机制:lose_kredits
+  - 原文: Deal 6 damage to target unit. Lose 2 kredits at the start of your next turn.
+- **fieseler_fi_156** — 引擎未实现机制:special_effect
+  - 原文: At the end of your turn, activate a random Countermeasure in hand.
+- **finnish_boys** — 引擎未实现机制:control_effect
+  - 原文: Your cards cannot be discarded.
+- **flight_to_oblivion** — 引擎未实现机制:special_effect
+  - 原文: Remove the top air unit of your deck. Distribute damage randomly to enemies equal to its attack.
+- **fog_of_war** — 引擎未实现机制:special_effect
+  - 原文: Remove target unit from the battlefield. Put two copies on top of owner's deck.
+- **for_glory** — 引擎未实现机制:special_effect
+  - 原文: Destroy target elite unit.
+- **forced_surrender** — 引擎未实现机制:special_effect
+  - 原文: Pin target unit. Enemy units currently pinned remain pinned for an extra turn.
+- **forged_in_fire** — 引擎未实现机制:special_effect
+  - 原文: Give a unit a random combat keyword it doesn't have. Draw a card if it now has 2 or more.
+- **fortified_position** — 引擎未实现机制:special_effect
+  - 原文: Pin an enemy unit. If it is in the frontline, it Retreats.
+- **fortunes_of_war** — 引擎未实现机制:special_effect
+  - 原文: Trigger the Destruction effects on a target unit as if it was yours, then remove the effect if an enemy unit.
+- **friendly_fire** — 引擎未实现机制:special_effect
+  - 原文: When an enemy unit attacks, its attack damage goes to a random other enemy.
+- **g4m1_betty** — 引擎未实现机制:special_effect
+  - 原文: If discarded, add to support line instead. Deployment: Discard a random card from your hand.
+- **gambit** — 引擎未实现机制:special_effect
+  - 原文: Both players add the unit with the highest cost in their hand to their support line.
+- **gladiator_escort** — 引擎未实现机制:special_effect
+  - 原文: Damage to STIRLING Mk I S3 is dealt to this unit instead.
+- **greif** — 引擎未实现机制:special_effect
+  - 原文: Your other tanks operate for 1 less.
+- **grim_day** — 引擎未实现机制:kredit_effect
+  - 原文: Until your next turn, it costs +2 kredits for the enemy to target or attack your units.
+- **h39_swg** — 引擎未实现机制:special_effect
+  - 原文: Suppress units attacked by this unit.
+- **halifax_b_mk_i** — 引擎未实现机制:special_effect
+  - 原文: Bombers you deploy (including this) deal their attack in damage to a random enemy.
+- **heinkel_he_111** — 引擎未实现机制:cannot
+  - 原文: Cannot attack units.
+- **high_altitude_bombing** — 引擎未实现机制:special_effect
+  - 原文: Destroy two random enemy units.
+- **hit_the_drop_point** — 引擎未实现机制:special_effect
+  - 原文: When the enemy deploys a unit, suppress it. Can affect a Covert unit.
+- **hms_belfast** — 引擎未实现机制:special_effect
+  - 原文: Put a unit on top of owner's deck. Shuffle the deck if there is a Navy card on top of your deck.
+- **hms_formidable** — 引擎未实现机制:special_effect
+  - 原文: Change the attack of a friendly unit to be equal to its defense. It fights all enemy units in random order.
+- **hms_sceptre** — 引擎未实现机制:cancel
+  - 原文: Counter an enemy order then Convert it to PLAN and return it to hand.
+- **honorable_death** — 引擎未实现机制:special_effect
+  - 原文: Destroy target unit with attack 3 or less. Owner of the unit draws a card.
+- **ijn_shinano** — 引擎未实现机制:special_effect
+  - 原文: Distribute damage randomly to enemies equal to the number of units on the battlefield.
+- **imperial_decree** — 引擎未实现机制:special_effect
+  - 原文: The next damage order you give this turn deals +1 damage.
+- **infantry_regiment_2** — 引擎未实现机制:special_effect
+  - 原文: Your Salvaged units destroy any unit they damage.
+- **infiltrate** — 引擎未实现机制:special_effect
+  - 原文: Each friendly Commando deals damage to a random enemy equal to known enemy cards.
+- **interception** — 引擎未实现机制:cancel
+  - 原文: Counter an enemy order that targets a friendly target.
+- **is_ii_1944_early** — 引擎未实现机制:special_effect
+  - 原文: Destruction: Add two 42nd RIFLES. Give one Guard, the other Shock.
+- **isu152** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Destroy all other damaged units.
+- **jet_prototype** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Remove 6 cards from your deck. -1 operation cost for each with even cost.
+- **juggernaut** — 引擎未实现机制:special_effect
+  - 原文: Give a friendly tank or infantry +2+1. It must attack each turn or it is destroyed.
+- **katyusha** — 引擎未实现机制:special_effect
+  - 原文: When KATYUSHA attacks, it deals 0-1 additional damage.
+- **ki100_goshikisen** — 引擎未实现机制:immune
+  - 原文: Is immune to damage during your turn.
+- **ki44_tojo** — 引擎未实现机制:special_effect
+  - 原文: Deployment: The enemy discards a random bomber from hand.
+- **ki61ii_tony** — 引擎未实现机制:spend_kredits
+  - 原文: Spend 7 kredits at the end of enemy turn and add it to the battlefield.
+- **kings_own_scottish** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: Damage dealt to this unit is dealt to its Pincer partner instead.
+- **kurmark_aufklrung** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Choose a countermeasure in hand. Activate it at the end of your turn.
+- **kurume_regiment** — 引擎未实现机制:special_effect
+  - 原文: Destruction: End the turn.
+- **kv2** — 引擎未实现机制:special_effect
+  - 原文: Order damage to a friendly unit is reduced by its Heavy Armor.
+- **l640** — 引擎未实现机制:special_effect
+  - 原文: Destruction: All friendly units retreat.
+- **lightning_conquest** — 引擎未实现机制:immune
+  - 原文: Friendly infantry units are immune to damage and can both move and attack this turn.
+- **little_cobra** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Destroy another random friendly unit.
+- **long_tom** — 引擎未实现机制:special_effect
+  - 原文: When LONG TOM attacks, distribute 3 damage between random enemies.
+- **lovat_scouts** — 引擎未实现机制:grant_trait
+  - 原文: Your cards have the Navy type while on top of your deck.
+- **lublin_rxiii** — 引擎未实现机制:special_effect
+  - 原文: Cards you play have Intel 1.\r\nDeployment: Reveal target Covert unit.
+- **lure** — 引擎未实现机制:cancel
+  - 原文: When the enemy gives the second order this turn, counter it.
+- **m10_wolverine** — 引擎未实现机制:special_effect
+  - 原文: Enemy tanks damaged by this unit are destroyed.
+- **m16_halftrack** — 引擎未实现机制:special_effect
+  - 原文: Deployment: An enemy air or infantry unit must retreat.
+- **m20_scout_car** — 引擎未实现机制:target_select
+  - 原文: Deployment: Target a unit. \r\nDestruction: It gets +1+1.
+- **m36_jackson** — 引擎未实现机制:special_effect
+  - 原文: If the enemy discards M36 JACKSON from your hand, put it on the battlefield instead.
+- **m4a1** — 引擎未实现机制:special_effect
+  - 原文: Can't be targeted by enemy orders. Draw this unit from deck if enemy makes you discard.
+- **m7_priest** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Gains +1+1 if you control the frontline.
+- **m8_howitzer** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Distribute 3 damage randomly between all enemies.
+- **magic** — 引擎未实现机制:special_effect
+  - 原文: Choose one - a unit is fully repaired OR it loses Guard, Ambush and Smokescreen.
+- **materials** — 引擎未实现机制:special_effect
+  - 原文: Draw 4 cards. Draw 8 if this card spent 4+ turns in your deck.
+- **matilda_mk_ii** — 引擎未实现机制:special_effect
+  - 原文: Units damaged by MATILDA Mk II are pinned.
+- **matsue_regiment** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Choose and discard a card. Gain attack equal to the cost.
+- **mayhem** — 引擎未实现机制:control_effect
+  - 原文: Choose a unit in hand. Swap it with a friendly unit on the battlefield.
+- **me_bf_110** — 引擎未实现机制:special_effect
+  - 原文: At the end of your turn, give ME BF 110 +1+1 if you control the frontline.
+- **mi5** — 引擎未实现机制:special_effect
+  - 原文: Your enemy puts a random card in hand on top of their deck. You draw a card.
+- **mother_russia** — 引擎未实现机制:special_effect
+  - 原文: Add to hand a copy of each friendly Soviet unit destroyed so far this turn.
+- **mud** — 引擎未实现机制:cannot
+  - 原文: Enemy ground units cannot attack next turn.
+- **night_bombing** — 引擎未实现机制:special_effect
+  - 原文: Destroy target undamaged unit, then randomly rearrange enemy units on the battlefield.
+- **night_raid** — 引擎未实现机制:special_effect
+  - 原文: Copy random order from enemy deck. Add a No. 10 COMMANDO to support line.
+- **no_3_commando** — 引擎未实现机制:cannot
+  - 原文: Units with 4 or more attack cannot attack.
+- **no_retreat** — 引擎未实现机制:cannot
+  - 原文: Target unit gets: \"Cannot Retreat or be Suppressed.\"
+- **obice_da_7513** — 引擎未实现机制:special_effect
+  - 原文: Your Alpine units can move and attack during the same turn.
+- **on_the_ascent** — 引擎未实现机制:special_effect
+  - 原文: Destroy and Salvage the unit(s) with the least attack on the battlefield.
+- **orders_from_above** — 引擎未实现机制:special_effect
+  - 原文: Target a tank or infantry. Give it +1+1 for each damaged unit if friendly. Otherwise, deal 3 damage to it.
+- **orp_orze** — 引擎未实现机制:special_effect
+  - 原文: Increase the cost of a known card in the enemy hand by 2.
+- **out_of_the_mist** — 引擎未实现机制:special_effect
+  - 原文: Deal 1 damage to target unit. If it is destroyed this turn, Salvage it.
+- **overrun** — 引擎未实现机制:special_effect
+  - 原文: Attacking ground units deal damage equal to their defense this turn.
+- **overwhelming_force** — 引擎未实现机制:special_effect
+  - 原文: Choose and discard a unit. Give its attack and defense to target friendly infantry or tank.
+- **p39_airacobra** — 引擎未实现机制:special_effect
+  - 原文: Takes 2 less combat damage against ground units.
+- **p61_black_widow** — 引擎未实现机制:immune
+  - 原文: At the start of your turn, give a random friendly air unit immune this turn.
+- **pact_of_steel** — 引擎未实现机制:special_effect
+  - 原文: Both players draw a card. Discard the lower cost card. Repeat 3 more times.
+- **pak_38** — 引擎未实现机制:special_effect
+  - 原文: Deals triple damage to tanks.
+- **panzer_iiig** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: Cannot be pinned.
+- **panzer_ivj** — 引擎未实现机制:special_effect
+  - 原文: Increase the operation cost by 1 after each time this unit attacks.
+- **panzerzug_61_bp42** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Add to your support line two 59. PANZERGRENADIER with Blitz.
+- **patriotic_firestorm** — 引擎未实现机制:aura_buff
+  - 原文: Your support line units have + 2 attack until end of turn.
+- **patriotic_zeal** — 引擎未实现机制:double_stats
+  - 原文: Double the attack and defense of a friendly unit.
+- **patrol** — 引擎未实现机制:special_effect
+  - 原文: Target enemy unit loses Guard, Smokescreen and Destruction. Deal 2 damage to it.
+- **persian_corridor** — 引擎未实现机制:special_effect
+  - 原文: Give a friendly British or US unit: \"Destruction: Trigger all Destruction effects of your Soviet units.\"
+- **petlyakov_pe2ft** — 引擎未实现机制:special_effect
+  - 原文: Deployment effects do not trigger.
+- **protect_the_pocket** — 引擎未实现机制:special_effect
+  - 原文: Draw 4 cards. If you have 4+ units with active Pincer, end the next enemy turn immediately.
+- **pz_befehlswagen_35t** — 引擎未实现机制:special_effect
+  - 原文: If this unit is in hand, add it to the frontline when you take it.
+- **radar_alert** — 引擎未实现机制:special_effect
+  - 原文: When the enemy deploys a unit, add a random British air unit of similar cost.
+- **rally** — 引擎未实现机制:special_effect
+  - 原文: Your units get +1 attack this turn. Remove Pin on them. Draw a card.
+- **red_bull** — 引擎未实现机制:double_stats
+  - 原文: At the start of your turn, double the attack of this unit.
+- **reich_research** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add V-1 FLYING BOMB to hand OR add EXPANDED REICH R&D to hand.
+- **retribution_c** — 引擎未实现机制:special_effect
+  - 原文: Distribute the attack of a friendly unit as damage between all enemies.
+- **retribution_j** — 引擎未实现机制:special_effect
+  - 原文: Target friendly unit gets: \"Destruction: Add a copy to owner's hand.\"
+- **rm_roma** — 引擎未实现机制:grant_trait
+  - 原文: Deal 4 damage to an enemy. The top card of your deck has the Navy type until the end of your next turn.
+- **romanian_bridgehead** — 引擎未实现机制:special_effect
+  - 原文: Give target unit +2+2 and Blitz. Destroy it in 2 turns.
+- **royal_fusiliers** — 引擎未实现机制:swap_attack_opcost
+  - 原文: After you give an order, swap the attack and operation cost of this unit.
+- **royal_research** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add RADAR to hand OR add EXPANDED ROYAL RESEARCH to hand.
+- **royal_scots** — 引擎未实现机制:special_effect
+  - 原文: If in hand or on the battlefield, random effects always choose this unit.
+- **rush_production** — 引擎未实现机制:special_effect
+  - 原文: When you deploy a German unit this turn, it gets +2-1.
+- **saar_offensive** — 引擎未实现机制:special_effect
+  - 原文: Deal 7 damage to target unit. Add CROSS OF LORRAINE to hand if this is the first order given this turn.
+- **sabae_regiment** — 引擎未实现机制:special_effect
+  - 原文: Once per turn, when you shuffle, distribute damage randomly to enemies equal to units in play.
+- **salamander** — 引擎未实现机制:special_effect
+  - 原文: Remove from the battlefield after it attacks until the start of your next turn.
+- **sally** — 引擎未实现机制:special_effect
+  - 原文: Target unit is pinned if a tank, suppressed if an infantry, destroyed if an artillery and retreats if an air unit.
+- **sapporo_regiment** — 引擎未实现机制:special_effect
+  - 原文: Gain +1+1 and a random combat keyword when an undestroyed unit leaves the battlefield.
+- **savoia_cavalleria** — 引擎未实现机制:special_effect
+  - 原文: Also counts as a tank.
+- **savoiamarchetti_sm_79** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Trigger a non-targeted deployment effect on a friendly unit.
+- **scatter_tactics** — 引擎未实现机制:special_effect
+  - 原文: When a unit attacks, give enemy units on the battlefield -2 attack until end of turn.
+- **scorched_earth** — 引擎未实现机制:special_effect
+  - 原文: Set the operation cost of all units on the battlefield to 4.
+- **seaborne_invasion** — 引擎未实现机制:special_effect
+  - 原文: All enemy units in the frontline retreat. Add two US infantry units there with total attack of 6.
+- **seahawk** — 引擎未实现机制:special_effect
+  - 原文: Enemy cards deal 1 less damage.
+- **secret_operatives** — 引擎未实现机制:cancel
+  - 原文: Counter an order that targets a friendly unit. Give the unit +2 defense.
+- **semper_fi** — 引擎未实现机制:grant_trait
+  - 原文: Convert 4 of the top 8 cards of your deck into 22nd MARINES. Give them the Navy type.
+- **shadow_strike** — 引擎未实现机制:special_effect
+  - 原文: Give a friendly unit Shock. At the end of turn, give it Smokescreen if possible.
+- **sherwood_foresters** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Put a copy of target unit on top of owner's deck.
+- **shifting_attack** — 引擎未实现机制:kredit_effect
+  - 原文: Send a friendly unit to hand. It costs 0 kredits to deploy this turn.
+- **shock_tactics** — 引擎未实现机制:special_effect
+  - 原文: Choose One - Give a ground unit Blitz OR Shock. Apply both if you control a unit with 4 or more attack.
+- **sneak_attack** — 引擎未实现机制:special_effect
+  - 原文: Destroy target unit. Remove copies of it from the owner's hand and deck.
+- **snowstorm** — 引擎未实现机制:aura_buff
+  - 原文: All units have an operation cost of 4 until the start of your next turn.
+- **spearhead** — 引擎未实现机制:aura_buff
+  - 原文: Destroy a friendly unit and adjacent units. Your units get +X+X, where X is units destroyed.
+- **stranglehold** — 引擎未实现机制:kredit_effect
+  - 原文: When a unit is deployed, the enemy loses remaining kredits.
+- **strategic_planning** — 引擎未实现机制:double_stats
+  - 原文: Double the attack and defense of your units.
+- **stug_iii_g_schrzen** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: +1 Heavy Armor.
+- **stug_iiig** — 引擎未实现机制:special_effect
+  - 原文: Damage from this unit ignores Heavy Armor.
+- **supply_drop** — 引擎未实现机制:special_effect
+  - 原文: Give a tank or infantry +4 defense and Guard. Smokescreen is removed.
+- **supply_shortage** — 引擎未实现机制:special_effect
+  - 原文: Enemy units get: \"Receives 1 damage at the start of owner's turn.\"
+- **t19_howitzer** — 引擎未实现机制:special_effect
+  - 原文: Units attacked by T19 HOWITZER lose Guard this turn.
+- **t28** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: When this unit is destroyed, put it on top of owner's deck.
+- **t3485_1945** — 引擎未实现机制:cannot
+  - 原文: Cannot be Suppressed or lose Shock.
+- **t34_1942_b** — 引擎未实现机制:special_effect
+  - 原文: Destroyed at end of turn.
+- **t70_b** — 引擎未实现机制:special_effect
+  - 原文: Destroyed at the end of the second turn on the battlefield.
+- **take_liberty** — 引擎未实现机制:special_effect
+  - 原文: Each player shuffles their hand into their deck, then draws 4 cards.
+- **the_great_expanse** — 引擎未实现机制:set_kredit_slots_equal
+  - 原文: Set your kredit slots to equal the enemy kredit slots. Your units get +1 attack for each slot gained.
+- **the_mighty_fall** — 引擎未实现机制:special_effect
+  - 原文: Destroy target Veteran unit.
+- **the_peoples_army** — 引擎未实现机制:special_effect
+  - 原文: Fill your hand and support line with LIGHT INFANTRY. Give them all Blitz.
+- **the_rangers** — 引擎未实现机制:special_effect
+  - 原文: Increase the non-combat, non-attack damage dealt by your units by 1.
+- **tiger_ih** — 引擎未实现机制:cannot
+  - 原文: Cannot be pinned.
+- **tip_of_the_spear** — 引擎未实现机制:special_effect
+  - 原文: Destroy target unit with cost 3 or less. Can target Covert units.
+- **tottori_regiment** — 引擎未实现机制:cannot
+  - 原文: Units cannot be repaired.
+- **tsu_regiment** — 引擎未实现机制:target_select
+  - 原文: Deployment: Target a unit. \r\nDestruction: Destroy the unit targeted.
+- **tupolev_tb3** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Add I-16 ISHAK on both sides of this unit.
+- **type_88_aa_gun** — 引擎未实现机制:special_effect
+  - 原文: Air units that attack or are attacked by TYPE 88 AA GUN are pinned.
+- **type_96_aa_gun** — 引擎未实现机制:special_effect
+  - 原文: Enemy air units enter the battlefield with defense of 1. Destruction: Draw a card.
+- **u48** — 引擎未实现机制:enemy_cannot_deploy
+  - 原文: The enemy cannot deploy units next turn.
+- **ultra** — 引擎未实现机制:cancel
+  - 原文: Counter an enemy order and draw a card.
+- **uncle_sam** — 引擎未实现机制:special_effect
+  - 原文: Duplicate a random unit in your hand.
+- **under_fire** — 引擎未实现机制:special_effect
+  - 原文: Deal 1 damage to target enemy unit and to adjacent enemies. Pin units damaged.
+- **urban_fighting** — 引擎未实现机制:special_effect
+  - 原文: Set the operation cost of target unit to 4. Destroy adjacent damaged units.
+- **us_military_research** — 引擎未实现机制:special_effect
+  - 原文: Choose one - add DEPTH CHARGES to hand OR add EXPANDED US RESEARCH to hand.
+- **uss_archerfish** — 引擎未实现机制:repeat_effect
+  - 原文: Destroy a random enemy unit. Repeat if there is a Navy card on top of your deck.
+- **uss_missouri** — 引擎未实现机制:special_effect
+  - 原文: Destroy target unit in the frontline. Retreat adjacent units.
+- **vicious_salvo** — 引擎未实现机制:special_effect
+  - 原文: Deal 3 damage to target unit. Suppress adjacent units.
+- **victory_banners** — 引擎未实现机制:target_select
+  - 原文: Target a unit. Convert all units on the battlefield belonging to the owner into the targeted unit.
+- **vive_la_resistance** — 引擎未实现机制:add_to_enemy_deck
+  - 原文: Add 2 RESISTANCE cards to the enemy deck. Draw a card.
+- **vystrel_course** — 引擎未实现机制:special_effect
+  - 原文: Target a friendly tank or infantry. At the start of your next turn give it +3+3.
+- **wakamatsu_regiment** — 引擎未实现机制:special_effect
+  - 原文: Destruction: Destroy all of your WAKAMATSU REGIMENT units.
+- **war_production** — 引擎未实现机制:special_effect
+  - 原文: Gain 2 additional kredits this turn. Discard all non-unit cards.
+- **wirbelwind** — 引擎未实现机制:special_effect
+  - 原文: While in frontline, enemy air units enter the battlefield pinned.
+- **workers_unite** — 引擎未实现机制:special_effect
+  - 原文: Discard your LIGHT INFANTRY units. Gain a kredit and draw a card for each.
+- **yak_3** — 引擎未实现机制:special_effect
+  - 原文: Deployment: Gains +1 attack and Ambush if you control a non-Soviet unit.
+- **zis2** — 引擎未实现机制:pincer_ability
+  - 原文: Pincer: Blitz.
+
+## AURA/持续效果(需生命周期机制)
+
+- **104_panzergrenadier** — 需生命周期绑定(单位离场回退)
+- **15th_engineers** — 需生命周期绑定(单位离场回退)
+- **27_fsiliers** — 需生命周期绑定(单位离场回退)
+- **332nd_engineer_regiment** — 需生命周期绑定(单位离场回退)
+- **34th_guards** — 需生命周期绑定(单位离场回退)
+- **37_mm_antiaircraft_gun** — 需生命周期绑定(单位离场回退)
+- **3rd_canadian_division** — 需生命周期绑定(单位离场回退)
+- **3rd_kure_snlf** — 需生命周期绑定(单位离场回退)
+- **40th_cavalry_regiment** — 需生命周期绑定(单位离场回退)
+- **4_fallschirmjger** — 需生命周期绑定(单位离场回退)
+- **511th_airborne** — 需生命周期绑定(单位离场回退)
+- **62_infantry_regiment** — 需生命周期绑定(单位离场回退)
+- **75th_rangers** — 需生命周期绑定(单位离场回退)
+- **85_pioneer_company** — 需生命周期绑定(单位离场回退)
+- **a20b** — 需生命周期绑定(单位离场回退)
+- **a5m4_claude** — 需生命周期绑定(单位离场回退)
+- **b24d** — 需生命周期绑定(单位离场回退)
+- **b29_superfortress** — 需生命周期绑定(单位离场回退)
+- **beriev_be4** — 需生命周期绑定(单位离场回退)
+- **big_red_one** — 需生命周期绑定(单位离场回退)
+- **black_watch** — 需生命周期绑定(单位离场回退)
+- **fukuoka_regiment** — 需生命周期绑定(单位离场回退)
+- **gordon_highlanders** — 需生命周期绑定(单位离场回退)
+- **l4_grasshopper** — 需生命周期绑定(单位离场回退)
+- **layforce** — 需生命周期绑定(单位离场回退)
+- **mig_3** — 需生命周期绑定(单位离场回退)
+- **p40_n5** — 需生命周期绑定(单位离场回退)
+- **panzer_35t** — 需生命周期绑定(单位离场回退)
+- **pzl_p_11** — 需生命周期绑定(单位离场回退)
+- **raf_ground_crew** — 需生命周期绑定(单位离场回退)
+- **raf_mustang** — 需生命周期绑定(单位离场回退)
+- **sturmbrigade_rhodos** — 需生命周期绑定(单位离场回退)
+- **the_deuce** — 需生命周期绑定(单位离场回退)
+- **wellington** — 需生命周期绑定(单位离场回退)
+
+## 原则可消解(只差执行层)
+
+- **111th_indian_brigade** — P3:HQ=总部,代词就近/语境
+- **15th_motor_rifles** — P3:HQ=总部,代词就近/语境
+- **175th_motorized** — P1:一次性降费当前手牌,不追溯新抽
+- **185th_brigade** — P3:HQ=总部,代词就近/语境
+- **185th_folgore** — P2:状态判定->回合开始检测/离场回退
+- **18e_rgiment** — P2:状态判定->回合开始检测/离场回退
+- **1st_airborne** — P2:状态判定->回合开始检测/离场回退; P2:mobilized每回合开始检测
+- **289th_gatchina** — P3:HQ=总部,代词就近/语境
+- **2e_brigade** — P2:mobilized每回合开始检测
+- **35th_rifle_regiment** — P2:状态判定->回合开始检测/离场回退
+- **39th_bologna_regiment** — P1:一次性降费当前手牌,不追溯新抽; P2:状态判定->回合开始检测/离场回退
+- **4th_guards_rifles** — P1:一次性降费当前手牌,不追溯新抽; P2:状态判定->回合开始检测/离场回退
+- **51st_recon** — P3:HQ=总部,代词就近/语境
+- **593rd_jasco** — P3:HQ=总部,代词就近/语境
+- **756th_regiment** — P3:HQ=总部,代词就近/语境
+- **8e_marocains** — P3:HQ=总部,代词就近/语境
+- **8th_cavalry_regiment** — P3:HQ=总部,代词就近/语境
+- **aerial_reconnaissance** — P1:一次性降费当前手牌,不追溯新抽
+- **air_corps_ferrying** — P2:状态判定->回合开始检测/离场回退
+- **alpenfestung** — P3:HQ=总部,代词就近/语境
+- **ancient_empire** — P3:HQ=总部,代词就近/语境
+- **b26_groupe_bretagne** — P3:HQ=总部,代词就近/语境
+- **bletchley_park** — P1:一次性降费当前手牌,不追溯新抽
+- **exploit_the_gap** — P2:状态判定->回合开始检测/离场回退
+- **fiat_g_55** — P3:HQ=总部,代词就近/语境
+- **five_year_plan** — P3:HQ=总部,代词就近/语境
+- **great_patriotic_war** — P3:HQ=总部,代词就近/语境
+- **heartland_defense** — P3:HQ=总部,代词就近/语境
+- **hell_on_wheels** — P2:状态判定->回合开始检测/离场回退
+- **home_defense** — P2:状态判定->回合开始检测/离场回退; P3:HQ=总部,代词就近/语境
+- **ijn_shirakumo** — P3:HQ=总部,代词就近/语境
+- **imperial_strength** — P3:HQ=总部,代词就近/语境
+- **ju_87_b_stuka** — P3:HQ=总部,代词就近/语境
+- **kagoshima_regiment** — P3:HQ=总部,代词就近/语境
+- **km_tirpitz** — P3:HQ=总部,代词就近/语境
+- **kv85** — P1:一次性降费当前手牌,不追溯新抽
+- **lancaster_b_iii** — P3:HQ=总部,代词就近/语境
+- **liberation** — P3:HQ=总部,代词就近/语境
+- **long_range_recon** — P3:HQ=总部,代词就近/语境
+- **m26_pershing** — P3:HQ=总部,代词就近/语境
+- **m6** — P3:HQ=总部,代词就近/语境
+- **macchi_c_202** — P3:HQ=总部,代词就近/语境
+- **me_410_hornisse** — P3:HQ=总部,代词就近/语境
+- **mikawa_regiment** — P1:一次性降费当前手牌,不追溯新抽
+- **national_fire_service** — P3:HQ=总部,代词就近/语境
+- **observer_corps** — P1:一次性降费当前手牌,不追溯新抽
+- **orp_byskawica** — P3:HQ=总部,代词就近/语境
+- **outmaneuver** — P2:状态判定->回合开始检测/离场回退
+- **panther_d** — P3:HQ=总部,代词就近/语境
+- **push** — P3:HQ=总部,代词就近/语境
+- **resistance_b** — P3:HQ=总部,代词就近/语境
+- **resistance_council** — P3:HQ=总部,代词就近/语境
+- **retaliation** — P3:HQ=总部,代词就近/语境
+- **rm_bersagliere** — P3:HQ=总部,代词就近/语境
+- **royal_ulster_rifles** — P3:HQ=总部,代词就近/语境
+- **seagull** — P3:HQ=总部,代词就近/语境
+- **shturmovik_il2m** — P3:HQ=总部,代词就近/语境
+- **sisu** — P3:HQ=总部,代词就近/语境
+- **tsuruga_regiment** — P3:HQ=总部,代词就近/语境
+- **turning_point** — P3:HQ=总部,代词就近/语境
+- **type_89_chiro** — P3:HQ=总部,代词就近/语境
+- **victory_march** — P3:HQ=总部,代词就近/语境
+- **women_at_work** — P1:一次性降费当前手牌,不追溯新抽

@@ -1,0 +1,144 @@
+"""Gym-like facade around the state and action layers."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable
+import random
+
+from simulator.actions.action import Action, AttackAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction
+from simulator.replay import Replay
+from simulator.actions.validator import opponent_id
+from simulator.cards.loader import CardDatabase
+from simulator.core.state import GameState, GameStatus, PlayerState
+from simulator.core.turn import TurnManager
+from simulator.rules.native import engine_for
+from simulator.rules.deck import DeckValidator
+
+
+@dataclass
+class Simulator:
+    """Headless training interface. Effects and handlers are connected in later phases."""
+
+    cards: CardDatabase
+    state: GameState | None = None
+    replay: Replay | None = None
+
+    def reset(self, player_one_deck: Iterable[str], player_two_deck: Iterable[str], nations: tuple[str | None, str | None] = (None, None), seed: int = 0, auto_mulligan: bool = True) -> GameState:
+        deck_one, deck_two = list(player_one_deck), list(player_two_deck)
+        nation_one = nations[0] or self._infer_nation(deck_one)
+        nation_two = nations[1] or self._infer_nation(deck_two)
+        self._validate_deck(deck_one, nation_one)
+        self._validate_deck(deck_two, nation_two)
+        self.state = GameState(
+            current_player="p1",
+            players={
+                "p1": PlayerState("p1", nation_one, deck=deck_one),
+                "p2": PlayerState("p2", nation_two, deck=deck_two),
+            },
+            graveyard={"p1": [], "p2": []}, rng_seed=seed,
+        )
+        rng = random.Random(seed)
+        rng.shuffle(self.state.players["p1"].deck)
+        rng.shuffle(self.state.players["p2"].deck)
+        for _ in range(4): TurnManager.draw_card(self.state, "p1")
+        for _ in range(5): TurnManager.draw_card(self.state, "p2")
+        self.state.mulligan_pending = ["p1", "p2"]
+        if auto_mulligan:
+            MulliganAction("p1").execute(self.state, self.cards)
+            MulliganAction("p2").execute(self.state, self.cards)
+            self.state.current_player = "p1"
+            TurnManager.start_turn(self.state, "p1", draw_card=False)
+        self.replay = Replay(self.state.to_dict())
+        return self.get_state()
+
+    def step(self, action: Action) -> tuple[GameState, float, bool]:
+        if self.state is None:
+            raise RuntimeError("Call reset() before step()")
+        opponent = opponent_id(self.state, action.player_id)
+        before = self.state.players[opponent].hq.current_health
+        action.execute(self.state, self.cards)
+        if self.replay:
+            self.replay.record(action, self.state)
+        reward = float(before - self.state.players[opponent].hq.current_health)
+        if self.is_terminal() and self.state.game_status != GameStatus.DRAW:
+            reward += 100.0
+        return self.get_state(), reward, self.is_terminal()
+
+    def get_state(self) -> GameState:
+        if self.state is None:
+            raise RuntimeError("Call reset() before get_state()")
+        return self.state.clone()
+
+    def get_available_actions(self) -> list[Action]:
+        if self.state is None or self.is_terminal():
+            return []
+        player_id = self.state.current_player
+        if self.state.mulligan_pending:
+            return [MulliganAction(player_id)] if player_id in self.state.mulligan_pending else []
+        player = self.state.players[player_id]
+        actions: list[Action] = [PassAction(player_id)]
+        rule_engine = engine_for(self.cards)
+        all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
+        for card_id in player.hand:
+            card = self.cards.get(card_id)
+            positions = ("support_line",)  # KARDS units deploy to the support line.
+            targets = all_units if rule_engine.rule_for(card_id).needs_target else [None]
+            for position in positions:
+                for target_unit_id in targets:
+                    action = PlayCardAction(player_id, card_id, position, target_unit_id)
+                    if _is_valid(action, self.state, self.cards):
+                        actions.append(action)
+        enemy_id = opponent_id(self.state, player_id)
+        for unit in player.units:
+            move = MoveUnitAction(player_id, unit.instance_id)
+            if _is_valid(move, self.state, self.cards): actions.append(move)
+            for target in [None] + [enemy.instance_id for enemy in self.state.players[enemy_id].units]:
+                action = AttackAction(player_id, unit.instance_id, target)
+                if _is_valid(action, self.state, self.cards):
+                    actions.append(action)
+        return actions
+
+    def is_terminal(self) -> bool:
+        return self.state is not None and self.state.game_status != GameStatus.IN_PROGRESS
+
+    def _validate_deck(self, deck: list[str], nation: str | None) -> None:
+        if nation is None:
+            raise ValueError("Deck nation could not be inferred")
+        result = DeckValidator(self.cards).validate(deck, nation)
+        if not result.valid:
+            raise ValueError("Illegal deck: " + "; ".join(result.errors))
+
+    def _infer_nation(self, deck: list[str]) -> str | None:
+        for card_id in deck:
+            if card_id in self.cards and self.cards.get(card_id).nation != "Neutral":
+                return self.cards.get(card_id).nation
+        return None
+
+    def get_observation(self, player_id: str) -> dict:
+        """Player-view API that hides the opponent's hand IDs."""
+        if self.state is None:
+            raise RuntimeError("Call reset() before get_observation()")
+        if player_id not in self.state.players:
+            raise ValueError("Unknown player")
+        player = self.state.players[player_id]
+        enemy = self.state.players[opponent_id(self.state, player_id)]
+        return {"turn": self.state.turn_number, "current": self.state.current_player == player_id,
+                "self": _observation_player(player, True), "opponent": _observation_player(enemy, False),
+                "frontline": list(self.state.battlefield["frontline"]), "support_line": list(self.state.battlefield["support_line"]),
+                "terminal": self.is_terminal()}
+
+
+def _observation_player(player: PlayerState, reveal_hand: bool) -> dict:
+    return {"hq_health": player.hq.current_health, "hq_defense": player.hq.defense_modifier,
+            "kredits": player.resources.kredits, "max_kredits": player.resources.max_kredits,
+            "deck_count": len(player.deck), "hand": list(player.hand) if reveal_hand else None,
+            "hand_count": len(player.hand), "units": [{"id": unit.instance_id, "card_id": unit.card_id, "attack": unit.attack, "defense": unit.defense, "position": unit.position} for unit in player.units]}
+
+
+def _is_valid(action: Action, state: GameState, cards: CardDatabase) -> bool:
+    try:
+        action.validate(state, cards)
+    except ValueError:
+        return False
+    return True
