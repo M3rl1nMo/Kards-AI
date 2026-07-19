@@ -245,6 +245,19 @@ class NativeRuleTests(unittest.TestCase):
         )
         self.assertEqual(victim.defense, 6)
 
+    def test_deployment_can_swap_with_friendly_frontline_unit(self) -> None:
+        state = self.state()
+        frontline = UnitState("front", "m3a3_honey", 2, 4, "p1", "frontline")
+        state.players["p1"].units = [frontline]
+        state.players["p1"].hand = ["39_panzergrenadier"]
+        state.players["p1"].resources = ResourceState(10, 10)
+        state.battlefield = {"frontline": [frontline.instance_id], "support_line": []}
+        PlayCardAction("p1", "39_panzergrenadier", target_unit_id=frontline.instance_id).execute(state, self.cards)
+        deployed = next(unit for unit in state.players["p1"].units if unit.card_id == "39_panzergrenadier")
+        self.assertEqual(deployed.position, "frontline")
+        self.assertEqual(frontline.position, "support_line")
+        self.assertEqual(deployed.attack, (self.cards.get(deployed.card_id).attack or 0) + 2)
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]

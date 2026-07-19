@@ -69,6 +69,8 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "ground_damage_bonus",
     "enemy_card_damage_reduction",
     "friendly_order_damage_armor",
+    "frontline_attack_bonus",
+    "swap_with_friendly",
     # ── stat modification ──
     "buff",
     "modify_attack",

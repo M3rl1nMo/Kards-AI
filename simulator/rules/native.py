@@ -458,6 +458,23 @@ class NativeRuleEngine:
             if unit:
                 unit.status["frontline_attack_bonus"] = action.amount
             return
+        if action.kind == "swap_with_friendly" and context.source_unit_id and context.target_unit_id:
+            source = find_unit(state, context.source_unit_id)
+            target = find_unit(state, context.target_unit_id)
+            if not source or not target or source.owner_id != target.owner_id or source.position == target.position:
+                return
+            source_position, target_position = source.position, target.position
+            state.battlefield[source_position].remove(source.instance_id)
+            state.battlefield[target_position].remove(target.instance_id)
+            state.battlefield[source_position].append(target.instance_id)
+            state.battlefield[target_position].append(source.instance_id)
+            source.position, target.position = target_position, source_position
+            bonus = source.status.get("frontline_attack_bonus")
+            if source.position == "frontline" and isinstance(bonus, int) and not source.status.get("frontline_attack_bonus_applied"):
+                source.attack += bonus
+                source.status["frontline_attack_bonus_applied"] = True
+            state.event_log.append({"event": "friendly_units_swapped", "source_unit_id": source.instance_id, "target_unit_id": target.instance_id})
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)

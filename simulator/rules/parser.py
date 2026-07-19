@@ -511,6 +511,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "your ground units with 4 or more attack deal" in original_lower: return (RuleAction("ground_damage_bonus", "source", amount=3, min_cost=4),)
     if "also counts as a tank" in original_lower: return (RuleAction("grant_trait", "source", card_name="tank"),)
     if "has +2 attack while in the frontline" in original_lower: return (RuleAction("frontline_attack_bonus", "source", amount=2),)
+    if "swap a position with a friendly unit" in original_lower: return (RuleAction("swap_with_friendly", "selected_friendly"),)
     if "trigger non-targeting deployment effects on friendly" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
     if "this unit costs 1 more each time you lose" in original_lower: return (RuleAction("control_effect", "source"),)
     if "your alpine units can move and attack" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
