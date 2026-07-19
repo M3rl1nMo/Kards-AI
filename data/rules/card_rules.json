@@ -12145,7 +12145,7 @@
       ],
       "actions": [
         {
-          "kind": "modify_attack",
+          "kind": "frontline_attack_bonus",
           "target": "source",
           "amount": 2,
           "attack": 0,
@@ -12174,6 +12174,7 @@
       "status": "partial",
       "unresolved_fragments": [
         "Deployment: Swap a position with a friendly unit.",
+        "[engine does not implement kind=frontline_attack_bonus]",
         "[engine does not implement kind=control_effect] Swap a position with a friendly unit."
       ]
     },

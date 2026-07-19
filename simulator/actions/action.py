@@ -355,6 +355,10 @@ class MoveUnitAction(Action):
         state.battlefield["support_line"].remove(unit.instance_id)
         state.battlefield["frontline"].append(unit.instance_id)
         unit.position = "frontline"
+        bonus = unit.status.get("frontline_attack_bonus")
+        if isinstance(bonus, int) and not unit.status.get("frontline_attack_bonus_applied"):
+            unit.attack += bonus
+            unit.status["frontline_attack_bonus_applied"] = True
         state.event_log.append({"event": "unit_moved_to_frontline", "player_id": self.player_id, "unit_id": unit.instance_id})
         return state
 

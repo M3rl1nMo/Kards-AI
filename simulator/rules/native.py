@@ -453,6 +453,11 @@ class NativeRuleEngine:
             if unit:
                 unit.status["friendly_order_damage_armor"] = True
             return
+        if action.kind == "frontline_attack_bonus" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["frontline_attack_bonus"] = action.amount
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
