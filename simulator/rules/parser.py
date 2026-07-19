@@ -145,6 +145,13 @@ class RuleParser:
         text = card.text.strip()
         if not text or text == "{}":
             return CardRule(card.id, text, (), (), "implemented")
+        # A countermeasure trigger clause contains its own semantic predicate;
+        # sentence splitting would otherwise separate it from "Cancel the
+        # effect" and turn the predicate into an unconsumed catch-all.
+        if "enemy deploys a unit with a deployment effect" in text.lower() and "cancel the effect" in text.lower():
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("cancel", "source", card_name="deployment_effect"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -481,6 +488,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     # Example: "When you draw a card, your HQ gains +1 defense" must not draw.
     clean = re.sub(r"^(?:When .+?,|At the start of (?:your )?turn,|At the end of (?:your )?turn,|If .+?,)\s*", "", clean, flags=re.I)
     lower = clean.lower()
+    if "enemy deploys a unit with a deployment effect" in original_lower and "cancel" in original_lower:
+        return (RuleAction("cancel", "source", card_name="deployment_effect"),)
     # Sis: redirect HQ damage to enemy HQ. Must run before temporal stripping
     # because the 'When...' clause is part of the effect text, not a skip clause.
     if "hq is to take damage" in original_lower and "enemy hq takes" in original_lower:

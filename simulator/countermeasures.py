@@ -47,9 +47,12 @@ class CountermeasureResolver:
                         if context.source_card_id in cards else None
                     ),
                     "intercepted_player_id": acting_player_id,
+                    "has_deployment_effect": bool(context.metadata.get("has_deployment_effect")),
                 },
             )
             for action in rule.actions:
+                if action.card_name == "deployment_effect" and not counter_context.metadata.get("has_deployment_effect"):
+                    continue
                 if action.min_cost:
                     cost = counter_context.metadata.get("intercepted_card_cost")
                     if not isinstance(cost, int) or cost < action.min_cost:

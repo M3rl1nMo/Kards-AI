@@ -121,7 +121,16 @@ class PlayCardAction(Action):
             context = EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id)
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, instance_id, self.target_unit_id, event="on_targeted_by_enemy_effect"))
-            engine_for(cards).emit("on_deploy", state, context)
+            has_deployment_effect = "deployment:" in (card.text or "").lower()
+            deployment_cancelled = CountermeasureResolver.intercept(
+                state, cards, self.player_id, "on_deploy",
+                EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id,
+                              metadata={"has_deployment_effect": has_deployment_effect}),
+            )
+            if deployment_cancelled:
+                state.event_log.append({"event": "deployment_effect_cancelled", "card_id": self.card_id, "unit_id": instance_id})
+            else:
+                engine_for(cards).emit("on_deploy", state, context)
             engine_for(cards).emit("on_friendly_card_played", state, EffectContext(self.player_id, card.id, instance_id, event="on_friendly_card_played", metadata={"played_card_id": card.id}))
             EffectResolver(cards).emit("on_deploy", state, context)
         else:
