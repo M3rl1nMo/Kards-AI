@@ -130,7 +130,16 @@ class PlayCardAction(Action):
             if deployment_cancelled:
                 state.event_log.append({"event": "deployment_effect_cancelled", "card_id": self.card_id, "unit_id": instance_id})
             else:
-                engine_for(cards).emit("on_deploy", state, context)
+                # ``on_deploy`` is the deployed card's own Deployment trigger.
+                # It is not a broadcast event: broadcasting it would re-run every
+                # unit's Deployment text whenever any later unit enters play.
+                engine_for(cards).execute(card.id, "on_deploy", state, context)
+                # Persistent named deployment auras (for example, a source
+                # which says its named units get stats when deployed) are
+                # evaluated after the new unit's own Deployment effect has
+                # registered itself.  The routine scans runtime units only;
+                # card definitions remain immutable catalog data.
+                engine_for(cards).apply_deployment_name_auras(state, unit)
             engine_for(cards).emit("on_friendly_card_played", state, EffectContext(self.player_id, card.id, instance_id, event="on_friendly_card_played", metadata={"played_card_id": card.id}))
             EffectResolver(cards).emit("on_deploy", state, context)
         else:
@@ -424,6 +433,12 @@ def _cost_mod_applies(mod: dict, card, cards: CardDatabase) -> bool:
     if scope == "ability":
         abilities = cards.get(card.id).abilities if card.id in cards else []
         return any(fv.lower() in ability.lower() for ability in abilities)
+    if scope == "name":
+        # Catalog text commonly uses a plural family name ("Spitfires")
+        # while individual card names use its singular form.  Name-scoped
+        # auras must not silently fall through to every card.
+        normalized = fv.lower().strip().rstrip("s")
+        return bool(normalized) and normalized in card.name.lower()
     return True
 
 

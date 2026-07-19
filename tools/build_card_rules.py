@@ -89,6 +89,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "modify_operation_cost",
     "set_operation_cost",
     "modify_hand_cost",
+    "buff_deployed_matching_name",
     "op_cost_rule",
     "operation_cost_rule",
     "gain_kredits",

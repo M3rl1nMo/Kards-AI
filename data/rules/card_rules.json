@@ -3617,7 +3617,7 @@
       ],
       "actions": [
         {
-          "kind": "op_cost_rule",
+          "kind": "modify_hand_cost",
           "target": "owner",
           "amount": -2,
           "attack": 0,
@@ -3628,12 +3628,23 @@
           "set_cost": null,
           "duration": null,
           "condition": "when deployed."
+        },
+        {
+          "kind": "buff_deployed_matching_name",
+          "target": "source",
+          "amount": 0,
+          "attack": 1,
+          "defense": 1,
+          "card_name": "Spitfires",
+          "scope": "name",
+          "min_cost": 0,
+          "set_cost": null,
+          "duration": null,
+          "condition": "when deployed."
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your Spitfires cost 2 less to deploy and get +1+1 when deployed."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "royal_fusiliers",

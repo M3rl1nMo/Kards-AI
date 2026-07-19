@@ -157,6 +157,41 @@ class NativeRuleEngine:
                     self._cleanup_continuous_effects(state, player_id, unit_id)
         return fired
 
+    def apply_deployment_name_auras(self, state, unit: UnitState) -> int:
+        """Apply generic in-play name-scoped deployment auras to ``unit``.
+
+        An aura is stored on its source unit rather than copied onto the card
+        database.  This makes it naturally disappear with its source and lets
+        future cards reuse the same rule shape ("your <name> get +X+Y when
+        deployed") without adding card-specific action code.
+        """
+        deployed_card = self.cards.get(unit.card_id)
+        if deployed_card is None:
+            return 0
+        applied = 0
+        owner = state.players[unit.owner_id]
+        for source in tuple(owner.units):
+            for aura in tuple(source.status.get("deployment_name_auras", ())):
+                name = str(aura.get("name", "")).strip().lower().rstrip("s")
+                if not name or name not in deployed_card.name.lower():
+                    continue
+                attack = aura.get("attack", 0)
+                defense = aura.get("defense", 0)
+                if not isinstance(attack, int) or not isinstance(defense, int):
+                    continue
+                unit.attack += attack
+                unit.defense += defense
+                applied += 1
+                state.event_log.append({
+                    "event": "deployment_name_aura_applied",
+                    "source_unit_id": source.instance_id,
+                    "unit_id": unit.instance_id,
+                    "name": aura.get("name"),
+                    "attack": attack,
+                    "defense": defense,
+                })
+        return applied
+
     def emit_draws_since(self, state, start_index: int) -> int:
         """Dispatch draw triggers for newly logged successful draw events."""
         fired = 0
@@ -946,6 +981,15 @@ class NativeRuleEngine:
                 "source_unit_id": context.source_unit_id,
             })
             state.event_log.append({"event": "hand_cost_modified", "player_id": owner, "amount": action.amount, "set_cost": action.set_cost})
+            return
+        if action.kind == "buff_deployed_matching_name" and context.source_unit_id:
+            source = find_unit(state, context.source_unit_id)
+            if source is not None:
+                source.status.setdefault("deployment_name_auras", []).append({
+                    "name": action.card_name or "",
+                    "attack": action.attack,
+                    "defense": action.defense,
+                })
             return
         if action.kind in {"op_cost_rule", "operation_cost_rule"}:
             owner = opponent_id(state, context.player_id) if action.target == "enemy_hand" else context.player_id

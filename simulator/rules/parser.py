@@ -503,6 +503,17 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "trigger an extra time" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "trigger all destruction effects of" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "damage to stirling mk" in original_lower: return (RuleAction("control_effect", "source"),)
+    # A named deployment aura has two independent continuous pieces: a
+    # hand-cost modifier while the source remains in play, and a stat bonus
+    # applied exactly once as each matching unit enters play.  Keep this as a
+    # generic name-scoped rule instead of a RAF GROUND CREW card branch.
+    if "cost 2 less to deploy and get +1+1 when deployed" in original_lower:
+        match = re.search(r"your\s+(.+?)\s+cost\s+2\s+less", sentence, re.I)
+        name = match.group(1).strip() if match else ""
+        return (
+            RuleAction("modify_hand_cost", "owner", amount=-2, card_name=name, scope="name"),
+            RuleAction("buff_deployed_matching_name", "source", attack=1, defense=1, card_name=name, scope="name"),
+        )
     if "combat damage dealt to this unit is reduced to 1" in original_lower: return (RuleAction("combat_damage_cap", "source", amount=1),)
     if "random effects always choose this unit" in original_lower: return (RuleAction("control_effect", "source"),)
     if "non-combat, non-attack damage dealt by your units" in original_lower: return (RuleAction("noncombat_unit_damage_bonus", "source", amount=1),)
