@@ -8,6 +8,7 @@ import random
 
 from simulator.actions.validator import ActionValidationError, find_unit, opponent_id, require_active_player
 from simulator.cards.loader import CardDatabase
+from simulator.cards.availability import is_card_available
 from simulator.core.state import GameState, UnitState
 from simulator.core.turn import TurnManager
 from simulator.effects.resolver import EffectContext, EffectResolver
@@ -46,6 +47,8 @@ class PlayCardAction(Action):
             raise ActionValidationError("Card is not in the player's hand")
         if self.card_id not in cards:
             raise ActionValidationError("Card is absent from the card database")
+        if not is_card_available(self.card_id):
+            raise ActionValidationError("Card is retired and cannot be played")
         card = cards.get(self.card_id)
         # Enemy "cannot deploy" / "cannot order" aura: check opposing units.
         if card.type in ("infantry", "fighter", "tank", "bomber", "artillery"):

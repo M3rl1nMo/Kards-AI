@@ -105,18 +105,12 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(state.players["p2"].hq.current_health, enemy_before - 3)
         self.assertTrue(any(event.get("event") == "hq_damage_redirected_to_enemy_hq" for event in state.event_log))
 
-    def test_night_bombing_requires_undamaged_target(self) -> None:
+    def test_night_bombing_is_retired_and_cannot_be_played(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["night_bombing"]
         enemy = state.players["p2"].units[0]
-        enemy.defense = self.cards.get(enemy.card_id).defense or 0
-        enemy.defense -= 1
         with self.assertRaises(ActionValidationError):
             PlayCardAction("p1", "night_bombing", target_unit_id=enemy.instance_id).validate(state, self.cards)
-
-        enemy.defense = self.cards.get(enemy.card_id).defense or 0
-        PlayCardAction("p1", "night_bombing", target_unit_id=enemy.instance_id).execute(state, self.cards)
-        self.assertFalse(any(unit.instance_id == enemy.instance_id for unit in state.players["p2"].units))
 
     def test_named_unit_damage_can_be_redirected_to_escort(self) -> None:
         state = self.state()

@@ -1,6 +1,7 @@
 """Deck legality checks suitable for deck-building agents."""
 from collections import Counter
 from dataclasses import dataclass
+from simulator.cards.availability import is_card_available
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,8 @@ class DeckValidator:
         for card_id, count in counts.items():
             if card_id not in self.cards:
                 errors.append("Unknown card: {0}".format(card_id)); continue
+            if not is_card_available(card_id):
+                errors.append("Retired card cannot be included: {0}".format(card_id)); continue
             card = self.cards.get(card_id)
             if card.is_token:
                 errors.append("OnlySpawnable card cannot be included: {0}".format(card_id))
