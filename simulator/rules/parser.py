@@ -661,10 +661,14 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     # into flagging the enemy action as cancelled.
     counter_order = re.search(r"\bcounter\s+(?:an?\s+)?(?:enemy\s+)?order\b", lower)
     if counter_order:
-        cancel = RuleAction("cancel", "source")
+        # Keep target restrictions in the AST rather than inferring a card name
+        # in CountermeasureResolver.  The resolver evaluates this before the
+        # countermeasure is consumed.
+        condition = "target_friendly" if "targets a friendly" in lower else None
+        cancel = RuleAction("cancel", "source", condition=condition)
         cost = re.search(r"\bwith\s+cost\s+(\d+)\s+or\s+more", lower)
         if cost:
-            cancel = RuleAction("cancel", "source", min_cost=int(cost.group(1)))
+            cancel = RuleAction("cancel", "source", min_cost=int(cost.group(1)), condition=condition)
         if re.search(r"\band\s+draw\s+a\s+card\b", lower):
             return (cancel, RuleAction("draw", "owner", amount=1))
         return (cancel,)

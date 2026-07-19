@@ -825,7 +825,7 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": null
+          "condition": "target_friendly"
         }
       ],
       "status": "implemented",
@@ -1228,7 +1228,7 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": null
+          "condition": "target_friendly"
         },
         {
           "kind": "modify_defense",
@@ -1737,7 +1737,7 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": null
+          "condition": "target_friendly"
         }
       ],
       "status": "implemented",

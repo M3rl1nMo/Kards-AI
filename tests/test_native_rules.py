@@ -374,15 +374,17 @@ class NativeRuleTests(unittest.TestCase):
 
     def test_countermeasure_cancels_enemy_order_after_payment(self) -> None:
         state = self.state()
-        state.players["p2"].hand.append("interception")
+        # Ultra counters every enemy Order; Interception requires a friendly
+        # unit target and must not counter targetless Radar.
+        state.players["p2"].hand.append("ultra")
         state.players["p2"].resources = ResourceState(5, 5)
         state.current_player = "p2"
-        PlayCardAction("p2", "interception").execute(state, self.cards)
+        PlayCardAction("p2", "ultra").execute(state, self.cards)
         state.current_player = "p1"
         PlayCardAction("p1", "radar").execute(state, self.cards)
         self.assertEqual(state.players["p1"].hq.defense_modifier, 0)
         self.assertIn("radar", state.graveyard["p1"])
-        self.assertIn("interception", state.graveyard["p2"])
+        self.assertIn("ultra", state.graveyard["p2"])
 
     def test_destruction_trigger_dispatches_after_unit_death(self) -> None:
         state = self.state()

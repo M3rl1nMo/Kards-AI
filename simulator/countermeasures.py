@@ -32,15 +32,45 @@ class CountermeasureResolver:
             # Check that at least one action would actually fire (conditions
             # satisfied) BEFORE consuming the countermeasure.
             should_activate = False
+            intercepted_target_id = context.target_unit_id
             counter_context = EffectContext(
                 enemy, card_id,
-                target_unit_id=context.source_unit_id,
+                # The countermeasure targets the intercepted action's target,
+                # not its source.  Attack-triggered countermeasures instead
+                # operate on the attacker when no defending unit was selected.
+                target_unit_id=intercepted_target_id or context.source_unit_id,
                 event=event,
+                metadata={
+                    "intercepted_card_id": context.source_card_id,
+                    "intercepted_card_cost": (
+                        cards.get(context.source_card_id).kredits
+                        if context.source_card_id in cards else None
+                    ),
+                    "intercepted_player_id": acting_player_id,
+                },
             )
             for action in rule.actions:
+                if action.min_cost:
+                    cost = counter_context.metadata.get("intercepted_card_cost")
+                    if not isinstance(cost, int) or cost < action.min_cost:
+                        continue
                 if action.condition is None:
                     should_activate = True
                     break
+                if action.condition == "target_friendly":
+                    if intercepted_target_id is None:
+                        continue
+                    try:
+                        target = next(
+                            unit for player in state.players.values() for unit in player.units
+                            if unit.instance_id == intercepted_target_id
+                        )
+                    except StopIteration:
+                        continue
+                    if target.owner_id == enemy:
+                        should_activate = True
+                        break
+                    continue
                 if condition_evaluate(
                     action.condition, event, counter_context, cards, state,
                 ):

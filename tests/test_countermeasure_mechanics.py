@@ -119,12 +119,41 @@ class CountermeasureMechanicsTests(unittest.TestCase):
     # --- Native: interception actually cancels ---
 
     def test_native_interception_cancels_order(self) -> None:
-        state = self._state(p2_active=[{"card_id": "interception", "activated_turn": 0}])
-        ctx = EffectContext("p1", "some_order", target_unit_id="dummy")
+        state = self._state(
+            p2_units=(("friendly", "german_infantry", 2, 2),),
+            p2_active=[{"card_id": "interception", "activated_turn": 0}],
+        )
+        ctx = EffectContext("p1", "home_guard", target_unit_id="friendly")
         cancelled = CountermeasureResolver.intercept(state, self.cards, "p1", "on_command_played", ctx)
         self.assertTrue(cancelled)
         self.assertFalse(state.players["p2"].active_countermeasures)
         self.assertTrue(any(e.get("event") == "countermeasure_triggered" for e in state.event_log))
+
+    def test_interception_does_not_consume_for_enemy_target(self) -> None:
+        state = self._state(
+            p1_units=(("enemy", "german_infantry", 2, 2),),
+            p2_active=[{"card_id": "interception", "activated_turn": 0}],
+        )
+        cancelled = CountermeasureResolver.intercept(
+            state, self.cards, "p1", "on_command_played",
+            EffectContext("p1", "home_guard", target_unit_id="enemy"),
+        )
+        self.assertFalse(cancelled)
+        self.assertEqual(len(state.players["p2"].active_countermeasures), 1)
+
+    def test_dowding_system_respects_intercepted_order_cost(self) -> None:
+        active = [{"card_id": "dowding_system", "activated_turn": 0}]
+        low = self._state(p2_active=active)
+        self.assertFalse(CountermeasureResolver.intercept(
+            low, self.cards, "p1", "on_command_played", EffectContext("p1", "radar"),
+        ))
+        self.assertEqual(len(low.players["p2"].active_countermeasures), 1)
+        high_card = next(card.id for card in self.cards if card.type == "order" and card.kredits >= 4)
+        high = self._state(p2_active=active)
+        self.assertTrue(CountermeasureResolver.intercept(
+            high, self.cards, "p1", "on_command_played", EffectContext("p1", high_card),
+        ))
+        self.assertFalse(high.players["p2"].active_countermeasures)
 
     def test_native_mismatch_trigger_does_not_cancel(self) -> None:
         # against_the_odds triggers on_attack, not on_command_played.
