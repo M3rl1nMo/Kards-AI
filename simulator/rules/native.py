@@ -595,6 +595,11 @@ class NativeRuleEngine:
                     granted.append(ability)
             state.event_log.append({"event": "shock_tactics_applied", "unit_id": target.instance_id, "abilities": list(abilities)})
             return
+        if action.kind == "suppress_deployment_effects" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit is not None:
+                unit.status["suppress_deployment_effects"] = True
+            return
         if action.kind == "frontline_attack_bonus" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
             if unit:

@@ -174,6 +174,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_play",),
                             (RuleAction("shock_tactics_choice", "selected_target", scope="ground"),),
                             "implemented")
+        if text.lower().strip() == "deployment effects do not trigger.":
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("suppress_deployment_effects", "source"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -597,7 +601,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "order damage to a friendly unit is reduced" in original_lower: return (RuleAction("friendly_order_damage_armor", "source"),)
     if "trigger this card when the enemy deploys" in original_lower: return (RuleAction("control_effect", "source"),)
     if "59. panzergrenadier can move and attack" in original_lower: return (RuleAction("move_and_attack", "source"),)
-    if "deployment effects do not trigger" in original_lower: return (RuleAction("control_effect", "enemy_hand"),)
+    if "deployment effects do not trigger" in original_lower: return (RuleAction("suppress_deployment_effects", "source"),)
     if "cards you play have intel 1" in original_lower: return (RuleAction("grant_ability", "friendly_units", card_name="intel"),)
     if "your non-targeting deployment effects trigger twice" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "target friendly unit gets: destruction: add a copy" in original_lower: return (RuleAction("control_effect", "selected_target"),)

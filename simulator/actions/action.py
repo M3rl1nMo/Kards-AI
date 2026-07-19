@@ -144,6 +144,8 @@ class PlayCardAction(Action):
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, instance_id, self.target_unit_id, event="on_targeted_by_enemy_effect"))
             has_deployment_effect = "deployment:" in (card.text or "").lower()
+            deployment_suppressed = False
+            is_explicit_deployment_effect = has_deployment_effect
             deployment_cancelled = CountermeasureResolver.intercept(
                 state, cards, self.player_id, "on_deploy",
                 EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id,
@@ -155,7 +157,15 @@ class PlayCardAction(Action):
                 # ``on_deploy`` is the deployed card's own Deployment trigger.
                 # It is not a broadcast event: broadcasting it would re-run every
                 # unit's Deployment text whenever any later unit enters play.
-                engine_for(cards).execute(card.id, "on_deploy", state, context)
+                deployment_suppressed = any(
+                    candidate.status.get("suppress_deployment_effects")
+                    for owner in state.players.values() for candidate in owner.units
+                    if candidate.instance_id != instance_id
+                )
+                if deployment_suppressed and is_explicit_deployment_effect:
+                    state.event_log.append({"event": "deployment_effect_suppressed", "card_id": card.id, "unit_id": instance_id})
+                else:
+                    engine_for(cards).execute(card.id, "on_deploy", state, context)
                 # Persistent named deployment auras (for example, a source
                 # which says its named units get stats when deployed) are
                 # evaluated after the new unit's own Deployment effect has
@@ -163,7 +173,8 @@ class PlayCardAction(Action):
                 # card definitions remain immutable catalog data.
                 engine_for(cards).apply_deployment_name_auras(state, unit)
             engine_for(cards).emit("on_friendly_card_played", state, EffectContext(self.player_id, card.id, instance_id, event="on_friendly_card_played", metadata={"played_card_id": card.id}))
-            EffectResolver(cards).emit("on_deploy", state, context)
+            if not (deployment_suppressed and is_explicit_deployment_effect):
+                EffectResolver(cards).emit("on_deploy", state, context)
         else:
             if CountermeasureResolver.intercept(state, cards, self.player_id, "on_command_played", EffectContext(self.player_id, self.card_id, target_unit_id=self.target_unit_id)):
                 state.graveyard.setdefault(self.player_id, []).append(self.card_id)

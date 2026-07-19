@@ -184,6 +184,20 @@ class NativeRuleTests(unittest.TestCase):
         PlayCardAction("p1", "shock_tactics", target_unit_id=target.instance_id).execute(state, self.cards)
         self.assertEqual(set(target.status.get("added_abilities", [])), {"blitz", "shock"})
 
+    def test_petlyakov_suppresses_explicit_deployment_effects_only(self) -> None:
+        state = self.state()
+        target = UnitState("target", "10th_para_battalion", 2, 3, "p1", "support_line")
+        pet_card = self.cards.get("petlyakov_pe2ft")
+        pet = UnitState("pet", pet_card.id, pet_card.attack or 0, pet_card.defense or 0, "p1", "support_line")
+        state.players["p1"].units.extend([target, pet])
+        state.battlefield["support_line"].extend([target.instance_id, pet.instance_id])
+        self.engine.execute(pet.card_id, "on_deploy", state, EffectContext("p1", pet.card_id, pet.instance_id))
+        state.players["p1"].hand = ["welsh_guards"]
+        before = target.defense
+        PlayCardAction("p1", "welsh_guards", target_unit_id=target.instance_id).execute(state, self.cards)
+        self.assertEqual(target.defense, before)
+        self.assertTrue(any(event.get("event") == "deployment_effect_suppressed" for event in state.event_log))
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')
