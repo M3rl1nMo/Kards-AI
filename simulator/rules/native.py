@@ -463,6 +463,11 @@ class NativeRuleEngine:
             if unit:
                 unit.status["frontline_limit"] = action.amount
             return
+        if action.kind == "next_order_damage_bonus":
+            player = state.players[context.player_id]
+            player.status["next_order_damage_bonus"] = max(0, action.amount)
+            player.temporary_effects.append({"turn": state.turn_number, "reverts": [{"player_status": "next_order_damage_bonus"}]})
+            return
         if action.kind == "swap_with_friendly" and context.source_unit_id and context.target_unit_id:
             source = find_unit(state, context.source_unit_id)
             target = find_unit(state, context.target_unit_id)
@@ -1443,6 +1448,9 @@ class NativeRuleEngine:
         for entry in player.temporary_effects:
             if entry["turn"] is not None and entry["turn"] <= current_turn:
                 for rev in entry["reverts"]:
+                    if "player_status" in rev:
+                        player.status.pop(rev["player_status"], None)
+                        continue
                     unit = find_unit(state, rev["unit_id"])
                     if unit is None:
                         continue

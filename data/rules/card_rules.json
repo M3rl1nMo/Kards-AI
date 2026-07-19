@@ -17980,24 +17980,21 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "friendly_units",
-          "amount": 0,
+          "kind": "next_order_damage_bonus",
+          "target": "owner",
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
-          "duration": null,
+          "duration": "this_turn",
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "The next damage order you give this turn deals +1 damage.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "reorganize",

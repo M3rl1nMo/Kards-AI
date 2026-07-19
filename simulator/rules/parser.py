@@ -518,7 +518,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "this unit costs 1 more each time you lose" in original_lower: return (RuleAction("control_effect", "source"),)
     if "your alpine units can move and attack" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
     if "trigger a non-targeted deployment effect on a friendly" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
-    if "the next damage order you give this turn deals +1" in original_lower: return (RuleAction("control_effect", "friendly_units"),)
+    if "the next damage order you give this turn deals +1" in original_lower: return (RuleAction("next_order_damage_bonus", "owner", amount=1, duration="this_turn"),)
     if "deals 0-1 additional damage" in original_lower: return (RuleAction("random_combat_damage", "source", amount=1),)
     if "deal excess damage to the enemy hq" in original_lower: return (RuleAction("hq_excess", "source"),)
     if "trigger the destruction effects of all friendly units destroyed" in original_lower: return (RuleAction("repeat_effect", "source"),)

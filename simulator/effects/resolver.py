@@ -59,6 +59,8 @@ class EffectResolver:
         targets = self._targets(str(action.get("target", "self")), state, context)
         if kind == "damage":
             amount += self._order_damage_bonus(state, context)
+            if context.source_card_id in self.cards and self.cards.get(context.source_card_id).type == "order":
+                amount += int(state.players[context.player_id].status.pop("next_order_damage_bonus", 0) or 0)
             amount += self._unit_damage_bonus(state, context)
             amount = max(0, amount - self._enemy_card_damage_reduction(state, context))
             for target in targets:
