@@ -5265,9 +5265,9 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "enemy_hand",
-          "amount": 0,
+          "kind": "frontline_limit",
+          "target": "source",
+          "amount": 2,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -5293,8 +5293,7 @@
       ],
       "status": "partial",
       "unresolved_fragments": [
-        "Only 2 units can occupy the frontline.",
-        "[engine does not implement kind=control_effect]"
+        "[engine does not implement kind=frontline_limit]"
       ]
     },
     {

@@ -458,6 +458,11 @@ class NativeRuleEngine:
             if unit:
                 unit.status["frontline_attack_bonus"] = action.amount
             return
+        if action.kind == "frontline_limit" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["frontline_limit"] = action.amount
+            return
         if action.kind == "swap_with_friendly" and context.source_unit_id and context.target_unit_id:
             source = find_unit(state, context.source_unit_id)
             target = find_unit(state, context.target_unit_id)

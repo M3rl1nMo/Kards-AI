@@ -490,6 +490,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     lower = clean.lower()
     if "enemy deploys a unit with a deployment effect" in original_lower and "cancel" in original_lower:
         return (RuleAction("cancel", "source", card_name="deployment_effect"),)
+    if "only 2 units can occupy the frontline" in original_lower:
+        return (RuleAction("frontline_limit", "source", amount=2),)
     # Sis: redirect HQ damage to enemy HQ. Must run before temporal stripping
     # because the 'When...' clause is part of the effect text, not a skip clause.
     if "hq is to take damage" in original_lower and "enemy hq takes" in original_lower:
