@@ -3,6 +3,19 @@ import re
 
 class KeywordEngine:
     @staticmethod
+    def matches_type(card, unit, requested_type: str) -> bool:
+        """Return whether a unit satisfies a card-type rule at runtime.
+
+        Some effects grant an additional type (for example, "also counts as a
+        tank").  Rules must consult this predicate rather than only immutable
+        catalog data.
+        """
+        kind = requested_type.lower()
+        if card.type == kind:
+            return True
+        return kind == "tank" and bool(unit and unit.status.get("also_tank"))
+
+    @staticmethod
     def has(card, keyword, unit=None):
         """Check catalog and runtime-granted abilities with removal overrides."""
         name = keyword.lower()

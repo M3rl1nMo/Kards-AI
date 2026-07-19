@@ -16,6 +16,7 @@ from simulator.rules.battlefield import BattlefieldRules, FRONTLINE_UNIT_LIMIT
 from simulator.rules.parser import CardRule, RuleAction, RuleParser
 from simulator.rules.store import CardRuleStore
 from simulator.rules.condition import evaluate as condition_evaluate
+from simulator.rules.keywords import KeywordEngine
 
 # Lowercased nation names used by scoped combat filters (card.nation is
 # capitalized, e.g. "Germany"; RuleAction.card_name carries the lowercased form).
@@ -59,9 +60,9 @@ def _unit_scope_matches(unit: UnitState, action: RuleAction, cards) -> bool:
             return card.type in {"fighter", "bomber"}
         if scope == "ground":
             return card.type in {"infantry", "tank", "artillery"}
-        return card.type == scope
+        return KeywordEngine.matches_type(card, unit, scope)
     if scope == "tank_or_infantry":
-        return card.type in {"tank", "infantry"}
+        return KeywordEngine.matches_type(card, unit, "tank") or KeywordEngine.matches_type(card, unit, "infantry")
     if scope == "guard":
         abilities = [a.lower() for a in (card.abilities or ())]
         added = [a.lower() for a in (unit.status.get("added_abilities") or [])]

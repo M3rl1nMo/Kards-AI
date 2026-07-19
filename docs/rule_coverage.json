@@ -4,8 +4,8 @@
   "note": "Reads engine-coverage-aware status from data/rules/card_rules.json.",
   "total_cards": 1488,
   "status_counts": {
-    "implemented": 1461,
-    "partial": 27,
+    "implemented": 1462,
+    "partial": 26,
     "unresolved": 0
   },
   "categories": {
@@ -380,15 +380,15 @@
     },
     "ambiguous": {
       "label": "Insufficient source text / semantic ambiguity",
-      "card_count": 23,
-      "fragment_count": 28,
+      "card_count": 22,
+      "fragment_count": 26,
       "planned_action": "needs human / official KARDS rule confirmation",
       "status": "pending",
       "reason": "Source text is insufficient or semantically ambiguous.",
       "by_type": {
         "countermeasure": 2,
         "fighter": 2,
-        "infantry": 9,
+        "infantry": 7,
         "tank": 3,
         "order": 7,
         "artillery": 1,
@@ -404,7 +404,6 @@
         "sisu",
         "59_panzergrenadier",
         "110_panzergrenadier",
-        "savoia_cavalleria",
         "air_escort",
         "39th_bologna_regiment",
         "obice_da_7513",
@@ -486,20 +485,6 @@
         {
           "card_id": "110_panzergrenadier",
           "card_name": "110. PANZERGRENADIER",
-          "type": "infantry",
-          "fragment": "[engine does not implement kind=control_effect]",
-          "classified_from": "[engine does not implement kind=control_effect]"
-        },
-        {
-          "card_id": "savoia_cavalleria",
-          "card_name": "SAVOIA CAVALLERIA",
-          "type": "infantry",
-          "fragment": "Also counts as a tank.",
-          "classified_from": "Also counts as a tank."
-        },
-        {
-          "card_id": "savoia_cavalleria",
-          "card_name": "SAVOIA CAVALLERIA",
           "type": "infantry",
           "fragment": "[engine does not implement kind=control_effect]",
           "classified_from": "[engine does not implement kind=control_effect]"

@@ -211,6 +211,24 @@ class NativeRuleTests(unittest.TestCase):
         )
         self.assertEqual(state.players["p1"].hq.current_health, 13)
 
+    def test_granted_tank_trait_participates_in_combat_type_rules(self) -> None:
+        state = self.state()
+        gun_card = self.cards.get("6_pounder")
+        gun = UnitState("gun", gun_card.id, gun_card.attack or 0, 8, "p1", "frontline")
+        cavalry_card = self.cards.get("savoia_cavalleria")
+        cavalry = UnitState("cavalry", cavalry_card.id, 0, 20, "p2", "frontline")
+        state.players["p1"].units = [gun]
+        state.players["p2"].units = [cavalry]
+        state.battlefield = {"frontline": [gun.instance_id, cavalry.instance_id], "support_line": []}
+        state.players["p1"].resources = ResourceState(5, 5)
+        self.engine.emit("on_deploy", state, EffectContext("p1", gun.card_id, gun.instance_id))
+        self.engine.emit("on_deploy", state, EffectContext("p2", cavalry.card_id, cavalry.instance_id))
+        self.assertTrue(cavalry.status.get("also_tank"))
+
+        before = cavalry.defense
+        AttackAction("p1", gun.instance_id, cavalry.instance_id).execute(state, self.cards)
+        self.assertEqual(cavalry.defense, before - (gun.attack * 2))
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]

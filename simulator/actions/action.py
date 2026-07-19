@@ -250,7 +250,7 @@ class AttackAction(Action):
         if isinstance(higher_attack_bonus, int) and target.attack > attacker.attack:
             attack_value += higher_attack_bonus
         type_attack_bonus = attacker.status.get("attack_bonus_against_type")
-        if isinstance(type_attack_bonus, dict) and type_attack_bonus.get("type") == cards.get(target.card_id).type:
+        if isinstance(type_attack_bonus, dict) and KeywordEngine.matches_type(cards.get(target.card_id), target, str(type_attack_bonus.get("type", ""))):
             amount = type_attack_bonus.get("amount")
             if isinstance(amount, int):
                 attack_value += amount
@@ -261,7 +261,7 @@ class AttackAction(Action):
         air_damage_bonus = attacker.status.get("damage_bonus_against_air")
         if isinstance(air_damage_bonus, int) and cards.get(target.card_id).type in {"fighter", "bomber"}:
             damage += air_damage_bonus
-        if attacker.status.get("double_damage_against_type") == cards.get(target.card_id).type:
+        if KeywordEngine.matches_type(cards.get(target.card_id), target, str(attacker.status.get("double_damage_against_type", ""))):
             damage *= 2
         if attacker.status.get("double_damage"):
             damage *= 2
