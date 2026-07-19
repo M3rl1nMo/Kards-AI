@@ -44,6 +44,19 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(state.players["p2"].units[0].defense, 1)
         self.assertIn("garrison", state.players["p1"].hand)
 
+    def test_next_damage_order_bonus_is_consumed_once(self) -> None:
+        state = self.state()
+        state.players["p1"].hand = ["imperial_decree", "home_guard"]
+        enemy = state.players["p2"].units[0]
+        before = enemy.defense
+
+        PlayCardAction("p1", "imperial_decree").execute(state, self.cards)
+        self.assertEqual(state.players["p1"].status.get("next_order_damage_bonus"), 1)
+        PlayCardAction("p1", "home_guard", target_unit_id=enemy.instance_id).execute(state, self.cards)
+
+        self.assertEqual(enemy.defense, before - 3)
+        self.assertNotIn("next_order_damage_bonus", state.players["p1"].status)
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')
