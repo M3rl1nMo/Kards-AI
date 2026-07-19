@@ -60,6 +60,7 @@ class EffectResolver:
         if kind == "damage":
             amount += self._order_damage_bonus(state, context)
             amount += self._unit_damage_bonus(state, context)
+            amount = max(0, amount - self._enemy_card_damage_reduction(state, context))
             for target in targets:
                 basic_effects.damage(state, target, amount, context.player_id)
         elif kind == "heal":
@@ -168,6 +169,15 @@ class EffectResolver:
             if isinstance(ground, dict) and source_card.type in {"infantry", "tank", "artillery"} and source.attack >= ground.get("minimum_attack", 4):
                 total += int(ground.get("amount", 0))
         return total
+
+    @staticmethod
+    def _enemy_card_damage_reduction(state: GameState, context: EffectContext) -> int:
+        """Return in-play reduction imposed by the defending player's units."""
+        defender_id = opponent_id(state, context.player_id)
+        return sum(
+            value for unit in state.players[defender_id].units
+            if isinstance((value := unit.status.get("enemy_card_damage_reduction")), int) and value > 0
+        )
 
     def _targets(self, selector: str, state: GameState, context: EffectContext) -> list[UnitState | str]:
         opponent = opponent_id(state, context.player_id)

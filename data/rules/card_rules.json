@@ -36518,9 +36518,9 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "enemy_hand",
-          "amount": 0,
+          "kind": "enemy_card_damage_reduction",
+          "target": "source",
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -36531,11 +36531,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Enemy cards deal 1 less damage.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "strike_group",

@@ -229,6 +229,22 @@ class NativeRuleTests(unittest.TestCase):
         AttackAction("p1", gun.instance_id, cavalry.instance_id).execute(state, self.cards)
         self.assertEqual(cavalry.defense, before - (gun.attack * 2))
 
+    def test_enemy_card_damage_reduction_applies_to_damage_pipeline(self) -> None:
+        state = self.state()
+        seahawk_card = self.cards.get("seahawk")
+        seahawk = UnitState("seahawk", seahawk_card.id, 0, seahawk_card.defense or 4, "p2", "support_line")
+        victim = UnitState("victim", "m3a3_honey", 2, 8, "p2", "frontline")
+        state.players["p2"].units = [seahawk, victim]
+        state.battlefield = {"frontline": [victim.instance_id], "support_line": [seahawk.instance_id]}
+        self.engine.emit("on_deploy", state, EffectContext("p2", seahawk.card_id, seahawk.instance_id))
+        self.assertEqual(seahawk.status.get("enemy_card_damage_reduction"), 1)
+        EffectResolver(self.cards).resolve(
+            {"type": "damage", "target": "selected_target", "value": {"amount": 3}},
+            state,
+            EffectContext("p1", source_card_id="home_guard", target_unit_id=victim.instance_id),
+        )
+        self.assertEqual(victim.defense, 6)
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]
