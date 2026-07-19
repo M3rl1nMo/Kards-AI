@@ -16,6 +16,7 @@ from simulator.effects.resolver import EffectContext
 from simulator.rules.native import NativeRuleEngine
 from simulator.rules.parser import RuleAction, RuleParser
 from simulator.countermeasures import CountermeasureResolver
+from simulator.actions.action import PlayCardAction
 
 ROOT = Path(__file__).parents[1]
 
@@ -161,6 +162,19 @@ class CountermeasureMechanicsTests(unittest.TestCase):
         ctx = EffectContext("p1", "some_order", target_unit_id="dummy")
         cancelled = CountermeasureResolver.intercept(state, self.cards, "p1", "on_command_played", ctx)
         self.assertFalse(cancelled)
+
+    def test_evasive_action_cancels_deployment_effect_but_not_unit(self) -> None:
+        # 40th Cavalry's deployment effect removes a kredit slot.  Evasive
+        # Action must leave the unit in play while preventing that mutation.
+        state = self._state(
+            p1_hand=("40th_cavalry_regiment",),
+            p2_active=[{"card_id": "evasive_action", "activated_turn": 0}],
+        )
+        PlayCardAction("p1", "40th_cavalry_regiment").execute(state, self.cards)
+        self.assertEqual(len(state.players["p1"].units), 1)
+        self.assertEqual(state.players["p1"].resources.max_kredits, 10)
+        self.assertFalse(state.players["p2"].active_countermeasures)
+        self.assertTrue(any(entry.get("event") == "deployment_effect_cancelled" for entry in state.event_log))
 
     # --- Native: generic countermeasure actions ---
 
