@@ -82,6 +82,27 @@ class ConditionEngineTests(unittest.TestCase):
         PlayCardAction("p1", "radar").execute(state, self.cards)
         self.assertEqual((unit.attack, unit.defense), before)
 
+    def test_navy_listener_runs_once_per_turn(self) -> None:
+        """Rule-level once-per-turn applies after the matching Navy event."""
+        from simulator.actions.action import PlayCardAction
+        from simulator.core.state import ResourceState
+
+        state = GameState(
+            current_player="p1",
+            players={
+                "p1": PlayerState(
+                    "p1", "Germany", hand=["free_french_navy", "free_french_navy"],
+                    units=[UnitState("fw", "fw_189", 2, 2, "p1", "support_line")],
+                    resources=ResourceState(20, 20),
+                ),
+                "p2": PlayerState("p2", "Britain"),
+            },
+            battlefield={"frontline": [], "support_line": ["fw"]},
+        )
+        PlayCardAction("p1", "free_french_navy").execute(state, self.cards)
+        PlayCardAction("p1", "free_french_navy").execute(state, self.cards)
+        self.assertEqual(state.players["p1"].hand.count("production"), 1)
+
     # --- End-to-end: computed value (equal to damage) ---
     def test_equal_to_damage_adds_exact_hq_defense(self) -> None:
         from simulator.effects.resolver import EffectResolver

@@ -62,6 +62,15 @@ def evaluate(
         return True
     if "when a unit is deployed" in c:
         return event == "on_deploy"
+    if "when you deploy" in c:
+        return event == "on_deploy" and event_player_id == listener_player_id
+    if "when you play a navy card" in c:
+        played = _played_card(context, cards)
+        return (
+            event == "on_friendly_card_played"
+            and played is not None
+            and ("navy" in played.name.lower() or _has_ability(played, "navy"))
+        )
     if "moves into the frontline" in c or "moves to the frontline" in c:
         if event != "on_deploy" or not metadata.get("moved_to_frontline"):
             return False

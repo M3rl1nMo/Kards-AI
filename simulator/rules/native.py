@@ -81,12 +81,29 @@ class NativeRuleEngine:
         self.cards = cards
         self.parser = parser or RuleParser()
         self.store = store or CardRuleStore.from_file(default_rule_path())
-        self._rules = {card.id: self.store.get(card.id) or self.parser.parse(card) for card in cards}
+        self._rules = {
+            card.id: self._augment_event_triggers(self.store.get(card.id) or self.parser.parse(card))
+            for card in cards
+        }
         self._by_name = {card.name.upper(): card.id for card in cards}
         # Transient reference to the card selected by a choose_one action during
         # a single execute() run. Consumed by subsequent actions with
         # target="chosen" (Pattern B/C linkage). Reset per execute().
         self._chosen: tuple[str, str] | None = None
+
+    @staticmethod
+    def _augment_event_triggers(rule: CardRule) -> CardRule:
+        """Correct legacy rule-store trigger labels from unambiguous text.
+
+        Reviewed rules predate the dedicated friendly-card-play event for
+        Navy-card listeners.  The action AST remains unchanged; only the
+        event route is added, keeping card data and rule-store schema stable.
+        """
+        if "when you play a navy card" not in rule.source_text.lower():
+            return rule
+        if "on_friendly_card_played" in rule.triggers:
+            return rule
+        return replace(rule, triggers=rule.triggers + ("on_friendly_card_played",))
 
     def rule_for(self, card_id: str) -> CardRule:
         return self._rules[card_id]
@@ -95,6 +112,25 @@ class NativeRuleEngine:
         rule = self.rule_for(card_id)
         if event not in rule.triggers:
             return False
+        # "Once per turn" belongs to the card rule, not necessarily to an
+        # individual parsed action clause.  Guard only after confirming that
+        # at least one action's event condition is eligible; this avoids a
+        # unit consuming its allowance merely because it was deployed.
+        once_key = None
+        if "once per turn" in rule.source_text.lower() and context.source_unit_id:
+            eligible = any(
+                action.condition is None
+                or condition_evaluate(action.condition, event, context, self.cards, state)
+                for action in rule.actions
+            )
+            source = find_unit(state, context.source_unit_id)
+            if eligible and source is not None:
+                once_key = "{0}|{1}".format(card_id, event)
+                used = source.status.setdefault("once_per_turn_rules", {})
+                if used.get(once_key) == state.turn_number:
+                    state.event_log.append({"event": "native_rule_once_per_turn_used", "card_id": card_id})
+                    return False
+                used[once_key] = state.turn_number
         executed = False
         self._current_event = event
         self._chosen = None
@@ -194,6 +230,7 @@ class NativeRuleEngine:
         if event == "on_deploy":
             return any(phrase in text for phrase in (
                 "enemy deploys", "enemy unit is deployed", "when a unit is deployed",
+                "when you deploy", "when you deploy or add",
                 "moves into the frontline", "moves to the frontline",
             ))
         return False
