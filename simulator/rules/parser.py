@@ -511,7 +511,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "trigger the destruction effects of all friendly units destroyed" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "enemy cards deal 1 less damage" in original_lower: return (RuleAction("control_effect", "enemy_hand"),)
     if "when a hq gains defense, it takes that much damage instead" in original_lower: return (RuleAction("control_effect", "source"),)
-    if "hq takes 1 less damage for each of your units" in original_lower: return (RuleAction("control_effect", "owner"),)
+    if "hq takes 1 less damage for each of your units" in original_lower: return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     if "loses remaining kredits" in original_lower: return (RuleAction("lose_kredits", "enemy_hand", amount=99),)
     if "deploys for 0 kredits" in original_lower: return (RuleAction("modify_deployment_cost", "source", set_cost=0),)
     if "costs +2 kredits" in original_lower: return (RuleAction("target_or_attack_tax", "enemy_hand", amount=2),)
@@ -634,7 +634,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
         return (RuleAction("target_select", "source", card_name="can_target_covert"),)
     # HQ damage reduction
     if "your hq takes 1 less damage for each of your units" in original_lower:
-        return (RuleAction("hq_defense_lock", "owner"),)
+        return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     # Non-combat damage bonus
     if "increase the non-combat, non-attack damage dealt by your units by 1" in original_lower:
         return (RuleAction("hq_damage_bonus", "friendly_units"),)
@@ -1293,7 +1293,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "target enemy unit loses guard, smokescreen and destruction" in original_lower: return (RuleAction("remove_keyword", "selected_target"),)
     if "enemy cards deal 1 less damage" in original_lower: return (RuleAction("control_effect", "enemy_hand"),)
     if "when a hq gains defense, it takes that much damage instead" in original_lower: return (RuleAction("control_effect", "source"),)
-    if "hq takes 1 less damage for each of your units" in original_lower: return (RuleAction("control_effect", "owner"),)
+    if "hq takes 1 less damage for each of your units" in original_lower: return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     # Final structured fallback: any sentence that reached here is mapped to a
     # meaningful mechanic-family action (never a raw `describes` placeholder),
     # so coverage reaches zero unresolved text. Deep-subsystem families
@@ -1699,7 +1699,7 @@ def _resolve_residual(sentence: str, lower: str, clean: str) -> tuple | None:
     if "damage dealt to your hq is reduced" in lower:
         return (RuleAction("control_effect", "owner"),)
     if "hq takes 1 less damage for each" in lower:
-        return (RuleAction("control_effect", "owner"),)
+        return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     if "hq cannot be reduced below 1 defense" in lower:
         return (RuleAction("control_effect", "owner"),)
     # immune + hq_damage_reduced
@@ -1812,7 +1812,7 @@ def _classify_residual(sentence: str, lower: str, clean: str) -> tuple:
     if "damage dealt to your hq is reduced by 1" in lower: return (RuleAction("control_effect", "owner"),)
     if "trigger the destruction effects on a target unit" in lower: return (RuleAction("control_effect", "selected_target"),)
     if "enemy cards deal 1 less damage" in lower: return (RuleAction("control_effect", "enemy_hand"),)
-    if "hq takes 1 less damage for each of your units" in lower: return (RuleAction("control_effect", "owner"),)
+    if "hq takes 1 less damage for each of your units" in lower: return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     if "hq cannot be reduced below 1 defense" in lower: return (RuleAction("control_effect", "owner"),)
     if "loses remaining kredits" in lower: return (RuleAction("lose_kredits", "enemy_hand", amount=99),)
     # --- M60: final batch of 40 control_effect conversions ---
@@ -2294,7 +2294,7 @@ def _classify_residual(sentence: str, lower: str, clean: str) -> tuple:
     if "damage dealt to your hq is reduced by" in lower:
         return (RuleAction("control_effect", "owner"),)
     if "hq takes 1 less damage for each" in lower:
-        return (RuleAction("control_effect", "owner"),)
+        return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     if "hq cannot be reduced below" in lower:
         return (RuleAction("control_effect", "owner"),)
     if "operate for free this turn and their excess attack damage" in lower:

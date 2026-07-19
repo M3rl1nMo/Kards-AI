@@ -423,6 +423,20 @@ class NativeRuleEngine:
                 "maximum_bonus": action.amount,
             })
             return
+        if action.kind == "hq_damage_reduction_by_attack" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["hq_damage_reduction_by_attack"] = {
+                    "amount": max(0, action.amount),
+                    "minimum_attack": max(0, action.min_cost),
+                }
+            state.event_log.append({
+                "event": "hq_damage_reduction_by_attack_applied",
+                "source_unit_id": context.source_unit_id,
+                "amount": action.amount,
+                "minimum_attack": action.min_cost,
+            })
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)

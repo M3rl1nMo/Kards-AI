@@ -39407,24 +39407,21 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "owner",
-          "amount": 0,
+          "kind": "hq_damage_reduction_by_attack",
+          "target": "source",
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
           "scope": "",
-          "min_cost": 0,
+          "min_cost": 4,
           "set_cost": null,
           "duration": null,
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your HQ takes 1 less damage for each of your units with 4 or more attack.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "p51_b",

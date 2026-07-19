@@ -17,12 +17,21 @@ def damage(state: GameState, target: UnitState | str, amount: int, source_player
         state.event_log.append({"event": "damage_dealt", "target_id": target.instance_id, "amount": amount})
         remove_dead_units(state)
         return
-    # HQ damage: check friendly units for damage-reduction flags.
+    # HQ damage: apply persistent, board-dependent reductions before the HQ's
+    # defense modifier.  The board is inspected at damage time so buffs and
+    # deaths immediately change cards such as M6 rather than leaving a stale
+    # deployment-time count in state.
     player = state.players[target]
     for unit in player.units:
         if unit.status.get("hq_damage_reduced"):
             amount = max(0, amount - 1)
-            break
+        dynamic_reduction = unit.status.get("hq_damage_reduction_by_attack")
+        if isinstance(dynamic_reduction, dict):
+            minimum_attack = dynamic_reduction.get("minimum_attack", 4)
+            per_unit = dynamic_reduction.get("amount", 1)
+            if isinstance(minimum_attack, int) and isinstance(per_unit, int):
+                qualifying = sum(candidate.attack >= minimum_attack for candidate in player.units)
+                amount = max(0, amount - (qualifying * max(0, per_unit)))
     HQResolver.damage(state, target, amount, source_player)
 
 

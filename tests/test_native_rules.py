@@ -184,6 +184,33 @@ class NativeRuleTests(unittest.TestCase):
         AttackAction("p1", katyusha.instance_id, target.instance_id).execute(state, self.cards)
         self.assertIn(before - target.defense, {katyusha.attack, katyusha.attack + 1})
 
+    def test_hq_damage_reduction_recounts_qualifying_units(self) -> None:
+        state = self.state()
+        m6_card = self.cards.get("m6")
+        m6 = UnitState("m6", m6_card.id, 4, m6_card.defense or 4, "p1", "support_line")
+        ally = UnitState("ally", "m3a3_honey", 4, 4, "p1", "support_line")
+        state.players["p1"].units = [m6, ally]
+        state.battlefield = {"frontline": [], "support_line": [m6.instance_id, ally.instance_id]}
+        self.engine.emit("on_deploy", state, EffectContext("p1", m6.card_id, m6.instance_id))
+        # The filler ally has an unrelated deployment effect; isolate the HQ
+        # damage-reduction assertion from its temporary HQ-defense gain.
+        state.players["p1"].hq.defense_modifier = 0
+
+        EffectResolver(self.cards).resolve(
+            {"type": "damage", "target": "enemy_hq", "value": {"amount": 5}},
+            state,
+            EffectContext("p2"),
+        )
+        self.assertEqual(state.players["p1"].hq.current_health, 17)
+
+        ally.attack = 3
+        EffectResolver(self.cards).resolve(
+            {"type": "damage", "target": "enemy_hq", "value": {"amount": 5}},
+            state,
+            EffectContext("p2"),
+        )
+        self.assertEqual(state.players["p1"].hq.current_health, 13)
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]

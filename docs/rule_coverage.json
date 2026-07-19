@@ -4,8 +4,8 @@
   "note": "Reads engine-coverage-aware status from data/rules/card_rules.json.",
   "total_cards": 1488,
   "status_counts": {
-    "implemented": 1460,
-    "partial": 28,
+    "implemented": 1461,
+    "partial": 27,
     "unresolved": 0
   },
   "categories": {
@@ -147,8 +147,8 @@
     },
     "damage_combat": {
       "label": "Damage, combat, destroy, repair, heal, HQ defense",
-      "card_count": 8,
-      "fragment_count": 8,
+      "card_count": 7,
+      "fragment_count": 7,
       "planned_action": "damage/destroy/pin/heal via EffectResolver + native",
       "status": "pending",
       "reason": "Damage/combat effect not yet mapped to a verified Action.",
@@ -156,7 +156,7 @@
         "fighter": 2,
         "infantry": 3,
         "countermeasure": 1,
-        "tank": 2
+        "tank": 1
       },
       "card_ids": [
         "gladiator_escort",
@@ -165,8 +165,7 @@
         "sisu",
         "110_panzergrenadier",
         "type_89_chiro",
-        "seahawk",
-        "m6"
+        "seahawk"
       ],
       "fragments": [
         {
@@ -217,13 +216,6 @@
           "type": "fighter",
           "fragment": "Enemy cards deal 1 less damage.",
           "classified_from": "Enemy cards deal 1 less damage."
-        },
-        {
-          "card_id": "m6",
-          "card_name": "M6",
-          "type": "tank",
-          "fragment": "Your HQ takes 1 less damage for each of your units with 4 or more attack.",
-          "classified_from": "Your HQ takes 1 less damage for each of your units with 4 or more attack."
         }
       ]
     },
@@ -388,8 +380,8 @@
     },
     "ambiguous": {
       "label": "Insufficient source text / semantic ambiguity",
-      "card_count": 24,
-      "fragment_count": 29,
+      "card_count": 23,
+      "fragment_count": 28,
       "planned_action": "needs human / official KARDS rule confirmation",
       "status": "pending",
       "reason": "Source text is insufficient or semantically ambiguous.",
@@ -397,7 +389,7 @@
         "countermeasure": 2,
         "fighter": 2,
         "infantry": 9,
-        "tank": 4,
+        "tank": 3,
         "order": 7,
         "artillery": 1,
         "bomber": 4
@@ -425,8 +417,7 @@
         "kv2",
         "fortunes_of_war",
         "seahawk",
-        "night_bombing",
-        "m6"
+        "night_bombing"
       ],
       "fragments": [
         {
@@ -622,13 +613,6 @@
           "card_id": "night_bombing",
           "card_name": "NIGHT BOMBING",
           "type": "order",
-          "fragment": "[engine does not implement kind=control_effect]",
-          "classified_from": "[engine does not implement kind=control_effect]"
-        },
-        {
-          "card_id": "m6",
-          "card_name": "M6",
-          "type": "tank",
           "fragment": "[engine does not implement kind=control_effect]",
           "classified_from": "[engine does not implement kind=control_effect]"
         }
