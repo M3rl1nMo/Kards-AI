@@ -3,7 +3,7 @@
 from pathlib import Path
 import unittest
 
-from simulator.actions.action import AttackAction, PassAction, PlayCardAction
+from simulator.actions.action import AttackAction, MoveUnitAction, PassAction, PlayCardAction
 from simulator.actions.validator import ActionValidationError
 from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
@@ -794,6 +794,19 @@ class NativeRuleTests(unittest.TestCase):
                          metadata={"played_card_id": deployed.card_id, "broadcast_listeners": True}))
 
         self.assertEqual(deployed.attack, before - 2)
+
+    def test_move_to_frontline_dispatches_move_listener(self) -> None:
+        state = self.state()
+        card = self.cards.get("28_jger_regiment")
+        unit = UnitState("jager", card.id, card.attack or 0, card.defense or 0,
+                         "p1", "support_line")
+        state.players["p1"].units.append(unit)
+        state.players["p1"].resources = ResourceState(10, 10)
+        state.battlefield["support_line"].append(unit.instance_id)
+
+        MoveUnitAction("p1", unit.instance_id).execute(state, self.cards)
+
+        self.assertIn("ambush", unit.status.get("added_abilities", []))
 
 
 if __name__ == "__main__":

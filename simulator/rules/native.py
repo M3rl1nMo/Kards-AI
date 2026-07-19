@@ -194,6 +194,7 @@ class NativeRuleEngine:
         if event == "on_deploy":
             return any(phrase in text for phrase in (
                 "enemy deploys", "enemy unit is deployed", "when a unit is deployed",
+                "moves into the frontline", "moves to the frontline",
             ))
         return False
 

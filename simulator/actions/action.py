@@ -429,6 +429,17 @@ class MoveUnitAction(Action):
             unit.attack += bonus
             unit.status["frontline_attack_bonus_applied"] = True
         state.event_log.append({"event": "unit_moved_to_frontline", "player_id": self.player_id, "unit_id": unit.instance_id})
+        # The parser normalizes move-into-frontline listeners onto the shared
+        # deployment event family.  Mark the causal metadata so only those
+        # listeners run, rather than replaying ordinary Deployment text.
+        engine_for(cards).emit(
+            "on_deploy", state,
+            EffectContext(
+                self.player_id, unit.card_id, unit.instance_id, unit.instance_id,
+                event="on_deploy",
+                metadata={"played_card_id": unit.card_id, "broadcast_listeners": True, "moved_to_frontline": True},
+            ),
+        )
         return state
 
 

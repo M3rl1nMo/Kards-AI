@@ -62,6 +62,14 @@ def evaluate(
         return True
     if "when a unit is deployed" in c:
         return event == "on_deploy"
+    if "moves into the frontline" in c or "moves to the frontline" in c:
+        if event != "on_deploy" or not metadata.get("moved_to_frontline"):
+            return False
+        if "enemy unit" in c:
+            return bool(event_player_id) and event_player_id != listener_player_id
+        if "friendly unit" in c:
+            return event_player_id == listener_player_id
+        return True
     if "friendly unit is destroyed" in c:
         return event == "on_destroy" and event_player_id == listener_player_id
     if "enemy unit is destroyed" in c:
