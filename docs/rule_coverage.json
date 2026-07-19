@@ -4,8 +4,8 @@
   "note": "Reads engine-coverage-aware status from data/rules/card_rules.json.",
   "total_cards": 1488,
   "status_counts": {
-    "implemented": 1459,
-    "partial": 29,
+    "implemented": 1460,
+    "partial": 28,
     "unresolved": 0
   },
   "categories": {
@@ -147,8 +147,8 @@
     },
     "damage_combat": {
       "label": "Damage, combat, destroy, repair, heal, HQ defense",
-      "card_count": 9,
-      "fragment_count": 9,
+      "card_count": 8,
+      "fragment_count": 8,
       "planned_action": "damage/destroy/pin/heal via EffectResolver + native",
       "status": "pending",
       "reason": "Damage/combat effect not yet mapped to a verified Action.",
@@ -156,8 +156,7 @@
         "fighter": 2,
         "infantry": 3,
         "countermeasure": 1,
-        "tank": 2,
-        "artillery": 1
+        "tank": 2
       },
       "card_ids": [
         "gladiator_escort",
@@ -166,7 +165,6 @@
         "sisu",
         "110_panzergrenadier",
         "type_89_chiro",
-        "katyusha",
         "seahawk",
         "m6"
       ],
@@ -212,13 +210,6 @@
           "type": "tank",
           "fragment": "When a HQ gains defense, it takes that much damage instead.",
           "classified_from": "When a HQ gains defense, it takes that much damage instead."
-        },
-        {
-          "card_id": "katyusha",
-          "card_name": "KATYUSHA",
-          "type": "artillery",
-          "fragment": "When KATYUSHA attacks, it deals 0-1 additional damage.",
-          "classified_from": "When KATYUSHA attacks, it deals 0-1 additional damage."
         },
         {
           "card_id": "seahawk",
@@ -397,8 +388,8 @@
     },
     "ambiguous": {
       "label": "Insufficient source text / semantic ambiguity",
-      "card_count": 25,
-      "fragment_count": 30,
+      "card_count": 24,
+      "fragment_count": 29,
       "planned_action": "needs human / official KARDS rule confirmation",
       "status": "pending",
       "reason": "Source text is insufficient or semantically ambiguous.",
@@ -408,7 +399,7 @@
         "infantry": 9,
         "tank": 4,
         "order": 7,
-        "artillery": 2,
+        "artillery": 1,
         "bomber": 4
       },
       "card_ids": [
@@ -429,7 +420,6 @@
         "imperial_decree",
         "type_89_chiro",
         "out_with_the_old",
-        "katyusha",
         "shock_tactics",
         "petlyakov_pe2ft",
         "kv2",
@@ -583,13 +573,6 @@
           "card_id": "out_with_the_old",
           "card_name": "OUT WITH THE OLD",
           "type": "order",
-          "fragment": "[engine does not implement kind=control_effect]",
-          "classified_from": "[engine does not implement kind=control_effect]"
-        },
-        {
-          "card_id": "katyusha",
-          "card_name": "KATYUSHA",
-          "type": "artillery",
           "fragment": "[engine does not implement kind=control_effect]",
           "classified_from": "[engine does not implement kind=control_effect]"
         },

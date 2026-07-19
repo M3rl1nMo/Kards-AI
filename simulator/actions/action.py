@@ -267,6 +267,9 @@ class AttackAction(Action):
             damage *= 2
         if attacker.status.get("triple_damage") == cards.get(target.card_id).type:
             damage *= 3
+        random_bonus = attacker.status.get("random_combat_damage")
+        if isinstance(random_bonus, int) and random_bonus > 0:
+            damage += random.Random((state.rng_seed or 0) + len(state.event_log)).randint(0, random_bonus)
         damage = _cap_combat_damage(target, damage)
         death_start = len(state.event_log)
         resolver.resolve({"type": "damage", "target": "selected_target", "value": {"amount": damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id))

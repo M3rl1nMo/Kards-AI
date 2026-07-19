@@ -413,6 +413,16 @@ class NativeRuleEngine:
                 "amount": action.amount,
             })
             return
+        if action.kind == "random_combat_damage" and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status["random_combat_damage"] = max(0, action.amount)
+            state.event_log.append({
+                "event": "random_combat_damage_applied",
+                "source_unit_id": context.source_unit_id,
+                "maximum_bonus": action.amount,
+            })
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)

@@ -63,6 +63,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "suppress",
     "fight",
     "combat_damage_cap",
+    "random_combat_damage",
     # ── stat modification ──
     "buff",
     "modify_attack",

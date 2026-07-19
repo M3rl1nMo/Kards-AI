@@ -164,6 +164,26 @@ class NativeRuleTests(unittest.TestCase):
         )
         self.assertEqual(california.defense, before_effect_damage - 3)
 
+    def test_random_combat_damage_is_seeded_and_bounded(self) -> None:
+        state = self.state()
+        state.rng_seed = 17
+        katyusha_card = self.cards.get("katyusha")
+        katyusha = UnitState(
+            "katyusha", katyusha_card.id, katyusha_card.attack or 0,
+            katyusha_card.defense or 4, "p1", "frontline",
+        )
+        target = UnitState("target", "m3a3_honey", 0, 20, "p2", "frontline")
+        state.players["p1"].units = [katyusha]
+        state.players["p2"].units = [target]
+        state.battlefield = {"frontline": [katyusha.instance_id, target.instance_id], "support_line": []}
+        state.players["p1"].resources = ResourceState(5, 5)
+        self.engine.emit("on_deploy", state, EffectContext("p1", katyusha.card_id, katyusha.instance_id))
+        self.assertEqual(katyusha.status.get("random_combat_damage"), 1)
+
+        before = target.defense
+        AttackAction("p1", katyusha.instance_id, target.instance_id).execute(state, self.cards)
+        self.assertIn(before - target.defense, {katyusha.attack, katyusha.attack + 1})
+
     def test_deployment_can_remove_kredit_slot(self) -> None:
         state = self.state()
         state.players["p1"].hand = ["40th_cavalry_regiment"]

@@ -28213,9 +28213,9 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "random_combat_damage",
           "target": "source",
-          "amount": 0,
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -28226,11 +28226,8 @@
           "condition": "When KATYUSHA attacks"
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "When KATYUSHA attacks, it deals 0-1 additional damage.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "kv85",
