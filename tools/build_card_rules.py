@@ -66,6 +66,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "random_combat_damage",
     "hq_damage_reduction_by_attack",
     "hq_defense_becomes_damage",
+    "hq_damage_redirect_to_source",
     "noncombat_unit_damage_bonus",
     "ground_damage_bonus",
     "enemy_card_damage_reduction",

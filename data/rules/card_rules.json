@@ -4884,7 +4884,7 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "hq_damage_redirect_to_source",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -4894,14 +4894,11 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": "When your HQ is damaged"
+          "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "When your HQ is damaged, deal that amount of damage to this unit instead.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "royal_west_kents",

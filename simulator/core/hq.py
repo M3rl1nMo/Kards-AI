@@ -19,6 +19,26 @@ class HQResolver:
             if unit.status.get("hq_defense_cap") and hq.current_health - max(0, int(amount) - hq.defense_modifier) < (unit.status.get("hq_defense_cap") or 1):
                 amount = max(0, hq.current_health - (unit.status.get("hq_defense_cap") or 1) + hq.defense_modifier)
         applied = max(0, int(amount) - hq.defense_modifier)
+        redirectors = [
+            unit for unit in state.players[target_player_id].units
+            if unit.status.get("hq_damage_redirect_to_source")
+        ]
+        if applied > 0 and redirectors:
+            # This is a replacement effect, not an additional damage trigger:
+            # the first in-play redirector takes the post-HQ-defense amount and
+            # the HQ remains unchanged.  Card copies are deterministic by board
+            # order, matching the engine's stable trigger ordering.
+            from simulator.effects import basic_effects
+            redirector = redirectors[0]
+            basic_effects.damage(state, redirector, applied, source_player_id)
+            state.event_log.append({
+                "event": "hq_damage_redirected_to_unit",
+                "player_id": target_player_id,
+                "unit_id": redirector.instance_id,
+                "amount": applied,
+                "source_player_id": source_player_id,
+            })
+            return applied
         hq.current_health -= applied
         state.event_log.append({"event": "hq_damaged", "player_id": target_player_id, "amount": applied, "source_player_id": source_player_id})
         HQResolver.check_victory(state, source_player_id)

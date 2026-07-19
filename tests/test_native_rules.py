@@ -72,6 +72,21 @@ class NativeRuleTests(unittest.TestCase):
         self.assertEqual(state.players["p2"].hq.defense_modifier, 0)
         self.assertTrue(any(event.get("event") == "hq_defense_replaced_with_damage" for event in state.event_log))
 
+    def test_hq_damage_can_be_redirected_to_source_unit(self) -> None:
+        state = self.state()
+        card = self.cards.get("royal_ulster_rifles")
+        unit = UnitState("ulster", card.id, card.attack or 0, card.defense or 0, "p1", "support_line")
+        state.players["p1"].units.append(unit)
+        state.battlefield["support_line"].append(unit.instance_id)
+        self.engine.execute(card.id, "on_deploy", state, EffectContext("p1", card.id, unit.instance_id))
+
+        hq_before = state.players["p1"].hq.current_health
+        defense_before = unit.defense
+        HQResolver.damage(state, "p1", 3, "p2")
+        self.assertEqual(state.players["p1"].hq.current_health, hq_before)
+        self.assertEqual(unit.defense, defense_before - 3)
+        self.assertTrue(any(event.get("event") == "hq_damage_redirected_to_unit" for event in state.event_log))
+
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any
         # adjacent units, deal 2 instead." is now fully parsed (status='implemented')

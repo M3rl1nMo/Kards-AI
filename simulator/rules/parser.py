@@ -158,6 +158,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("move_and_attack", "source"),),
                             "implemented")
+        if "when your hq is damaged" in text.lower() and "deal that amount of damage to this unit instead" in text.lower():
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("hq_damage_redirect_to_source", "source"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -523,7 +527,8 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "combat damage dealt to this unit is reduced to 1" in original_lower: return (RuleAction("combat_damage_cap", "source", amount=1),)
     if "random effects always choose this unit" in original_lower: return (RuleAction("control_effect", "source"),)
     if "non-combat, non-attack damage dealt by your units" in original_lower: return (RuleAction("noncombat_unit_damage_bonus", "source", amount=1),)
-    if "deal that amount of damage to this unit instead" in original_lower: return (RuleAction("control_effect", "source"),)
+    if "when your hq is damaged" in original_lower and "deal that amount of damage to this unit instead" in original_lower:
+        return (RuleAction("hq_damage_redirect_to_source", "source"),)
     if "cards in enemy hand cost +1 kredit" in original_lower: return (RuleAction("modify_hand_cost", "enemy_hand", amount=1),)
     if "cannot be deployed unless you have" in original_lower: return (RuleAction("cannot", "source"),)
     if "can move and attack during the same turn" in original_lower: return (RuleAction("move_and_attack", "source"),)
