@@ -37411,7 +37411,7 @@
           "condition": null
         },
         {
-          "kind": "repair",
+          "kind": "scheduled_repair",
           "target": "friendly_units",
           "amount": 0,
           "attack": 0,
@@ -37420,14 +37420,12 @@
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
-          "duration": null,
+          "duration": "end_of_turn",
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your units operate for 2 less this turn and are fully repaired at the end of the turn."
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "death_from_above",

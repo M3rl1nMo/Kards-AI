@@ -6,6 +6,7 @@ from pathlib import Path
 import unittest
 
 from simulator.actions.action import _operation_cost, apply_op_cost_rules
+from simulator.actions.action import PassAction, PlayCardAction
 from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
 from simulator.effects.resolver import EffectContext
@@ -60,3 +61,14 @@ class OperationCostRuleTests(unittest.TestCase):
         self.assertEqual(_operation_cost(fresh, self.cards.get(fresh.card_id)), max(0, base - 2))
         apply_op_cost_rules(state, "p1", fresh, self.cards)
         self.assertEqual(_operation_cost(fresh, self.cards.get(fresh.card_id)), max(0, base - 2))
+
+    def test_campaign_trail_repairs_current_units_at_end_of_turn(self) -> None:
+        state = self.state()
+        unit = state.players["p1"].units[0]
+        unit.defense = 1
+        state.players["p1"].hand = ["campaign_trail"]
+        PlayCardAction("p1", "campaign_trail").execute(state, self.cards)
+        self.assertLess(_operation_cost(unit, self.cards.get(unit.card_id)), self.cards.get(unit.card_id).operationCost or 0)
+        PassAction("p1").execute(state, self.cards)
+        self.assertEqual(unit.defense, self.cards.get(unit.card_id).defense)
+        self.assertEqual(_operation_cost(unit, self.cards.get(unit.card_id)), self.cards.get(unit.card_id).operationCost or 0)

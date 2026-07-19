@@ -31,7 +31,6 @@ _CATCH_ALL_KINDS = frozenset({
     "triggered_effect",
     # Semantic catch-alls
     "gain_kredit_slot_on_deploy",
-    "op_cost_rule",
     "reveal_covert",
 })
 
@@ -633,7 +632,10 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if incr_op:
         return (RuleAction("modify_operation_cost", "source", amount=int(incr_op.group(1))),)
     if "your units operate for 2 less this turn and are fully repaired" in original_lower:
-        return (RuleAction("op_cost_rule", "owner", amount=-2), RuleAction("repair", "friendly_units"))
+        return (
+            RuleAction("op_cost_rule", "owner", amount=-2, duration="this_turn"),
+            RuleAction("scheduled_repair", "friendly_units", duration="end_of_turn"),
+        )
     if "your units operate for 1 less this turn" in original_lower:
         return (RuleAction("operation_cost_rule", "owner", amount=-1),)
     if "if it is destroyed, your units operate for 1 less this turn" in original_lower:

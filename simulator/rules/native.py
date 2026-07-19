@@ -262,6 +262,19 @@ class NativeRuleEngine:
         if action.kind in ("delayed_discard", "delayed_return"):
             self._schedule_delayed(action, state, context)
             return
+        if action.kind == "scheduled_repair":
+            state.players[context.player_id].scheduled.append({
+                "trigger": action.duration or "end_of_turn",
+                "kind": "repair_all_friendly",
+                "owner_id": context.player_id,
+                "repairs": [
+                    {"unit_id": unit.instance_id, "defense": self.cards.get(unit.card_id).defense}
+                    for unit in state.players[context.player_id].units
+                    if self.cards.get(unit.card_id) is not None
+                ],
+            })
+            state.event_log.append({"event": "rule_scheduled", "trigger": action.duration or "end_of_turn", "kind": "repair_all_friendly", "player_id": context.player_id})
+            return
         # Temporary (duration-bounded) stat/status effects are applied and their
         # reversal is registered so TurnManager can revert them at the right turn.
         if action.duration and action.kind in ("buff", "modify_attack", "modify_defense", "set_attack", "suppress", "grant_ability"):
@@ -1238,7 +1251,7 @@ class NativeRuleEngine:
                     remaining.append(entry)
             elif entry["trigger"] in ("end_of_turn", "end_of_next_turn"):
                 if phase == "end":
-                    if entry["wait"] > 0:
+                    if entry.get("wait", 0) > 0:
                         entry["wait"] -= 1
                         remaining.append(entry)
                     else:
@@ -1256,6 +1269,23 @@ class NativeRuleEngine:
         # enemy's hand), not the player who scheduled the effect.
         owner = state.players.get(entry.get("card_owner_id") or entry.get("owner_id"))
         if owner is None:
+            return
+        if entry["kind"] == "repair_all_friendly":
+            repaired = 0
+            for repair in entry.get("repairs", []):
+                try:
+                    unit = find_unit(state, repair.get("unit_id"))
+                except Exception:
+                    unit = None
+                if unit is None or unit.owner_id != owner.player_id:
+                    continue
+                if unit.status.get("cannot") in ("be_repaired", True):
+                    continue
+                base_defense = repair.get("defense")
+                if isinstance(base_defense, int):
+                    unit.defense = base_defense
+                    repaired += 1
+            state.event_log.append({"event": "scheduled_units_repaired", "player_id": owner.player_id, "count": repaired})
             return
         try:
             unit = find_unit(state, entry["unit_id"]) if entry.get("unit_id") else None
