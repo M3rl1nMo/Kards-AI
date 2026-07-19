@@ -22160,7 +22160,7 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
+          "kind": "hq_defense_becomes_damage",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -22173,11 +22173,8 @@
           "condition": "When a HQ gains defense"
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "When a HQ gains defense, it takes that much damage instead.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "type_96_aa_gun",

@@ -540,7 +540,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     if "deal excess damage to the enemy hq" in original_lower: return (RuleAction("hq_excess", "source"),)
     if "trigger the destruction effects of all friendly units destroyed" in original_lower: return (RuleAction("repeat_effect", "source"),)
     if "enemy cards deal 1 less damage" in original_lower: return (RuleAction("enemy_card_damage_reduction", "source", amount=1),)
-    if "when a hq gains defense, it takes that much damage instead" in original_lower: return (RuleAction("control_effect", "source"),)
+    if "when a hq gains defense, it takes that much damage instead" in original_lower: return (RuleAction("hq_defense_becomes_damage", "source"),)
     if "hq takes 1 less damage for each of your units" in original_lower: return (RuleAction("hq_damage_reduction_by_attack", "source", amount=1, min_cost=4),)
     if "loses remaining kredits" in original_lower: return (RuleAction("lose_kredits", "enemy_hand", amount=99),)
     if "deploys for 0 kredits" in original_lower: return (RuleAction("modify_deployment_cost", "source", set_cost=0),)

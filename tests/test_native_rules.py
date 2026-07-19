@@ -7,6 +7,7 @@ from simulator.actions.action import AttackAction, PassAction, PlayCardAction
 from simulator.actions.validator import ActionValidationError
 from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
+from simulator.core.hq import HQResolver
 from simulator.effects.resolver import EffectContext, EffectResolver
 from simulator.rules.native import NativeRuleEngine
 
@@ -56,6 +57,20 @@ class NativeRuleTests(unittest.TestCase):
 
         self.assertEqual(enemy.defense, before - 3)
         self.assertNotIn("next_order_damage_bonus", state.players["p1"].status)
+
+    def test_hq_defense_gain_can_be_replaced_with_damage(self) -> None:
+        state = self.state()
+        card = self.cards.get("type_89_chiro")
+        unit = UnitState("chi_ro", card.id, card.attack or 0, card.defense or 0, "p1", "support_line")
+        state.players["p1"].units.append(unit)
+        state.battlefield["support_line"].append(unit.instance_id)
+        self.engine.execute(card.id, "on_deploy", state, EffectContext("p1", card.id, unit.instance_id))
+
+        before = state.players["p2"].hq.current_health
+        HQResolver.modify_defense(state, "p2", 3)
+        self.assertEqual(state.players["p2"].hq.current_health, before - 3)
+        self.assertEqual(state.players["p2"].hq.defense_modifier, 0)
+        self.assertTrue(any(event.get("event") == "hq_defense_replaced_with_damage" for event in state.event_log))
 
     def test_partial_rule_executes_only_verified_action(self) -> None:
         # M7 full-parse policy: "Deal 1 damage to a unit. If it doesn't have any

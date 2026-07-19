@@ -35,6 +35,26 @@ class HQResolver:
 
     @staticmethod
     def modify_defense(state: GameState, target_player_id: str, amount: int) -> int:
+        # Some continuous effects replace a HQ defense gain with equal damage.
+        # This belongs at the HQ mutation boundary so every source of HQ
+        # defense (orders, triggers, and native rules) observes the same rule.
+        replacements = [
+            unit.owner_id
+            for player in state.players.values()
+            for unit in player.units
+            if unit.status.get("hq_defense_becomes_damage")
+        ]
+        if amount > 0 and replacements:
+            total = 0
+            for source_player_id in replacements:
+                total += HQResolver.damage(state, target_player_id, amount, source_player_id)
+            state.event_log.append({
+                "event": "hq_defense_replaced_with_damage",
+                "player_id": target_player_id,
+                "amount": amount,
+                "source_count": len(replacements),
+            })
+            return total
         hq = state.players[target_player_id].hq
         hq.defense_modifier = max(0, hq.defense_modifier + int(amount))
         state.event_log.append({"event": "hq_defense_modified", "player_id": target_player_id, "amount": int(amount), "defense_modifier": hq.defense_modifier})
