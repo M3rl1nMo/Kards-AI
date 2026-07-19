@@ -9,8 +9,30 @@ class HQResolver:
     """The only game-rules component allowed to mutate HQ health."""
 
     @staticmethod
-    def damage(state: GameState, target_player_id: str, amount: int, source_player_id: str | None = None) -> int:
+    def damage(
+        state: GameState,
+        target_player_id: str,
+        amount: int,
+        source_player_id: str | None = None,
+        apply_replacements: bool = True,
+    ) -> int:
         hq = state.players[target_player_id].hq
+        if apply_replacements and amount > 0:
+            redirectors = [
+                unit for unit in state.players[target_player_id].units
+                if unit.status.get("hq_damage_redirect_to_enemy_hq")
+            ]
+            if redirectors:
+                enemy_id = next(player_id for player_id in state.players if player_id != target_player_id)
+                applied = HQResolver.damage(state, enemy_id, amount, redirectors[0].owner_id, apply_replacements=False)
+                state.event_log.append({
+                    "event": "hq_damage_redirected_to_enemy_hq",
+                    "player_id": target_player_id,
+                    "enemy_player_id": enemy_id,
+                    "amount": applied,
+                    "source_unit_id": redirectors[0].instance_id,
+                })
+                return applied
         # Check friendly units for HQ defense cap/lock/immune flags.
         for unit in state.players[target_player_id].units:
             if unit.status.get("hq_defense_lock"):

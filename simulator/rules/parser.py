@@ -162,6 +162,10 @@ class RuleParser:
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("hq_damage_redirect_to_source", "source"),),
                             "implemented")
+        if "hq is to take damage" in text.lower() and "enemy hq takes the damage instead" in text.lower():
+            return CardRule(card.id, text, ("on_deploy",),
+                            (RuleAction("hq_damage_redirect_to_enemy_hq", "source"),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
@@ -505,7 +509,7 @@ def _parse_sentence_core(sentence: str) -> tuple[RuleAction, ...]:
     # Sis: redirect HQ damage to enemy HQ. Must run before temporal stripping
     # because the 'When...' clause is part of the effect text, not a skip clause.
     if "hq is to take damage" in original_lower and "enemy hq takes" in original_lower:
-        return (RuleAction("control_effect", "owner"),)
+        return (RuleAction("hq_damage_redirect_to_enemy_hq", "source"),)
     if lower in {"", "{}"}:
         return ()
     # --- M61: precise per-card patterns (before template matching) ---

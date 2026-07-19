@@ -7421,12 +7421,12 @@
       "card_id": "sisu",
       "source_text": "When your HQ is to take damage, the enemy HQ takes the damage instead.",
       "triggers": [
-        "on_damage"
+        "on_deploy"
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "owner",
+          "kind": "hq_damage_redirect_to_enemy_hq",
+          "target": "source",
           "amount": 0,
           "attack": 0,
           "defense": 0,
@@ -7435,14 +7435,11 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": "When your HQ is to take damage"
+          "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "When your HQ is to take damage, the enemy HQ takes the damage instead.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "sturmi",
