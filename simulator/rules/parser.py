@@ -1336,7 +1336,7 @@ def _resolve_residual(sentence: str, lower: str, clean: str) -> tuple | None:
     if found and (_RESIDUAL_GRANT_RE.search(lower) or _RESIDUAL_STANDALONE_RE.match(lower)
                   or re.search(r"\bwith\s+(?:the\s+)?(ambush|blitz|guard|pincer|grenadier|bond|fury|shock|salvage|mobilize|covert|alpine|veteran|smokescreen)\b", lower)):
         tgt = "friendly_units" if re.search(r"\b(?:your|friendly)\b", lower) else "source"
-        return tuple(RuleAction("grant_ability", tgt, card_name=a) for a in found)
+        return tuple(RuleAction("grant_ability", tgt, card_name=a) for a in sorted(found))
 
     # 2) Double damage (to HQ or against a unit type).
     if "double damage" in lower:

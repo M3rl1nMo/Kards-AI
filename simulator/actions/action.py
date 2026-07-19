@@ -417,10 +417,29 @@ def apply_op_cost_rules(state: GameState, player_id: str, unit: UnitState, cards
     for rule in state.players[player_id].op_cost_rules:
         if not _op_rule_matches(rule, card):
             continue
-        if rule.get("set_cost") is not None:
-            unit.modifiers.append({"type": "set_operation_cost", "value": rule["set_cost"]})
-        else:
-            unit.modifiers.append({"type": "modify_operation_cost", "amount": rule["amount"]})
+        _apply_op_cost_rule_to_unit(unit, rule)
+
+
+def _apply_op_cost_rule_to_unit(unit: UnitState, rule: dict) -> None:
+    """Attach one operation-cost rule to a unit exactly once.
+
+    Rules are materialized on units so the combat action can calculate its
+    operation cost without reaching back into GameState.  Provenance and
+    expiry are retained, allowing the native rule engine to remove the exact
+    modifier when a temporary effect expires or its source leaves play.
+    """
+    rule_id = rule.get("rule_id")
+    if rule_id and any(mod.get("op_rule_id") == rule_id for mod in unit.modifiers):
+        return
+    common = {
+        "op_rule_id": rule_id,
+        "expires_turn": rule.get("expires_turn"),
+        "source_unit_id": rule.get("source_unit_id"),
+    }
+    if rule.get("set_cost") is not None:
+        unit.modifiers.append({"type": "set_operation_cost", "value": rule["set_cost"], **common})
+    else:
+        unit.modifiers.append({"type": "modify_operation_cost", "amount": rule["amount"], **common})
 
 
 def _op_rule_matches(rule: dict, card) -> bool:
@@ -434,6 +453,12 @@ def _op_rule_matches(rule: dict, card) -> bool:
         if fv == "ground":
             return card.type in {"infantry", "tank", "artillery"}
         return card.type == fv
+    if scope in {"infantry", "fighter", "tank", "bomber", "artillery"}:
+        return card.type == scope
+    if scope == "air":
+        return card.type in {"fighter", "bomber"}
+    if scope == "ground":
+        return card.type in {"infantry", "tank", "artillery"}
     if scope == "ability":
         return any(fv in ability.lower() for ability in card.abilities)
     if scope == "name":

@@ -195,6 +195,12 @@ class NativeRuleEngine:
             r for r in player.op_cost_rules
             if r.get("source_unit_id") != unit_id
         ]
+        for candidate_player in state.players.values():
+            for unit in candidate_player.units:
+                unit.modifiers = [
+                    modifier for modifier in unit.modifiers
+                    if modifier.get("source_unit_id") != unit_id
+                ]
         after = len(player.cost_modifiers), len(player.op_cost_rules)
         removed_cm = before[0] - after[0]
         removed_op = before[1] - after[1]
@@ -861,14 +867,26 @@ class NativeRuleEngine:
             return
         if action.kind == "op_cost_rule":
             owner = opponent_id(state, context.player_id) if action.target == "enemy_hand" else context.player_id
-            state.players[owner].op_cost_rules.append({
+            player = state.players[owner]
+            rule_id = "op-rule-{0}-{1}".format(context.source_unit_id or context.source_card_id or "rule", len(player.op_cost_rules) + 1)
+            rule = {
+                "rule_id": rule_id,
                 "amount": action.amount,
                 "set_cost": action.set_cost,
                 "scope": action.scope or "all",
                 "filter_value": action.card_name or "",
                 "expires_turn": _expiry_turn(action.duration, state.turn_number),
                 "source_unit_id": context.source_unit_id,
-            })
+            }
+            player.op_cost_rules.append(rule)
+            # A rule such as "your units operate for 1 less this turn" applies
+            # immediately to units already on the battlefield as well as those
+            # deployed later this turn.
+            from simulator.actions.action import _apply_op_cost_rule_to_unit, _op_rule_matches
+            for unit in player.units:
+                card = self.cards.get(unit.card_id)
+                if card is not None and _op_rule_matches(rule, card):
+                    _apply_op_cost_rule_to_unit(unit, rule)
             state.event_log.append({"event": "op_cost_rule_added", "player_id": owner, "amount": action.amount})
             return
         if action.kind == "set_operation_cost":
@@ -1371,6 +1389,12 @@ class NativeRuleEngine:
         # Purge expired cost modifiers / op-cost rules.
         player.cost_modifiers = [m for m in player.cost_modifiers if m.get("expires_turn") is None or m["expires_turn"] > current_turn]
         player.op_cost_rules = [r for r in player.op_cost_rules if r.get("expires_turn") is None or r["expires_turn"] > current_turn]
+        for candidate_player in state.players.values():
+            for unit in candidate_player.units:
+                unit.modifiers = [
+                    modifier for modifier in unit.modifiers
+                    if modifier.get("expires_turn") is None or modifier["expires_turn"] > current_turn
+                ]
         # Reset per-turn HQ flags.
         player.hq.immune_until_end_of_turn = False
 
