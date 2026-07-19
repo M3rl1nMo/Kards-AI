@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from simulator.actions.action import AttackAction, PassAction
 from simulator.cards.loader import CardDatabase, CardLoadReport
+from simulator.cards.availability import is_card_available
 from simulator.core.game import Simulator
 from simulator.core.state import GameState
 from simulator.rules.deck import DeckValidator
@@ -29,7 +30,10 @@ def build_random_deck(cards: CardDatabase, size: int = 40, seed: int | None = No
     if size != 40:
         raise ValueError("KARDS decks must contain exactly 40 cards")
     allowed_nations = {main_nation, ally_nation, "Neutral"}
-    candidates = [card for card in cards if not card.is_token and card.nation in allowed_nations]
+    candidates = [
+        card for card in cards
+        if is_card_available(card.id) and not card.is_token and card.nation in allowed_nations
+    ]
     rng = random.Random(seed)
     rng.shuffle(candidates)
     limits = {"standard": 4, "limited": 3, "special": 2, "elite": 1}

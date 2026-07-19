@@ -44,7 +44,6 @@ class ConditionEngineTests(unittest.TestCase):
         self.assertFalse(evaluate("when you play a card with Intel.", "on_friendly_card_played", unit_ctx, self.cards))
 
     def test_evaluator_unknown_condition_is_lenient(self) -> None:
-        # Not-yet-modeled state conditions still execute (backward compatible).
         self.assertTrue(evaluate("if enemy has 3 or more units.", "on_play", EffectContext("p1"), self.cards))
 
     # --- End-to-end: condition NOT met -> action skipped ---

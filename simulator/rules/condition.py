@@ -5,9 +5,9 @@ hq.``, ``if enemy has 3 or more units.``). The native engine uses this to decide
 whether a conditional action should actually execute for the current event/context.
 
 Modeled phrases are strictly gated to the matching event + (where applicable) the
-played card's type/ability. Unrecognized conditions are treated as *satisfied* so
-the engine keeps executing previously-lenient behavior; later milestones (M10)
-tighten the remaining state-based phrases (adjacency, "you control N units", etc.).
+played card's type/ability. Unrecognized conditions are retained as satisfied
+for backward-compatible execution until the parser can distinguish persistent
+text from unresolved event predicates.
 """
 
 from __future__ import annotations
@@ -41,7 +41,8 @@ def evaluate(
         return event == "on_friendly_card_played" and _has_ability(played, "intel")
     if "card with bond" in c:
         return event == "on_friendly_card_played" and _has_ability(played, "bond")
-    # State-based / other conditions: not yet modeled -> execute (lenient).
+    # State-based / other conditions: retained leniently for existing parsed
+    # persistent effects. Training readiness audits report this as a blocker.
     return True
 
 

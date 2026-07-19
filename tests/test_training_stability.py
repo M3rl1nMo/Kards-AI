@@ -6,6 +6,7 @@ import unittest
 from simulator.cards.loader import CardDatabase
 from simulator.core.game import Simulator
 from simulator.testing import build_random_deck, run_large_scale_smoke
+from simulator.cards.availability import RETIRED_CARD_IDS
 
 
 ROOT = Path(__file__).parents[1]
@@ -28,6 +29,12 @@ class TrainingStabilityTests(unittest.TestCase):
         observation = simulator.get_observation("p1")
         self.assertIsInstance(observation["self"]["hand"], list)
         self.assertIsNone(observation["opponent"]["hand"])
+
+    def test_random_deck_builder_excludes_retired_cards_for_known_bad_seed(self) -> None:
+        # Seed 19 previously selected FORTUNES OF WAR for a USA deck, then
+        # failed validation after the card was retired.
+        deck = build_random_deck(self.cards, main_nation="USA", seed=19)
+        self.assertFalse(set(deck) & RETIRED_CARD_IDS)
 
     def test_one_thousand_legal_smoke_games(self) -> None:
         self.assertEqual(run_large_scale_smoke(self.cards, games=1000, seed=100), 1000)
