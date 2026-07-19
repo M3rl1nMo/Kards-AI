@@ -77,6 +77,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "trigger_destroy_and_convert",
     "frontline_limit",
     "retreat_enemy_frontline_all",
+    "hand_cost_on_friendly_death",
     "noncombat_unit_damage_bonus",
     "ground_damage_bonus",
     "enemy_card_damage_reduction",

@@ -10,6 +10,7 @@ from simulator.actions.action import PlayCardAction, card_play_cost, _operation_
 from simulator.cards.loader import CardDatabase
 from simulator.core.state import GameState, PlayerState, ResourceState, UnitState
 from simulator.rules.native import NativeRuleEngine
+from simulator.effects import basic_effects
 
 
 ROOT = Path(__file__).parents[1]
@@ -74,6 +75,23 @@ class CostMechanicsTests(unittest.TestCase):
         self.assertEqual(deployed.attack, (spitfire.attack or 0) + 1)
         self.assertEqual(deployed.defense, (spitfire.defense or 0) + 1)
         self.assertTrue(any(event.get("event") == "deployment_name_aura_applied" for event in state.event_log))
+
+    def test_bologna_cost_grows_only_while_copy_is_in_hand(self) -> None:
+        state = self._state(p1_hand=("39th_bologna_regiment",), p1_units=(("fallen", "m3a3_honey"),))
+        unit = state.players["p1"].units[0]
+        unit.defense = 1
+        card = self.cards.get("39th_bologna_regiment")
+        base = card.kredits or 0
+        start = len(state.event_log)
+        basic_effects.destroy(state, unit)
+        self.engine.emit_deaths_since(state, start)
+        self.assertEqual(card_play_cost(state, "p1", card, self.cards), base + 1)
+
+        # Once all copies leave, a subsequently added copy starts from its
+        # printed cost rather than inheriting the previous hand-only history.
+        state.players["p1"].hand.remove(card.id)
+        self.engine._add_to_hand(state, "p1", card.id)
+        self.assertEqual(card_play_cost(state, "p1", card, self.cards), base)
 
     def test_land_of_the_free_sets_operation_cost_to_zero(self) -> None:
         state = self._state(p1_hand=("land_of_the_free",), p1_units=(("ally", "hurricane_mk_i"),))

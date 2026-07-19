@@ -16961,14 +16961,13 @@
       "card_id": "39th_bologna_regiment",
       "source_text": "If in your hand, this unit costs 1 more each time you lose a unit.",
       "triggers": [
-        "on_destroy",
-        "on_deploy"
+        "on_friendly_unit_died"
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "source",
-          "amount": 0,
+          "kind": "hand_cost_on_friendly_death",
+          "target": "owner",
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -16976,14 +16975,11 @@
           "min_cost": 0,
           "set_cost": null,
           "duration": null,
-          "condition": "If in your hand"
+          "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "If in your hand, this unit costs 1 more each time you lose a unit.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "49th_infantry_regiment",

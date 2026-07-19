@@ -151,6 +151,18 @@ class NativeRuleEngine:
             player_id = death.get("player_id")
             unit_id = death.get("unit_id")
             if isinstance(card_id, str) and isinstance(player_id, str) and card_id in self.cards:
+                # Hand-reactive cards observe only deaths that occur while a
+                # copy is actually in their owner's hand.  The status map is
+                # keyed by card ID because identical catalog copies have no
+                # distinct identity in the current state representation.
+                player = state.players[player_id]
+                for hand_card_id in set(player.hand):
+                    hand_rule = self.rule_for(hand_card_id) if hand_card_id in self.cards else None
+                    if hand_rule and any(action.kind == "hand_cost_on_friendly_death" for action in hand_rule.actions):
+                        bonuses = player.status.setdefault("hand_cost_on_friendly_death", {})
+                        bonuses[hand_card_id] = int(bonuses.get(hand_card_id, 0)) + 1
+                        state.event_log.append({"event": "hand_unit_cost_increased_on_death", "player_id": player_id,
+                                                "card_id": hand_card_id, "amount": bonuses[hand_card_id]})
                 if self.execute(card_id, "on_destroy", state, EffectContext(player_id, card_id, event="on_destroy")):
                     fired += 1
                 if unit_id:
@@ -1536,6 +1548,9 @@ class NativeRuleEngine:
         """Add a card to a player's hand, routing overflow to the graveyard."""
         player = state.players[player_id]
         if len(player.hand) < 9:
+            bonuses = player.status.get("hand_cost_on_friendly_death")
+            if isinstance(bonuses, dict) and card_id not in player.hand:
+                bonuses.pop(card_id, None)
             player.hand.append(card_id)
             state.event_log.append({"event": "card_added_to_hand", "player_id": player_id, "card_id": card_id})
         else:

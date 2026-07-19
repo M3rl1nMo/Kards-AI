@@ -45,6 +45,11 @@ class TurnManager:
             state.event_log.append({"event": "deck_empty", "player_id": player_id, "fatigue_damage": player.fatigue_damage})
             return None
         card_id = player.deck.pop(0)
+        # A new copy of a hand-reactive card must not inherit a cost history
+        # from a previous copy that already left the hand.
+        bonuses = player.status.get("hand_cost_on_friendly_death")
+        if isinstance(bonuses, dict) and card_id not in player.hand:
+            bonuses.pop(card_id, None)
         if len(player.hand) >= 9:
             state.graveyard.setdefault(player_id, []).append(card_id)
             state.event_log.append({"event": "card_overdrawn", "player_id": player_id, "card_id": card_id})

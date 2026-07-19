@@ -452,6 +452,11 @@ def card_play_cost(state: GameState, player_id: str, card, cards: CardDatabase) 
     """Final kredit cost of playing ``card`` from hand, incl. cost modifiers."""
     player = state.players[player_id]
     total = card.kredits or 0
+    hand_death_bonuses = player.status.get("hand_cost_on_friendly_death", {})
+    if isinstance(hand_death_bonuses, dict):
+        bonus = hand_death_bonuses.get(card.id, 0)
+        if isinstance(bonus, int):
+            total += max(0, bonus)
     for mod in player.cost_modifiers:
         if not _cost_mod_applies(mod, card, cards):
             continue

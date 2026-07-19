@@ -191,6 +191,10 @@ class RuleParser:
                             (RuleAction("frontline_limit", "source", amount=2),
                              RuleAction("retreat_enemy_frontline_all", "enemy_units")),
                             "implemented")
+        if "if in your hand, this unit costs 1 more each time you lose a unit" in text.lower():
+            return CardRule(card.id, text, ("on_friendly_unit_died",),
+                            (RuleAction("hand_cost_on_friendly_death", "owner", amount=1),),
+                            "implemented")
         triggers = _triggers(card, text)
         actions: list[RuleAction] = []
         covered: list[str] = []
