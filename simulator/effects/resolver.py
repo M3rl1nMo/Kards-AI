@@ -59,6 +59,7 @@ class EffectResolver:
         targets = self._targets(str(action.get("target", "self")), state, context)
         if kind == "damage":
             amount += self._order_damage_bonus(state, context)
+            amount += self._unit_damage_bonus(state, context)
             for target in targets:
                 basic_effects.damage(state, target, amount, context.player_id)
         elif kind == "heal":
@@ -149,6 +150,24 @@ class EffectResolver:
             bonus for unit in state.players[context.player_id].units
             if isinstance((bonus := unit.status.get("order_damage_bonus")), int) and bonus > 0
         )
+
+    def _unit_damage_bonus(self, state: GameState, context: EffectContext) -> int:
+        """Apply in-play unit damage auras to non-combat unit effects."""
+        if context.metadata.get("combat_damage") or not context.source_unit_id:
+            return 0
+        source = find_unit(state, context.source_unit_id)
+        if source is None:
+            return 0
+        source_card = self.cards.get(source.card_id)
+        total = 0
+        for unit in state.players[context.player_id].units:
+            rule = unit.status.get("noncombat_unit_damage_bonus")
+            if isinstance(rule, dict) and isinstance(rule.get("amount"), int):
+                total += rule["amount"]
+            ground = unit.status.get("ground_damage_bonus")
+            if isinstance(ground, dict) and source_card.type in {"infantry", "tank", "artillery"} and source.attack >= ground.get("minimum_attack", 4):
+                total += int(ground.get("amount", 0))
+        return total
 
     def _targets(self, selector: str, state: GameState, context: EffectContext) -> list[UnitState | str]:
         opponent = opponent_id(state, context.player_id)

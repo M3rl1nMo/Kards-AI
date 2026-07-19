@@ -3756,9 +3756,9 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "friendly_units",
-          "amount": 0,
+          "kind": "noncombat_unit_damage_bonus",
+          "target": "source",
+          "amount": 1,
           "attack": 0,
           "defense": 0,
           "card_name": null,
@@ -3769,11 +3769,8 @@
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Increase the non-combat, non-attack damage dealt by your units by 1.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "tiger_moth",
@@ -14546,24 +14543,21 @@
       ],
       "actions": [
         {
-          "kind": "control_effect",
-          "target": "friendly_units",
-          "amount": 0,
+          "kind": "ground_damage_bonus",
+          "target": "source",
+          "amount": 3,
           "attack": 0,
           "defense": 0,
           "card_name": null,
           "scope": "",
-          "min_cost": 0,
+          "min_cost": 4,
           "set_cost": null,
           "duration": null,
           "condition": null
         }
       ],
-      "status": "partial",
-      "unresolved_fragments": [
-        "Your ground units with 4 or more attack deal +3 damage.",
-        "[engine does not implement kind=control_effect]"
-      ]
+      "status": "implemented",
+      "unresolved_fragments": []
     },
     {
       "card_id": "169_grenadiers",

@@ -229,7 +229,7 @@ class AttackAction(Action):
             hq_bonus = attacker.status.get("hq_damage_bonus")
             if isinstance(hq_bonus, int):
                 hq_damage += hq_bonus
-            resolver.resolve({"type": "damage", "target": "enemy_hq", "value": {"amount": hq_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+            resolver.resolve({"type": "damage", "target": "enemy_hq", "value": {"amount": hq_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, metadata={"combat_damage": True}))
             hq_damage = hq_health_before - state.players[target_owner].hq.current_health
             if hq_damage > 0:
                 engine_for(cards).emit("on_enemy_hq_damaged", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, event="on_enemy_hq_damaged", metadata={"damage_amount": hq_damage}))
@@ -272,7 +272,7 @@ class AttackAction(Action):
             damage += random.Random((state.rng_seed or 0) + len(state.event_log)).randint(0, random_bonus)
         damage = _cap_combat_damage(target, damage)
         death_start = len(state.event_log)
-        resolver.resolve({"type": "damage", "target": "selected_target", "value": {"amount": damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id))
+        resolver.resolve({"type": "damage", "target": "selected_target", "value": {"amount": damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, metadata={"combat_damage": True}))
         engine_for(cards).emit("on_damage_dealt", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, metadata={"damage_amount": damage}))
         if damage > 0:
             engine_for(cards).emit("on_combat_damage_dealt", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, metadata={"damage_amount": damage}))
@@ -283,12 +283,12 @@ class AttackAction(Action):
         if attacker.status.get("hq_excess") and destroyed:
             hq_dmg = damage - (cards.get(target.card_id).defense or 0)
             if hq_dmg > 0:
-                resolver.resolve({"type": "damage", "target": "enemy_hq", "value": {"amount": hq_dmg}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+                resolver.resolve({"type": "damage", "target": "enemy_hq", "value": {"amount": hq_dmg}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, metadata={"combat_damage": True}))
         live_unit_ids = {unit.instance_id for player in state.players.values() for unit in player.units}
         if attacker.instance_id in live_unit_ids and target.instance_id in live_unit_ids:
             death_start = len(state.event_log)
             return_damage = _cap_combat_damage(attacker, target.attack)
-            resolver.resolve({"type": "damage", "target": "self", "value": {"amount": return_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+            resolver.resolve({"type": "damage", "target": "self", "value": {"amount": return_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, metadata={"combat_damage": True}))
             engine_for(cards).emit_damage_since(state, death_start)
             engine_for(cards).emit_deaths_since(state, death_start)
         if attacker.instance_id in {unit.instance_id for player in state.players.values() for unit in player.units}:

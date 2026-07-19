@@ -438,6 +438,11 @@ class NativeRuleEngine:
                 "minimum_attack": action.min_cost,
             })
             return
+        if action.kind in {"noncombat_unit_damage_bonus", "ground_damage_bonus"} and context.source_unit_id:
+            unit = find_unit(state, context.source_unit_id)
+            if unit:
+                unit.status[action.kind] = {"amount": action.amount, "minimum_attack": action.min_cost}
+            return
         # ── Type-specific combat bonuses ─────────────────────────────────────
         if action.kind == "double_damage_against_type" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
