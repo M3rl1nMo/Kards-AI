@@ -112,7 +112,7 @@ class GameState:
         # dataclass reconstruction overhead on every MCTS edge expansion.
         return GameState(
             current_player=self.current_player,
-            players=copy.deepcopy(self.players),
+            players={player_id: _clone_player(player) for player_id, player in self.players.items()},
             turn_number=self.turn_number,
             battlefield=copy.deepcopy(self.battlefield),
             graveyard=copy.deepcopy(self.graveyard),
@@ -169,3 +169,20 @@ class GameState:
     @classmethod
     def from_json(cls, payload: str) -> "GameState":
         return cls.from_dict(json.loads(payload))
+
+
+def _clone_player(player: PlayerState) -> PlayerState:
+    """Clone mutable game data without generic dataclass graph traversal."""
+    return PlayerState(
+        player_id=player.player_id, nation=player.nation, deck=list(player.deck), hand=list(player.hand),
+        resources=ResourceState(player.resources.kredits, player.resources.max_kredits),
+        hq=Headquarters(player.hq.max_health, player.hq.current_health, player.hq.nation,
+                        player.hq.defense_modifier, player.hq.damage_cap_per_turn,
+                        player.hq.immune_until_end_of_turn, copy.deepcopy(player.hq.active_effects)),
+        units=[UnitState(unit.instance_id, unit.card_id, unit.attack, unit.defense, unit.owner_id,
+                         unit.position, copy.deepcopy(unit.modifiers), copy.deepcopy(unit.status)) for unit in player.units],
+        active_countermeasures=copy.deepcopy(player.active_countermeasures), fatigue_damage=player.fatigue_damage,
+        cost_modifiers=copy.deepcopy(player.cost_modifiers), op_cost_rules=copy.deepcopy(player.op_cost_rules),
+        temporary_effects=copy.deepcopy(player.temporary_effects), scheduled=copy.deepcopy(player.scheduled),
+        status=copy.deepcopy(player.status),
+    )
