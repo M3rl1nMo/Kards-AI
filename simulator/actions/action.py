@@ -89,6 +89,9 @@ class PlayCardAction(Action):
                 raise ActionValidationError("This card requires a friendly unit target")
             if card.type == "order" and target.owner_id != self.player_id and target.status.get("cannot_be_targeted_by_enemy_orders"):
                 raise ActionValidationError("Target cannot be targeted by enemy orders")
+            if card.type == "order" and target.owner_id != self.player_id and target.status.get("covert"):
+                if not any(action.card_name == "can_target_covert" for action in rule.actions):
+                    raise ActionValidationError("Covert unit cannot be targeted by enemy orders")
             target_categories = {action.card_name for action in rule.actions if action.card_name in {"air", "ground", "frontline"}}
             if "air" in target_categories and cards.get(target.card_id).type not in {"fighter", "bomber"}:
                 raise ActionValidationError("This card requires an air unit target")
@@ -144,6 +147,8 @@ class PlayCardAction(Action):
             instance_id = _next_unit_id(state, self.card_id)
             unit = UnitState(instance_id, card.id, card.attack or 0, card.defense or 0, self.player_id, self.position)
             unit.status["deployed_this_turn"] = True
+            if KeywordEngine.has(card, "covert", unit):
+                unit.status["covert"] = True
             player.units.append(unit)
             state.battlefield[self.position].append(instance_id)
             apply_op_cost_rules(state, self.player_id, unit, cards)
@@ -288,6 +293,8 @@ class AttackAction(Action):
             target = find_unit(state, self.target_unit_id)
             if target.owner_id == self.player_id:
                 raise ActionValidationError("Unit cannot attack a friendly target")
+            if target.status.get("covert") and not attacker.status.get("can_target_covert"):
+                raise ActionValidationError("Covert unit cannot be attacked")
             if AbilityEngine.has_smokescreen(cards.get(target.card_id), target):
                 raise ActionValidationError("Unit with Smokescreen cannot be attacked")
             if target.position == "support_line" and target.status.get("immune_to_ground_in_support") and cards.get(attacker.card_id).type in {"infantry", "tank"}:
@@ -330,6 +337,7 @@ class AttackAction(Action):
             return state
 
         target = find_unit(state, self.target_unit_id)
+        target.status.pop("covert", None)
         engine_for(cards).emit("on_targeted_by_enemy_attack", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, event="on_targeted_by_enemy_attack"))
         if AbilityEngine.has_ambush(cards.get(target.card_id), target) and not target.status.get("ambush_used_this_round"):
             target.status["ambush_used_this_round"] = True

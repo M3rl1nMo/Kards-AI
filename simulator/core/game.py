@@ -149,7 +149,7 @@ def _observation_player(player: PlayerState, reveal_hand: bool) -> dict:
     return {"hq_health": player.hq.current_health, "hq_defense": player.hq.defense_modifier,
             "kredits": player.resources.kredits, "max_kredits": player.resources.max_kredits,
             "deck_count": len(player.deck), "hand": list(player.hand) if reveal_hand else None,
-            "hand_count": len(player.hand), "units": [{"id": unit.instance_id, "card_id": unit.card_id, "attack": unit.attack, "defense": unit.defense, "position": unit.position} for unit in player.units]}
+            "hand_count": len(player.hand), "units": [{"id": unit.instance_id, "card_id": None if unit.status.get("covert") and not reveal_hand else unit.card_id, "attack": None if unit.status.get("covert") and not reveal_hand else unit.attack, "defense": None if unit.status.get("covert") and not reveal_hand else unit.defense, "position": unit.position} for unit in player.units]}
 
 
 def _is_valid(action: Action, state: GameState, cards: CardDatabase) -> bool:
