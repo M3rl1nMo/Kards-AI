@@ -98,7 +98,7 @@ class MCTS:
         if self.inference is not None:
             logits = self.inference.policy(self._observation(node, player_id), features, mask)
             return torch.softmax(logits, dim=0)[:action_count].tolist()
-        with torch.no_grad():
+        with torch.inference_mode():
             logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
             return torch.softmax(logits[0], dim=0)[:action_count].tolist()
 
@@ -113,7 +113,7 @@ class MCTS:
         if self.model is None: return 0.0
         if self.inference is not None:
             return float(self.inference.value(self._observation(node, root_player)).item())
-        with torch.no_grad():
+        with torch.inference_mode():
             value = self.model.value(self._observation(node, root_player).to(self.device))
             return float(value.item())
 
