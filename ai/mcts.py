@@ -40,7 +40,7 @@ class MCTS:
         self.device = next(model.parameters()).device if model else torch.device("cpu")
 
     def search(self, state: GameState, cards: CardDatabase, root_player: str) -> tuple[Action, dict[str, float]]:
-        root = MCTSNode(state.clone(), state.current_player); self._expand(root, cards)
+        root = MCTSNode(state.clone_for_search(), state.current_player); self._expand(root, cards)
         for _ in range(self.simulations):
             node = root; path = [node]
             while node.expanded and node.children:
@@ -54,7 +54,7 @@ class MCTS:
         return root.actions[best], {str(index): count / total for index, count in visits.items()}
 
     def _simulator(self, state: GameState, cards: CardDatabase) -> Simulator:
-        env = Simulator(cards); env.state = state.clone(); return env
+        env = Simulator(cards); env.state = state.clone_for_search(); return env
 
     def _expand(self, node: MCTSNode, cards: CardDatabase) -> None:
         if node.state.game_status.value != "in_progress": return

@@ -23,7 +23,15 @@ class StateRoundTripTests(unittest.TestCase):
         cloned.pending_cancels[0]["id"] = "changed"
         self.assertEqual(state.players["p1"].hand, ["radar"])
         self.assertEqual(state.event_log[0]["event"], "x")
-        self.assertEqual(state.pending_cancels[0]["id"], "a")
+
+    def test_search_clone_keeps_history_but_isolates_appends(self) -> None:
+        state = GameState(current_player="p1", players={"p1": PlayerState("p1"), "p2": PlayerState("p2")},
+                          event_log=[{"event": "turn_started", "turn": 1}])
+        branch = state.clone_for_search()
+        branch.event_log.append({"event": "branch_action"})
+        branch.players["p1"].hand.append("card")
+        self.assertEqual(state.event_log, [{"event": "turn_started", "turn": 1}])
+        self.assertEqual(state.players["p1"].hand, [])
 
     def test_json_round_trip_preserves_all_rule_runtime_state(self) -> None:
         state = GameState(

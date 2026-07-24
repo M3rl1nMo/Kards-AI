@@ -124,6 +124,29 @@ class GameState:
             pending_cancels=copy.deepcopy(self.pending_cancels),
         )
 
+    def clone_for_search(self) -> "GameState":
+        """Clone a state for MCTS without copying immutable log-entry dictionaries.
+
+        Simulator actions only append new event records; rule resolution reads
+        earlier records but never edits them.  A new list therefore preserves
+        every branch's event history and RNG length while avoiding a deep copy
+        whose cost grows with game length.  Public ``clone()`` deliberately
+        remains fully isolated for callers that may edit log records.
+        """
+        return GameState(
+            current_player=self.current_player,
+            players={player_id: _clone_player(player) for player_id, player in self.players.items()},
+            turn_number=self.turn_number,
+            battlefield={key: list(value) for key, value in self.battlefield.items()},
+            graveyard={key: list(value) for key, value in self.graveyard.items()},
+            removed_cards=list(self.removed_cards),
+            game_status=self.game_status,
+            event_log=list(self.event_log),
+            mulligan_pending=list(self.mulligan_pending),
+            rng_seed=self.rng_seed,
+            pending_cancels=copy.deepcopy(self.pending_cancels),
+        )
+
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe state snapshot."""
         return asdict(self)
