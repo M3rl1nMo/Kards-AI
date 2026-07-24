@@ -61,7 +61,10 @@ class MCTS:
 
     def _expand(self, node: MCTSNode, cards: CardDatabase) -> None:
         if node.state.game_status.value != "in_progress": return
-        env = self._simulator(node.state, cards); node.actions = env.get_available_actions()
+        # Legal-action generation is read-only. Branch states are still
+        # cloned below before executing an action, but cloning merely to ask
+        # the validator for candidates is redundant.
+        env = Simulator(cards, state=node.state); node.actions = env.get_available_actions()
         if not node.actions: return
         # Candidate rows are scored independently. Padding to MAX_ACTIONS is
         # required in replay/training tensors, but would only run masked GPU
