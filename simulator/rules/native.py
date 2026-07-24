@@ -492,6 +492,8 @@ class NativeRuleEngine:
                 granted = unit_obj.status.setdefault("added_abilities", [])
                 if ability not in granted:
                     granted.append(ability)
+                if ability.lower() == "veteran":
+                    unit_obj.status["veteran"] = True
             state.event_log.append({"event": "ability_granted", "ability": ability, "target": action.target})
             return
         if action.kind == "buff_on_enemy_target" and context.source_unit_id:
@@ -1787,6 +1789,9 @@ class NativeRuleEngine:
                 cannot_val = unit.status.get("cannot")
                 if cannot_val in ("be_suppressed", "be_pinned", True):
                     continue  # unit immune to suppress/pin
+                if unit.status.get("veteran"):
+                    unit.status["veteran_before_suppression"] = True
+                    unit.status.pop("veteran", None)
                 unit.status["suppressed"] = True
             elif action.kind == "pin":
                 cannot_val = unit.status.get("cannot")
@@ -1885,6 +1890,8 @@ class NativeRuleEngine:
                         unit.attack = rev["restore_attack"]
                     elif rev.get("attr") == "suppressed":
                         unit.status.pop("suppressed", None)
+                        if unit.status.pop("veteran_before_suppression", False):
+                            unit.status["veteran"] = True
                     elif rev.get("attr") == "pinned":
                         unit.status.pop("pinned", None)
                     else:
