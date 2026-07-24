@@ -687,7 +687,8 @@ class NativeRuleTests(unittest.TestCase):
         state.current_player = "p1"
         state.players["p1"].resources = ResourceState(5, 5)
         AttackAction("p1", attacker.instance_id).execute(state, self.cards)
-        self.assertTrue(attacker.status["suppressed"])
+        self.assertTrue(attacker.status["pinned"])
+        self.assertNotIn("suppressed", attacker.status)
         self.assertIn("against_the_odds", state.graveyard["p2"])
 
     def test_countermeasure_cancels_enemy_order_after_payment(self) -> None:

@@ -437,6 +437,34 @@ class NativeRuleEngine:
             basic_effects.destroy(state, unit)
             self.emit_deaths_since(state, start)
             return
+        if action.kind == "trigger_destruction_effects" and context.target_unit_id:
+            target = find_unit(state, context.target_unit_id)
+            if target is None:
+                return
+            # Resolve the target's own destruction text under the caster's
+            # control, matching the card's "as if it was yours" wording.
+            self.execute(target.card_id, "on_destroy", state,
+                         EffectContext(context.player_id, target.card_id,
+                                       target.instance_id, target.instance_id,
+                                       event="on_destroy",
+                                       metadata={"triggered_as_friendly": True,
+                                                 "original_owner": target.owner_id}))
+            state.event_log.append({"event": "destruction_effects_triggered",
+                                    "unit_id": target.instance_id,
+                                    "as_player": context.player_id})
+            return
+        if action.kind == "rearrange_enemy_units":
+            enemy_id = opponent_id(state, context.player_id)
+            enemy = state.players[enemy_id]
+            units = [u for u in enemy.units]
+            random.Random((state.rng_seed or 0) + len(state.event_log)).shuffle(units)
+            # Rearrangement changes battlefield ordering without moving units
+            # between support/frontline lines or exceeding line capacity.
+            for position in ("support_line", "frontline"):
+                ids = [u.instance_id for u in units if u.position == position]
+                state.battlefield[position] = ids
+            state.event_log.append({"event": "enemy_units_rearranged", "player_id": context.player_id})
+            return
         if action.kind == "grant_ability":
             ability = (action.card_name or "").strip()
             if not ability:

@@ -182,6 +182,13 @@ class RuleParser:
             return CardRule(card.id, text, ("on_play",),
                             (RuleAction("trigger_destroy_and_convert", "selected_target", card_name="YAK 9"),),
                             "implemented")
+        if text.lower().strip() == "trigger the destruction effects on a target unit as if it was yours, then remove the effect if an enemy unit.":
+            return CardRule(card.id, text, ("on_play",),
+                            (RuleAction("trigger_destruction_effects", "selected_target"),), "implemented")
+        if text.lower().strip() == "destroy target undamaged unit, then randomly rearrange enemy units on the battlefield.":
+            return CardRule(card.id, text, ("on_play",),
+                            (RuleAction("destroy_undamaged", "selected_target"),
+                             RuleAction("rearrange_enemy_units", "enemy_units")), "implemented")
         if "random effects always choose this unit" in text.lower():
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("random_effect_target_priority", "source"),),
