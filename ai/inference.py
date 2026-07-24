@@ -118,3 +118,100 @@ class BatchedInference:
             except BaseException as error:
                 for request in group:
                     request.future.set_exception(error)
+
+
+class RemoteInferenceClient:
+    """Synchronous MCTS inference client for a worker process.
+
+    Every worker owns its response queue, so it can wait for a result without
+    consuming another worker's reply. Tensor payloads are deliberately sent as
+    plain lists: CUDA tensors never cross process boundaries.
+    """
+
+    def __init__(self, request_queue, response_queue) -> None:
+        self.request_queue, self.response_queue = request_queue, response_queue
+        self._next_request = 0
+
+    def policy(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        result = self._call("policy", state, features, mask)
+        return torch.tensor(result, dtype=torch.float32)
+
+    def value(self, state: torch.Tensor) -> torch.Tensor:
+        result = self._call("value", state, None, None)
+        return torch.tensor(result, dtype=torch.float32)
+
+    def _call(self, kind: Literal["policy", "value"], state: torch.Tensor,
+              features: torch.Tensor | None, mask: torch.Tensor | None):
+        request_id = self._next_request; self._next_request += 1
+        self.request_queue.put((request_id, kind, state.tolist(),
+                                features.tolist() if features is not None else None,
+                                mask.tolist() if mask is not None else None,
+                                self.response_queue))
+        response_id, payload = self.response_queue.get()
+        if response_id != request_id:
+            raise RuntimeError("Received an inference response for another request")
+        if isinstance(payload, str):
+            raise RuntimeError(payload)
+        return payload
+
+
+class ProcessInferenceService:
+    """Batch requests from CPU worker processes onto one CUDA-resident model."""
+
+    def __init__(self, model: KARDSNet, request_queue, *, max_batch_size: int = 32,
+                 max_wait_ms: float = 1.0) -> None:
+        self.model, self.device, self.request_queue = model.eval(), next(model.parameters()).device, request_queue
+        self.max_batch_size, self.max_wait_seconds = max_batch_size, max_wait_ms / 1000.0
+        self._closed = False
+        self._thread = Thread(target=self._serve, name="kards-process-cuda-inference", daemon=True)
+        self._thread.start()
+
+    def close(self) -> None:
+        if not self._closed:
+            self._closed = True
+            self.request_queue.put(None)
+            self._thread.join()
+
+    def _serve(self) -> None:
+        while True:
+            first = self.request_queue.get()
+            if first is None:
+                return
+            batch = [first]; deadline = monotonic() + self.max_wait_seconds
+            while len(batch) < self.max_batch_size:
+                try:
+                    item = self.request_queue.get(timeout=max(0.0, deadline - monotonic()))
+                except Empty:
+                    break
+                if item is None:
+                    self._closed = True; break
+                batch.append(item)
+            self._run_process_batch(batch)
+            if self._closed:
+                return
+
+    @torch.inference_mode()
+    def _run_process_batch(self, requests) -> None:
+        for kind in ("policy", "value"):
+            group = [request for request in requests if request[1] == kind]
+            if not group:
+                continue
+            try:
+                states = torch.tensor([request[2] for request in group], dtype=torch.float32, device=self.device)
+                if kind == "value":
+                    for request, value in zip(group, self.model.value(states).cpu()):
+                        request[5].put((request[0], float(value.item())))
+                    continue
+                width = max(len(request[3]) for request in group)
+                features = torch.zeros((len(group), width, len(group[0][3][0])), dtype=torch.float32, device=self.device)
+                mask = torch.zeros((len(group), width), dtype=torch.bool, device=self.device)
+                for index, request in enumerate(group):
+                    count = len(request[3])
+                    features[index, :count] = torch.tensor(request[3], dtype=torch.float32, device=self.device)
+                    mask[index, :count] = torch.tensor(request[4], dtype=torch.bool, device=self.device)
+                logits = self.model.policy(states, features, mask).cpu()
+                for request, result in zip(group, logits):
+                    request[5].put((request[0], result[:len(request[3])].tolist()))
+            except BaseException as error:
+                for request in group:
+                    request[5].put((request[0], f"Remote inference failed: {error}"))

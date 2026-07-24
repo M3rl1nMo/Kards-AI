@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
+import multiprocessing as mp
 import random
 from typing import Callable
 
@@ -21,31 +22,39 @@ from simulator.testing import build_random_deck
 _PARALLEL_CONTEXT: dict = {}
 
 
-def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict, simulations: int,
-                          max_actions: int, device: str) -> None:
+def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict | None, simulations: int,
+                          max_actions: int, device: str, inference_requests=None) -> None:
     """Initialize one independent, deterministic self-play worker process."""
     from ai.agents import MCTSAgent
     from ai.network import KARDSNet
     from simulator.cards.loader import CardDatabase
 
     cards = CardDatabase.from_file(card_path)
-    model = KARDSNet(**architecture)
-    model.load_state_dict(state_dict)
-    model.to(device).eval()
+    model = None
+    if state_dict is not None:
+        model = KARDSNet(**architecture)
+        model.load_state_dict(state_dict)
+        model.to(device).eval()
     _PARALLEL_CONTEXT.update(cards=cards, encoder=ObservationEncoder(cards), model=model,
-                             simulations=simulations, max_actions=max_actions, device=device)
+                             simulations=simulations, max_actions=max_actions, device=device,
+                             inference_requests=inference_requests)
 
 
-def _parallel_episode(index: int, seed: int, nation: str) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
+def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
     """Run one episode in a worker; result ordering is restored by the parent."""
     from ai.agents import MCTSAgent
 
     context = _PARALLEL_CONTEXT
     buffer = ReplayBuffer(seed=seed)
     runner = SelfPlayRunner(context["cards"], context["encoder"], buffer, context["max_actions"], seed)
+    inference = None
+    if context.get("inference_requests") is not None:
+        from ai.inference import RemoteInferenceClient
+        assert response_queue is not None
+        inference = RemoteInferenceClient(context["inference_requests"], response_queue)
     agents = (
-        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1),
-        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2),
+        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference),
+        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference),
     )
     report = runner.run(1, *agents, nation=nation)
     return index, buffer.examples, report, runner.game_records[-1]
@@ -144,27 +153,22 @@ class SelfPlayRunner:
                     on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
 
         if str(device).startswith("cuda"):
-            # CUDA contexts are process-local. Sharing one batched inference
-            # owner prevents every worker from loading a competing model copy.
-            from ai.agents import MCTSAgent
-            from ai.inference import BatchedInference
-
-            def threaded_episode(index: int, seed: int) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
-                buffer = ReplayBuffer(seed=seed)
-                runner = SelfPlayRunner(self.cards, self.encoder, buffer, self.max_actions, seed)
-                agents = (
-                    MCTSAgent(model, self.encoder, simulations, seed + 1, inference=inference),
-                    MCTSAgent(model, self.encoder, simulations, seed + 2, inference=inference),
-                )
-                report = runner.run(1, *agents, nation=nation)
-                return index, buffer.examples, report, runner.game_records[-1]
-
-            # Do not add a fixed latency to every small MCTS call. The worker
-            # drains requests already queued by concurrent searches.
-            with BatchedInference(model, max_wait_ms=0) as inference, ThreadPoolExecutor(max_workers=workers) as pool:
-                futures = [pool.submit(threaded_episode, index, seed) for index, seed in enumerate(episode_seeds)]
-                for future in as_completed(futures):
-                    merge(*future.result())
+            # GPU contexts are process-local. Keep all CUDA work in the
+            # parent, while workers use separate CPU processes for rules.
+            from ai.inference import ProcessInferenceService
+            manager = mp.Manager(); requests = manager.Queue()
+            service = ProcessInferenceService(model, requests)
+            try:
+                with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
+                                         initargs=(str(card_path), model.architecture, None, simulations,
+                                                   self.max_actions, "cpu", requests)) as pool:
+                    responses = [manager.Queue() for _ in episode_seeds]
+                    futures = [pool.submit(_parallel_episode, index, seed, nation, responses[index])
+                               for index, seed in enumerate(episode_seeds)]
+                    for future in as_completed(futures):
+                        merge(*future.result())
+            finally:
+                service.close(); manager.shutdown()
         else:
             cpu_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
             with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,

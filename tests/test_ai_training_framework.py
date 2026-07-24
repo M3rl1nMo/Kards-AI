@@ -2,6 +2,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+import multiprocessing as mp
 
 import torch
 
@@ -9,7 +10,7 @@ from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
-from ai.inference import BatchedInference
+from ai.inference import BatchedInference, ProcessInferenceService, RemoteInferenceClient
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -87,6 +88,27 @@ class AITrainingFrameworkTests(unittest.TestCase):
             for state, action_features, mask in zip(states, features, masks):
                 torch.testing.assert_close(inference.policy(state, action_features, mask), model.policy(state, action_features, mask)[0])
                 torch.testing.assert_close(inference.value(state), model.value(state)[0])
+
+    def test_process_inference_matches_local_network(self) -> None:
+        model = KARDSNet(hidden_dim=32).eval()
+        manager = mp.Manager(); requests = manager.Queue(); replies = manager.Queue()
+        service = ProcessInferenceService(model, requests, max_wait_ms=0)
+        try:
+            client = RemoteInferenceClient(requests, replies)
+            state = torch.randn(STATE_DIM); features = torch.randn(3, ACTION_FEATURE_DIM)
+            mask = torch.tensor([True, True, False])
+            torch.testing.assert_close(client.policy(state, features, mask), model.policy(state, features, mask)[0])
+            torch.testing.assert_close(client.value(state), model.value(state)[0])
+        finally:
+            service.close(); manager.shutdown()
+
+    @unittest.skipUnless(torch.cuda.is_available(), "requires CUDA")
+    def test_cuda_parallel_selfplay_uses_process_workers(self) -> None:
+        runner = SelfPlayRunner(self.cards, self.encoder, ReplayBuffer(), max_actions=1, seed=71)
+        report = runner.run_parallel(2, KARDSNet(hidden_dim=32).to("cuda"), simulations=1,
+                                     card_path=ROOT / "data/source/kards_info_cards.json", workers=2, device="cuda")
+        self.assertEqual(report.episodes, 2)
+        self.assertEqual(report.examples, 2)
 
     def test_batched_mcts_matches_local_search(self) -> None:
         env = self._environment(); model = KARDSNet(hidden_dim=32).eval(); state = env.get_state()
