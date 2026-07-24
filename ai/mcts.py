@@ -26,6 +26,7 @@ class MCTSNode:
     actions: list[Action] = field(default_factory=list)
     action_features: torch.Tensor | None = None
     legal_mask: torch.Tensor | None = None
+    observations: dict[str, torch.Tensor] = field(default_factory=dict)
     visit_count: int = 0
     value_sum: float = 0.0
     expanded: bool = False
@@ -60,7 +61,7 @@ class MCTS:
         env = self._simulator(node.state, cards); node.actions = env.get_available_actions()
         if not node.actions: return
         node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions)
-        priors = self._priors(node.state, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
+        priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
         for index, action in enumerate(node.actions):
             child_env = self._simulator(node.state, cards)
             # MCTS only needs the successor state. `Simulator.step()` also
@@ -78,10 +79,15 @@ class MCTS:
             node.children[index] = MCTSNode(child_state, child_state.current_player, node, action, priors[index])
         node.expanded = True
 
-    def _priors(self, state: GameState, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
+    def _observation(self, node: MCTSNode, player_id: str) -> torch.Tensor:
+        if player_id not in node.observations:
+            node.observations[player_id] = self.encoder.encode(node.state, player_id)
+        return node.observations[player_id]
+
+    def _priors(self, node: MCTSNode, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
         if self.model is None: return [1.0 / action_count] * action_count
         with torch.no_grad():
-            logits, _ = self.model(self.encoder.encode(state, player_id).to(self.device), features.to(self.device), mask.to(self.device))
+            logits, _ = self.model(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
             return torch.softmax(logits[0], dim=0)[:action_count].tolist()
 
     def _select(self, node: MCTSNode) -> MCTSNode:
@@ -95,7 +101,7 @@ class MCTS:
         if self.model is None: return 0.0
         with torch.no_grad():
             assert node.action_features is not None and node.legal_mask is not None
-            _, value = self.model(self.encoder.encode(node.state, root_player).to(self.device), node.action_features.to(self.device), node.legal_mask.to(self.device))
+            _, value = self.model(self._observation(node, root_player).to(self.device), node.action_features.to(self.device), node.legal_mask.to(self.device))
             return float(value.item())
 
     @staticmethod
