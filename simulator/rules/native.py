@@ -465,6 +465,22 @@ class NativeRuleEngine:
                 state.battlefield[position] = ids
             state.event_log.append({"event": "enemy_units_rearranged", "player_id": context.player_id})
             return
+        if action.kind == "develop_options":
+            options = [name.strip() for name in (action.card_name or "").split("|") if name.strip()]
+            if not options:
+                return
+            chosen_name = random.Random((state.rng_seed or 0) + len(state.event_log)).choice(options)
+            card_id = self._by_name.get(chosen_name.upper())
+            if card_id is None:
+                state.event_log.append({"event": "develop_failed", "name": chosen_name})
+                return
+            card = self.cards.get(card_id)
+            if card.is_unit:
+                self._deploy_named_card(state, context, card_id)
+            else:
+                self._add_to_hand(state, context.player_id, card_id)
+            state.event_log.append({"event": "develop_selected", "card_id": card_id})
+            return
         if action.kind == "grant_ability":
             ability = (action.card_name or "").strip()
             if not ability:

@@ -65,6 +65,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "trigger_destruction_effects",
     "destroy_undamaged",
     "rearrange_enemy_units",
+    "develop_options",
     "fight",
     "combat_damage_cap",
     "random_combat_damage",

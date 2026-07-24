@@ -189,6 +189,12 @@ class RuleParser:
             return CardRule(card.id, text, ("on_play",),
                             (RuleAction("destroy_undamaged", "selected_target"),
                              RuleAction("rearrange_enemy_units", "enemy_units")), "implemented")
+        develop_options = re.match(r"develop\s+(.+?)\s+or\s+([^\.]+)\.?$", text.strip(), re.I) if "," in text else None
+        if develop_options:
+            choices = [part.strip() for part in (develop_options.group(1) + "," + develop_options.group(2)).split(",") if part.strip()]
+            if len(choices) >= 2:
+                return CardRule(card.id, text, ("on_play",),
+                                (RuleAction("develop_options", "owner", card_name="|".join(choices)),), "implemented")
         if "random effects always choose this unit" in text.lower():
             return CardRule(card.id, text, ("on_deploy",),
                             (RuleAction("random_effect_target_priority", "source"),),
