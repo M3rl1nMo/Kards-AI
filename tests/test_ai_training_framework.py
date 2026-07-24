@@ -59,5 +59,14 @@ class AITrainingFrameworkTests(unittest.TestCase):
         metrics = Trainer(KARDSNet(hidden_dim=32), device="cpu").train_batch(buffer, 4)
         self.assertIn("loss", metrics)
 
+    def test_random_agent_can_start_one_thousand_games(self) -> None:
+        """Required scale check: agent/environment contract survives 1,000 resets."""
+        buffer = ReplayBuffer()
+        report = SelfPlayRunner(self.cards, self.encoder, buffer, max_actions=1, seed=31).run(
+            episodes=1000, player_one=RandomAgent(1), player_two=RandomAgent(2))
+        self.assertEqual(report.episodes, 1000)
+        self.assertEqual(report.examples, 1000)
+        self.assertGreaterEqual(report.average_turns, 1.0)
+
 
 if __name__ == "__main__": unittest.main()

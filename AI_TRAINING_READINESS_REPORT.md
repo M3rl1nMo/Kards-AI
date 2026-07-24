@@ -50,8 +50,8 @@ candidate wins, losses, draws, and win rate against Random/RuleBased agents.
   31 terminal episodes, and no unsupported effect.
 - `python selfplay.py --episodes 1` smoke configuration: 20 records written.
 - AI tests verify agent/environment invocation, fixed shapes/mask, MCTS,
-  checkpoint round-trip, self-play data creation, and a completed optimizer
-  batch.
+  checkpoint round-trip, self-play data creation, a completed optimizer batch,
+  and 1,000 RandomAgent environment resets/games.
 
 ## 7. Start the first training run
 
@@ -65,6 +65,19 @@ cd "/Users/evangong/Documents/Kards AI"
 The default self-play configuration uses 32 MCTS-guided episodes with 64 tree
 simulations each.  Tune episode count, MCTS budget, batch size, updates and
 paths in `configs/*.yaml`; checkpoints and replay data are excluded from git.
+
+For an immediate, small verified launch (use larger values after checking the
+first evaluation report):
+
+```bash
+.venv/bin/python selfplay.py --episodes 32 --mcts-simulations 64 --replay runs/replay.pkl
+.venv/bin/python train.py --replay runs/replay.pkl --updates 100 --batch-size 64 --checkpoint runs/kardsnet.pt
+.venv/bin/python evaluate.py --model runs/kardsnet.pt --games 50 --opponent rule --report runs/evaluation.json
+```
+
+All runtime controls can be supplied through the CLI: episode count, MCTS
+budget, action cap, nation, replay/checkpoint paths, batch size, updates,
+learning rate, device, opponent, and evaluation-report path.
 
 ## Scope boundary
 

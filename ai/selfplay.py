@@ -16,6 +16,7 @@ from simulator.testing import build_random_deck
 @dataclass(frozen=True)
 class SelfPlayReport:
     episodes: int; examples: int; p1_wins: int; p2_wins: int; draws: int
+    average_turns: float; average_hq_damage: float; average_cards_played: float
 
 
 class SelfPlayRunner:
@@ -24,6 +25,7 @@ class SelfPlayRunner:
 
     def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France") -> SelfPlayReport:
         totals = {"p1": 0, "p2": 0, "draw": 0}; before = len(self.buffer)
+        turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         for _ in range(episodes):
             env = Simulator(self.cards)
             decks = [build_random_deck(self.cards, seed=self.rng.randrange(2**31), main_nation=nation) for _ in range(2)]
@@ -44,10 +46,15 @@ class SelfPlayRunner:
                 padded_policy = policy + [0.0] * (self.codec.max_actions - len(policy))
                 pending.append((TrainingExample(self.encoder.encode(state, player_id).tolist(), features.tolist(), mask.tolist(), padded_policy, 0.0), player_id))
                 env.step(action)
-            status = env.state.game_status.value  # type: ignore[union-attr]
+            final_state = env.state  # type: ignore[assignment]
+            status = final_state.game_status.value
             winner = "p1" if status == "player_one_won" else "p2" if status == "player_two_won" else None
             totals[winner or "draw"] += 1
+            turns_total += final_state.turn_number
+            hq_damage_total += sum(20 - player.hq.current_health for player in final_state.players.values())
+            cards_played_total += sum(1 for event in final_state.event_log if event.get("event") in {"unit_deployed", "command_played", "countermeasure_activated"})
             for example, player_id in pending:
                 example.value = 0.0 if winner is None else (1.0 if winner == player_id else -1.0)
                 self.buffer.add(example)
-        return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"])
+        return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
+                              turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
