@@ -22,7 +22,16 @@ class KeywordEngine:
         removed = {str(value).lower() for value in (unit.status.get("removed_abilities", ()) if unit else ())}
         added = {str(value).lower() for value in (unit.status.get("added_abilities", ()) if unit else ())}
         static = {value.lower().split(":", 1)[0] for value in card.abilities}
-        return name not in removed and (name in static or name in added)
+        return name not in removed and (name in static or any(value.startswith(name) and value[len(name):].isdigit() for value in static) or name in added)
+
+    @staticmethod
+    def numeric(card, keyword: str, default: int = 0) -> int:
+        prefix = keyword.lower()
+        for value in card.abilities:
+            value = value.lower().split(":", 1)[0]
+            if value.startswith(prefix) and value[len(prefix):].isdigit():
+                return int(value[len(prefix):])
+        return default
 
     @staticmethod
     def can_attack_on_deploy(card, unit=None):

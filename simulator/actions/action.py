@@ -143,6 +143,15 @@ class PlayCardAction(Action):
             return state
         player.hand.remove(self.card_id)
         player.resources.kredits -= card_play_cost(state, self.player_id, card, cards) + _target_tax(state, self.target_unit_id, self.player_id)
+        intel = KeywordEngine.numeric(card, "intel")
+        if intel:
+            enemy = state.players[opponent_id(state, self.player_id)]
+            known = enemy.hand[:intel]
+            player.status.setdefault("known_enemy_hand", [])
+            for card_id in known:
+                if card_id not in player.status["known_enemy_hand"]:
+                    player.status["known_enemy_hand"].append(card_id)
+            state.event_log.append({"event": "intel_revealed", "player_id": self.player_id, "count": len(known)})
         if card.is_unit:
             instance_id = _next_unit_id(state, self.card_id)
             unit = UnitState(instance_id, card.id, card.attack or 0, card.defense or 0, self.player_id, self.position)

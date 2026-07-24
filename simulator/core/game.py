@@ -139,8 +139,10 @@ class Simulator:
             raise ValueError("Unknown player")
         player = self.state.players[player_id]
         enemy = self.state.players[opponent_id(self.state, player_id)]
+        opponent_view = _observation_player(enemy, False)
+        opponent_view["known_hand"] = list(player.status.get("known_enemy_hand", ()))
         return {"turn": self.state.turn_number, "current": self.state.current_player == player_id,
-                "self": _observation_player(player, True), "opponent": _observation_player(enemy, False),
+                "self": _observation_player(player, True), "opponent": opponent_view,
                 "frontline": list(self.state.battlefield["frontline"]), "support_line": list(self.state.battlefield["support_line"]),
                 "terminal": self.is_terminal()}
 
