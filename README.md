@@ -1,5 +1,8 @@
 # KARDS AI Simulator
 
+For a fresh Codex or Windows training-machine setup, read
+[`CODEX_HANDOFF_WINDOWS.md`](CODEX_HANDOFF_WINDOWS.md) first.
+
 Core, headless rules simulator for KARDS AI training. This repository deliberately
 contains no UI, networking, or client code.
 
