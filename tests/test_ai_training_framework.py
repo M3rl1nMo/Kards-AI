@@ -5,7 +5,7 @@ import unittest
 
 import torch
 
-from ai.action_encoder import ActionEncoder
+from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
@@ -48,6 +48,16 @@ class AITrainingFrameworkTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "model.pt"; model.save_checkpoint(path); restored = KARDSNet.load_checkpoint(path)
             self.assertIsInstance(restored, KARDSNet)
+
+    def test_split_policy_and_value_match_forward(self) -> None:
+        torch.manual_seed(7)
+        model = KARDSNet(hidden_dim=32).eval()
+        states = torch.randn(2, STATE_DIM)
+        actions = torch.randn(2, 5, ACTION_FEATURE_DIM)
+        mask = torch.tensor([[True, True, False, True, False], [True, False, True, True, True]])
+        logits, values = model(states, actions, mask)
+        torch.testing.assert_close(model.policy(states, actions, mask), logits)
+        torch.testing.assert_close(model.value(states), values)
 
     def test_mcts_agent_runs(self) -> None:
         env = self._environment(); agent = MCTSAgent(None, self.encoder, simulations=2); agent.set_state(env.get_state(), "p1", self.cards)

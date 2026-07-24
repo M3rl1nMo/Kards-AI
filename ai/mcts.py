@@ -87,7 +87,7 @@ class MCTS:
     def _priors(self, node: MCTSNode, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
         if self.model is None: return [1.0 / action_count] * action_count
         with torch.no_grad():
-            logits, _ = self.model(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
+            logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
             return torch.softmax(logits[0], dim=0)[:action_count].tolist()
 
     def _select(self, node: MCTSNode) -> MCTSNode:
@@ -100,8 +100,7 @@ class MCTS:
         self._expand(node, cards)
         if self.model is None: return 0.0
         with torch.no_grad():
-            assert node.action_features is not None and node.legal_mask is not None
-            _, value = self.model(self._observation(node, root_player).to(self.device), node.action_features.to(self.device), node.legal_mask.to(self.device))
+            value = self.model.value(self._observation(node, root_player).to(self.device))
             return float(value.item())
 
     @staticmethod
