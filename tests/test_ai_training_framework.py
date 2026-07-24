@@ -70,6 +70,13 @@ class AITrainingFrameworkTests(unittest.TestCase):
         compact_logits = model.policy(state, compact_features, compact_mask)[0]
         torch.testing.assert_close(compact_logits, padded_logits)
 
+    def test_action_feature_cache_preserves_encoded_values(self) -> None:
+        env = self._environment(); action = env.get_available_actions()[0]; codec = ActionEncoder()
+        first = codec.encode(action)
+        second = codec.encode(action)
+        self.assertIs(first, second)
+        torch.testing.assert_close(first, ActionEncoder().encode(action))
+
     def test_batched_inference_matches_local_network(self) -> None:
         torch.manual_seed(13)
         model = KARDSNet(hidden_dim=32).eval()
