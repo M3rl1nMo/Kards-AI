@@ -1,0 +1,5 @@
+# Dependencies for the self-play training runner.  They are deliberately kept
+# outside the simulator's zero-dependency runtime requirements.
+numpy>=1.26,<3
+torch>=2.4,<3
+PyYAML>=6,<7
