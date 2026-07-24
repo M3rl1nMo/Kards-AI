@@ -59,6 +59,16 @@ class AITrainingFrameworkTests(unittest.TestCase):
         torch.testing.assert_close(model.policy(states, actions, mask), logits)
         torch.testing.assert_close(model.value(states), values)
 
+    def test_compact_legal_action_inference_matches_padded_slots(self) -> None:
+        env = self._environment(); model = KARDSNet(hidden_dim=32).eval()
+        actions = env.get_available_actions(); codec = ActionEncoder()
+        padded_features, padded_mask = codec.encode_legal_actions(actions)
+        compact_features, compact_mask = codec.encode_legal_actions(actions, pad_to_max=False)
+        state = self.encoder.encode(env.get_state(), "p1")
+        padded_logits = model.policy(state, padded_features, padded_mask)[0, :len(actions)]
+        compact_logits = model.policy(state, compact_features, compact_mask)[0]
+        torch.testing.assert_close(compact_logits, padded_logits)
+
     def test_mcts_agent_runs(self) -> None:
         env = self._environment(); agent = MCTSAgent(None, self.encoder, simulations=2); agent.set_state(env.get_state(), "p1", self.cards)
         action = agent.select_action(env.get_observation("p1"), env.get_available_actions()); env.step(action)

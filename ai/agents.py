@@ -46,7 +46,7 @@ class NeuralAgent(BaseAgent):
     @torch.no_grad()
     def select_action(self, observation: dict, legal_actions: Sequence[Action]) -> Action:
         if self.state is None or self.player_id is None: raise RuntimeError("NeuralAgent needs set_state from SelfPlayRunner")
-        feats, mask = self.codec.encode_legal_actions(legal_actions)
+        feats, mask = self.codec.encode_legal_actions(legal_actions, pad_to_max=False)
         logits, _ = self.model(self.encoder.encode(self.state, self.player_id).to(self.device), feats.to(self.device), mask.to(self.device))
         probs = torch.softmax(logits[0], dim=0).cpu(); index = int(torch.argmax(probs)) if self.temperature <= 0 else int(torch.multinomial(probs, 1))
         self.last_policy = probs[:len(legal_actions)].tolist(); return self.codec.action_at(legal_actions, index)

@@ -60,7 +60,10 @@ class MCTS:
         if node.state.game_status.value != "in_progress": return
         env = self._simulator(node.state, cards); node.actions = env.get_available_actions()
         if not node.actions: return
-        node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions)
+        # Candidate rows are scored independently. Padding to MAX_ACTIONS is
+        # required in replay/training tensors, but would only run masked GPU
+        # work during tree search.
+        node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions, pad_to_max=False)
         priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
         for index, action in enumerate(node.actions):
             child_env = self._simulator(node.state, cards)
