@@ -52,6 +52,10 @@ class KeywordEngine:
         return position == "frontline" or card.type in {"artillery", "bomber", "fighter"}
 
     @staticmethod
+    def is_pinned(unit) -> bool:
+        return bool(unit.status.get("pinned"))
+
+    @staticmethod
     def is_guarded(state, target, attacker_card, cards):
         if KeywordEngine.can_ignore_guard(attacker_card): return False
         line = state.battlefield.get(target.position, [])

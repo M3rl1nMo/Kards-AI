@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable
 import random
 
-from simulator.actions.action import Action, AttackAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction
+from simulator.actions.action import Action, AttackAction, ConcedeAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction
 from simulator.replay import Replay
 from simulator.actions.validator import opponent_id
 from simulator.cards.loader import CardDatabase
@@ -24,17 +24,17 @@ class Simulator:
     state: GameState | None = None
     replay: Replay | None = None
 
-    def reset(self, player_one_deck: Iterable[str], player_two_deck: Iterable[str], nations: tuple[str | None, str | None] = (None, None), seed: int = 0, auto_mulligan: bool = True) -> GameState:
+    def reset(self, player_one_deck: Iterable[str], player_two_deck: Iterable[str], nations: tuple[str | None, str | None] = (None, None), seed: int = 0, auto_mulligan: bool = True, ally_nations: tuple[str | None, str | None] = (None, None)) -> GameState:
         deck_one, deck_two = list(player_one_deck), list(player_two_deck)
         nation_one = nations[0] or self._infer_nation(deck_one)
         nation_two = nations[1] or self._infer_nation(deck_two)
-        self._validate_deck(deck_one, nation_one)
-        self._validate_deck(deck_two, nation_two)
+        self._validate_deck(deck_one, nation_one, ally_nations[0])
+        self._validate_deck(deck_two, nation_two, ally_nations[1])
         self.state = GameState(
             current_player="p1",
             players={
-                "p1": PlayerState("p1", nation_one, deck=deck_one),
-                "p2": PlayerState("p2", nation_two, deck=deck_two),
+                "p1": PlayerState("p1", nation_one, ally_nations[0], deck_one),
+                "p2": PlayerState("p2", nation_two, ally_nations[1], deck_two),
             },
             graveyard={"p1": [], "p2": []}, rng_seed=seed,
         )
@@ -75,9 +75,11 @@ class Simulator:
             return []
         player_id = self.state.current_player
         if self.state.mulligan_pending:
-            return [MulliganAction(player_id)] if player_id in self.state.mulligan_pending else []
+            if player_id not in self.state.mulligan_pending:
+                return []
+            return [MulliganAction(player_id, subset) for subset in _subsets(tuple(self.state.players[player_id].hand))]
         player = self.state.players[player_id]
-        actions: list[Action] = [PassAction(player_id)]
+        actions: list[Action] = [PassAction(player_id), ConcedeAction(player_id)]
         rule_engine = engine_for(self.cards)
         all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
         has_high_attack = any(unit.attack >= 4 for unit in player.units)
@@ -116,10 +118,10 @@ class Simulator:
     def is_terminal(self) -> bool:
         return self.state is not None and self.state.game_status != GameStatus.IN_PROGRESS
 
-    def _validate_deck(self, deck: list[str], nation: str | None) -> None:
+    def _validate_deck(self, deck: list[str], nation: str | None, ally_nation: str | None = None) -> None:
         if nation is None:
             raise ValueError("Deck nation could not be inferred")
-        result = DeckValidator(self.cards).validate(deck, nation)
+        result = DeckValidator(self.cards).validate(deck, nation, ally_nation)
         if not result.valid:
             raise ValueError("Illegal deck: " + "; ".join(result.errors))
 
@@ -156,3 +158,10 @@ def _is_valid(action: Action, state: GameState, cards: CardDatabase) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _subsets(values: tuple[str, ...]) -> list[tuple[str, ...]]:
+    result: list[tuple[str, ...]] = [()]
+    for value in values:
+        result += [prefix + (value,) for prefix in tuple(result)]
+    return result

@@ -201,6 +201,12 @@ class RuleParser:
         for sentence in _sentences(text):
             parsed = _parse_sentence(sentence)
             if parsed:
+                # Pin and Suppression are distinct KARDS states.  Older
+                # templates shared the suppress action as a parser shortcut;
+                # normalize unambiguous "pin" sentences to the lightweight
+                # pinned state while preserving explicit suppression text.
+                if re.search(r"\bpin(?:ned|s)?\b", sentence, re.I) and not re.search(r"\bsuppress", sentence, re.I):
+                    parsed = tuple(replace(a, kind="pin") if a.kind == "suppress" else a for a in parsed)
                 dur = _sentence_duration(sentence)
                 if dur:
                     parsed = tuple(

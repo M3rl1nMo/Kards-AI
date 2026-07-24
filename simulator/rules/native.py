@@ -1760,6 +1760,11 @@ class NativeRuleEngine:
                 if cannot_val in ("be_suppressed", "be_pinned", True):
                     continue  # unit immune to suppress/pin
                 unit.status["suppressed"] = True
+            elif action.kind == "pin":
+                cannot_val = unit.status.get("cannot")
+                if cannot_val in ("be_pinned", "be_suppressed", True):
+                    continue
+                unit.status["pinned"] = True
             elif action.kind == "destroy":
                 basic_effects.destroy(state, unit)
         self.emit_damage_since(state, start)
@@ -1794,6 +1799,10 @@ class NativeRuleEngine:
             if action.kind == "suppress":
                 unit.status["suppressed"] = True
                 reverts.append({"unit_id": unit.instance_id, "attr": "suppressed", "delta": 1})
+                continue
+            if action.kind == "pin":
+                unit.status["pinned"] = True
+                reverts.append({"unit_id": unit.instance_id, "attr": "pinned", "delta": 1})
                 continue
             if action.kind == "buff":
                 reverts.append({"unit_id": unit.instance_id, "attr": "attack", "delta": action.attack})
@@ -1848,6 +1857,8 @@ class NativeRuleEngine:
                         unit.attack = rev["restore_attack"]
                     elif rev.get("attr") == "suppressed":
                         unit.status.pop("suppressed", None)
+                    elif rev.get("attr") == "pinned":
+                        unit.status.pop("pinned", None)
                     else:
                         if rev["attr"] == "attack":
                             unit.attack -= rev["delta"]

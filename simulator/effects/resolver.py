@@ -112,6 +112,9 @@ class EffectResolver:
         elif kind == "suppress":
             for target in _units(targets):
                 target.status["suppressed"] = True
+        elif kind == "pin":
+            for target in _units(targets):
+                target.status["pinned"] = True
         elif kind in {"add_keyword", "remove_keyword"}:
             keyword = str(action.get("keyword", ""))
             for target in _units(targets):

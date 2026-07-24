@@ -63,6 +63,7 @@ class UnitState:
 class PlayerState:
     player_id: str
     nation: str | None = None
+    ally_nation: str | None = None
     deck: list[str] = field(default_factory=list)
     hand: list[str] = field(default_factory=list)
     resources: ResourceState = field(default_factory=ResourceState)
@@ -170,6 +171,7 @@ class GameState:
             player_id: PlayerState(
                 player_id=data["player_id"],
                 nation=data.get("nation"),
+                ally_nation=data.get("ally_nation"),
                 deck=list(data.get("deck", ())),
                 hand=list(data.get("hand", ())),
                 resources=ResourceState(**data.get("resources", {})),
@@ -207,7 +209,7 @@ class GameState:
 def _clone_player(player: PlayerState) -> PlayerState:
     """Clone mutable game data without generic dataclass graph traversal."""
     return PlayerState(
-        player_id=player.player_id, nation=player.nation, deck=list(player.deck), hand=list(player.hand),
+        player_id=player.player_id, nation=player.nation, ally_nation=player.ally_nation, deck=list(player.deck), hand=list(player.hand),
         resources=ResourceState(player.resources.kredits, player.resources.max_kredits),
         hq=Headquarters(player.hq.max_health, player.hq.current_health, player.hq.nation,
                         player.hq.defense_modifier, player.hq.damage_cap_per_turn,

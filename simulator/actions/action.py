@@ -9,7 +9,7 @@ import random
 from simulator.actions.validator import ActionValidationError, find_unit, opponent_id, require_active_player
 from simulator.cards.loader import CardDatabase
 from simulator.cards.availability import is_card_available
-from simulator.core.state import GameState, UnitState
+from simulator.core.state import GameState, UnitState, GameStatus
 from simulator.core.turn import TurnManager
 from simulator.effects.resolver import EffectContext, EffectResolver
 from simulator.rules.battlefield import BattlefieldRules
@@ -242,6 +242,22 @@ class MulliganAction(Action):
 
 
 @dataclass(frozen=True)
+class ConcedeAction(Action):
+    """A player may voluntarily end a Battle before HQ destruction."""
+    player_id: str
+
+    def validate(self, state: GameState, cards: CardDatabase) -> None:
+        require_active_player(state, self.player_id)
+
+    def execute(self, state: GameState, cards: CardDatabase) -> GameState:
+        self.validate(state, cards)
+        winner = opponent_id(state, self.player_id)
+        state.game_status = GameStatus.PLAYER_ONE_WON if winner == "p1" else GameStatus.PLAYER_TWO_WON
+        state.event_log.append({"event": "conceded", "player_id": self.player_id, "winner_id": winner})
+        return state
+
+
+@dataclass(frozen=True)
 class AttackAction(Action):
     player_id: str
     attacker_id: str
@@ -257,6 +273,8 @@ class AttackAction(Action):
             raise ActionValidationError("Unit has already attacked this turn")
         if attacker.status.get("suppressed"):
             raise ActionValidationError("Suppressed unit cannot attack")
+        if attacker.status.get("pinned"):
+            raise ActionValidationError("Pinned unit cannot attack")
         cannot_reason = attacker.status.get("cannot")
         if cannot_reason in ("attack", True):
             raise ActionValidationError("Unit cannot attack")
@@ -404,6 +422,8 @@ class MoveUnitAction(Action):
         unit = find_unit(state, self.unit_id)
         if unit.owner_id != self.player_id or not BattlefieldRules.can_move_to_frontline(state, unit):
             raise ActionValidationError("Unit cannot move to the frontline")
+        if unit.status.get("pinned"):
+            raise ActionValidationError("Pinned unit cannot move")
         card = cards.get(unit.card_id)
         if unit.status.get("deployed_this_turn") and not KeywordEngine.can_attack_on_deploy(card, unit):
             raise ActionValidationError("Unit cannot move on its deployment turn")

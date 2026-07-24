@@ -19,7 +19,10 @@ class TurnManager:
         if player.active_countermeasures:
             player.active_countermeasures.clear()
             state.event_log.append({"event": "countermeasures_expired", "player_id": player_id})
-        player.resources.max_kredits = min(MAX_KREDITS, player.resources.max_kredits + 1)
+        # Cards may raise the normal 12-slot ceiling.  Keep the ceiling in
+        # player status so those effects survive turn transitions.
+        limit = player.status.get("kredit_limit", MAX_KREDITS)
+        player.resources.max_kredits = min(max(MAX_KREDITS, int(limit)), player.resources.max_kredits + 1)
         player.resources.kredits = player.resources.max_kredits
         for unit in player.units:
             unit.status.pop("attacked_this_turn", None)
