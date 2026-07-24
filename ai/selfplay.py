@@ -51,13 +51,28 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
     if context.get("inference_requests") is not None:
         from ai.inference import RemoteInferenceClient
         assert response_queue is not None
-        inference = RemoteInferenceClient(context["inference_requests"], response_queue)
+        inference = RemoteInferenceClient(context["inference_requests"], response_queue, context.get("worker_id", 0))
     agents = (
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference),
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference),
     )
     report = runner.run(1, *agents, nation=nation)
     return index, buffer.examples, report, runner.game_records[-1]
+
+
+def _cuda_worker_loop(card_path: str, architecture: dict, simulations: int, max_actions: int,
+                      requests, response_queue, worker_id: int, tasks, results) -> None:
+    """Run CPU-only rule simulations; CUDA inference remains in the parent."""
+    _parallel_worker_init(card_path, architecture, None, simulations, max_actions, "cpu", requests)
+    _PARALLEL_CONTEXT["worker_id"] = worker_id
+    while True:
+        task = tasks.get()
+        if task is None:
+            return
+        try:
+            results.put((True, _parallel_episode(*task, response_queue)))
+        except BaseException as error:
+            results.put((False, repr(error)))
 
 
 @dataclass(frozen=True)
@@ -156,19 +171,33 @@ class SelfPlayRunner:
             # GPU contexts are process-local. Keep all CUDA work in the
             # parent, while workers use separate CPU processes for rules.
             from ai.inference import ProcessInferenceService
-            manager = mp.Manager(); requests = manager.Queue()
-            service = ProcessInferenceService(model, requests)
+            context = mp.get_context("spawn")
+            requests, tasks, results = context.Queue(), context.Queue(), context.Queue()
+            responses = [context.Queue() for _ in range(workers)]
+            service = ProcessInferenceService(model, requests, responses)
+            processes = [context.Process(target=_cuda_worker_loop,
+                                         args=(str(card_path), model.architecture, simulations, self.max_actions,
+                                               requests, responses[index], index, tasks, results), daemon=True)
+                         for index in range(workers)]
+            for process in processes:
+                process.start()
             try:
-                with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
-                                         initargs=(str(card_path), model.architecture, None, simulations,
-                                                   self.max_actions, "cpu", requests)) as pool:
-                    responses = [manager.Queue() for _ in episode_seeds]
-                    futures = [pool.submit(_parallel_episode, index, seed, nation, responses[index])
-                               for index, seed in enumerate(episode_seeds)]
-                    for future in as_completed(futures):
-                        merge(*future.result())
+                for index, seed in enumerate(episode_seeds):
+                    tasks.put((index, seed, nation))
+                for _ in processes:
+                    tasks.put(None)
+                completed = 0
+                while completed < episodes:
+                    ok, payload = results.get()
+                    if not ok:
+                        raise RuntimeError(f"CUDA self-play worker failed: {payload}")
+                    merge(*payload); completed += 1
             finally:
-                service.close(); manager.shutdown()
+                service.close()
+                for process in processes:
+                    process.join(timeout=5)
+                    if process.is_alive():
+                        process.terminate(); process.join()
         else:
             cpu_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
             with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,

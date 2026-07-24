@@ -92,7 +92,7 @@ class AITrainingFrameworkTests(unittest.TestCase):
     def test_process_inference_matches_local_network(self) -> None:
         model = KARDSNet(hidden_dim=32).eval()
         manager = mp.Manager(); requests = manager.Queue(); replies = manager.Queue()
-        service = ProcessInferenceService(model, requests, max_wait_ms=0)
+        service = ProcessInferenceService(model, requests, [replies], max_wait_ms=0)
         try:
             client = RemoteInferenceClient(requests, replies)
             state = torch.randn(STATE_DIM); features = torch.randn(3, ACTION_FEATURE_DIM)
