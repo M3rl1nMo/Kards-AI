@@ -75,7 +75,12 @@ class SelfPlayRunner:
                 if env.is_terminal(): break
                 player_id = env.state.current_player  # type: ignore[union-attr]
                 agent = player_one if player_id == "p1" else player_two
-                legal = env.get_available_actions(); state = env.get_state()
+                legal = env.get_available_actions()
+                # Agents consume this state synchronously and MCTS immediately
+                # creates its own branchable root. Avoid a public snapshot
+                # clone here; no agent is permitted to mutate the environment.
+                state = env.state
+                assert state is not None
                 if hasattr(agent, "set_state"):
                     try: agent.set_state(state, player_id, self.cards)
                     except TypeError: agent.set_state(state, player_id)
