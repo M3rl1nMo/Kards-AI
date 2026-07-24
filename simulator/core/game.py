@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable
 import random
 
-from simulator.actions.action import Action, AttackAction, ConcedeAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction
+from simulator.actions.action import Action, AttackAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction
 from simulator.replay import Replay
 from simulator.actions.validator import opponent_id
 from simulator.cards.loader import CardDatabase
@@ -79,7 +79,7 @@ class Simulator:
                 return []
             return [MulliganAction(player_id, subset) for subset in _subsets(tuple(self.state.players[player_id].hand))]
         player = self.state.players[player_id]
-        actions: list[Action] = [PassAction(player_id), ConcedeAction(player_id)]
+        actions: list[Action] = [PassAction(player_id)]
         rule_engine = engine_for(self.cards)
         all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
         has_high_attack = any(unit.attack >= 4 for unit in player.units)

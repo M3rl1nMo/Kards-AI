@@ -256,22 +256,6 @@ class MulliganAction(Action):
 
 
 @dataclass(frozen=True)
-class ConcedeAction(Action):
-    """A player may voluntarily end a Battle before HQ destruction."""
-    player_id: str
-
-    def validate(self, state: GameState, cards: CardDatabase) -> None:
-        require_active_player(state, self.player_id)
-
-    def execute(self, state: GameState, cards: CardDatabase) -> GameState:
-        self.validate(state, cards)
-        winner = opponent_id(state, self.player_id)
-        state.game_status = GameStatus.PLAYER_ONE_WON if winner == "p1" else GameStatus.PLAYER_TWO_WON
-        state.event_log.append({"event": "conceded", "player_id": self.player_id, "winner_id": winner})
-        return state
-
-
-@dataclass(frozen=True)
 class AttackAction(Action):
     player_id: str
     attacker_id: str

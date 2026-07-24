@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from simulator.actions.action import AttackAction, ConcedeAction, PassAction
+from simulator.actions.action import AttackAction, PassAction
 from simulator.cards.loader import CardDatabase, CardLoadReport
 from simulator.cards.availability import is_card_available
 from simulator.core.game import Simulator
@@ -75,7 +75,7 @@ def run_random_simulation(cards: CardDatabase, turns: int = 100, deck_size: int 
         actions = simulator.get_available_actions()
         for action in actions:
             action.validate(simulator.state, cards)  # type: ignore[arg-type]
-        candidates = [action for action in actions if not isinstance(action, (PassAction, AttackAction, ConcedeAction))]
+        candidates = [action for action in actions if not isinstance(action, (PassAction, AttackAction))]
         if candidates:
             simulator.step(rng.choice(candidates))
             executed += 1

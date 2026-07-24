@@ -35,6 +35,7 @@ class AITrainingFrameworkTests(unittest.TestCase):
 
     def test_environment_random_agent_contract(self) -> None:
         env = self._environment(); agent = RandomAgent(1); legal = env.get_available_actions()
+        self.assertNotIn("ConcedeAction", {type(action).__name__ for action in legal})
         action = agent.select_action(env.get_observation("p1"), legal)
         env.step(action); self.assertIsNotNone(env.state)
 
