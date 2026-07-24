@@ -80,17 +80,17 @@ class Simulator:
         actions: list[Action] = [PassAction(player_id)]
         rule_engine = engine_for(self.cards)
         all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
+        has_high_attack = any(unit.attack >= 4 for unit in player.units)
         for card_id in player.hand:
             card = self.cards.get(card_id)
             positions = ("support_line",)  # KARDS units deploy to the support line.
             rule = rule_engine.rule_for(card_id)
             targets = all_units if rule.needs_target else [None]
             selected_hand_cards = (
-                [candidate_id for candidate_id in player.hand if candidate_id in self.cards and self.cards.get(candidate_id).is_unit and candidate_id != card_id]
+                [candidate_id for candidate_id in player.hand if self.cards.get(candidate_id).is_unit and candidate_id != card_id]
                 if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions)
                 else [None]
             )
-            has_high_attack = any(unit.attack >= 4 for unit in player.units)
             selected_options = (
                 [None] if has_high_attack else ["blitz", "shock"]
                 if any(action.kind == "shock_tactics_choice" for action in rule.actions)

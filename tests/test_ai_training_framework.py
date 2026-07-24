@@ -2,12 +2,15 @@
 from pathlib import Path
 import tempfile
 import unittest
+import multiprocessing as mp
 
 import torch
 
-from ai.action_encoder import ActionEncoder
+from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
+from ai.metrics import RunMetrics
+from ai.inference import BatchedInference, ProcessInferenceService, RemoteInferenceClient
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -48,6 +51,73 @@ class AITrainingFrameworkTests(unittest.TestCase):
             path = Path(directory) / "model.pt"; model.save_checkpoint(path); restored = KARDSNet.load_checkpoint(path)
             self.assertIsInstance(restored, KARDSNet)
 
+    def test_split_policy_and_value_match_forward(self) -> None:
+        torch.manual_seed(7)
+        model = KARDSNet(hidden_dim=32).eval()
+        states = torch.randn(2, STATE_DIM)
+        actions = torch.randn(2, 5, ACTION_FEATURE_DIM)
+        mask = torch.tensor([[True, True, False, True, False], [True, False, True, True, True]])
+        logits, values = model(states, actions, mask)
+        torch.testing.assert_close(model.policy(states, actions, mask), logits)
+        torch.testing.assert_close(model.value(states), values)
+
+    def test_compact_legal_action_inference_matches_padded_slots(self) -> None:
+        env = self._environment(); model = KARDSNet(hidden_dim=32).eval()
+        actions = env.get_available_actions(); codec = ActionEncoder()
+        padded_features, padded_mask = codec.encode_legal_actions(actions)
+        compact_features, compact_mask = codec.encode_legal_actions(actions, pad_to_max=False)
+        state = self.encoder.encode(env.get_state(), "p1")
+        padded_logits = model.policy(state, padded_features, padded_mask)[0, :len(actions)]
+        compact_logits = model.policy(state, compact_features, compact_mask)[0]
+        torch.testing.assert_close(compact_logits, padded_logits)
+
+    def test_action_feature_cache_preserves_encoded_values(self) -> None:
+        env = self._environment(); action = env.get_available_actions()[0]; codec = ActionEncoder()
+        first = codec.encode(action)
+        second = codec.encode(action)
+        self.assertIs(first, second)
+        torch.testing.assert_close(first, ActionEncoder().encode(action))
+
+    def test_batched_inference_matches_local_network(self) -> None:
+        torch.manual_seed(13)
+        model = KARDSNet(hidden_dim=32).eval()
+        states = [torch.randn(STATE_DIM), torch.randn(STATE_DIM)]
+        features = [torch.randn(3, ACTION_FEATURE_DIM), torch.randn(5, ACTION_FEATURE_DIM)]
+        masks = [torch.tensor([True, True, False]), torch.tensor([True, False, True, True, False])]
+        with BatchedInference(model, max_batch_size=4, max_wait_ms=0) as inference:
+            for state, action_features, mask in zip(states, features, masks):
+                torch.testing.assert_close(inference.policy(state, action_features, mask), model.policy(state, action_features, mask)[0])
+                torch.testing.assert_close(inference.value(state), model.value(state)[0])
+
+    def test_process_inference_matches_local_network(self) -> None:
+        model = KARDSNet(hidden_dim=32).eval()
+        manager = mp.Manager(); requests = manager.Queue(); replies = manager.Queue()
+        service = ProcessInferenceService(model, requests, [replies], max_wait_ms=0)
+        try:
+            client = RemoteInferenceClient(requests, replies)
+            state = torch.randn(STATE_DIM); features = torch.randn(3, ACTION_FEATURE_DIM)
+            mask = torch.tensor([True, True, False])
+            torch.testing.assert_close(client.policy(state, features, mask), model.policy(state, features, mask)[0])
+            torch.testing.assert_close(client.value(state), model.value(state)[0])
+        finally:
+            service.close(); manager.shutdown()
+
+    @unittest.skipUnless(torch.cuda.is_available(), "requires CUDA")
+    def test_cuda_parallel_selfplay_uses_process_workers(self) -> None:
+        runner = SelfPlayRunner(self.cards, self.encoder, ReplayBuffer(), max_actions=1, seed=71)
+        report = runner.run_parallel(2, KARDSNet(hidden_dim=32).to("cuda"), simulations=1,
+                                     card_path=ROOT / "data/source/kards_info_cards.json", workers=2, device="cuda")
+        self.assertEqual(report.episodes, 2)
+        self.assertEqual(report.examples, 2)
+
+    def test_batched_mcts_matches_local_search(self) -> None:
+        env = self._environment(); model = KARDSNet(hidden_dim=32).eval(); state = env.get_state()
+        local_action, local_policy = MCTS(model, self.encoder, simulations=3, seed=29).search(state, self.cards, "p1")
+        with BatchedInference(model, max_wait_ms=0) as inference:
+            batched_action, batched_policy = MCTS(model, self.encoder, simulations=3, seed=29, inference=inference).search(state, self.cards, "p1")
+        self.assertEqual(batched_action, local_action)
+        self.assertEqual(batched_policy, local_policy)
+
     def test_mcts_agent_runs(self) -> None:
         env = self._environment(); agent = MCTSAgent(None, self.encoder, simulations=2); agent.set_state(env.get_state(), "p1", self.cards)
         action = agent.select_action(env.get_observation("p1"), env.get_available_actions()); env.step(action)
@@ -67,6 +137,13 @@ class AITrainingFrameworkTests(unittest.TestCase):
         self.assertEqual(report.episodes, 1000)
         self.assertEqual(report.examples, 1000)
         self.assertGreaterEqual(report.average_turns, 1.0)
+
+    def test_metrics_persist_cumulative_selfplay_games(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metrics.jsonl"
+            first = RunMetrics(path, "selfplay"); first.emit("selfplay_complete", total_episodes=3)
+            second = RunMetrics(path, "selfplay")
+            self.assertEqual(second.previous_episodes, 3)
 
 
 if __name__ == "__main__": unittest.main()

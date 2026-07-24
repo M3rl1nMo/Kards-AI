@@ -46,16 +46,16 @@ class NeuralAgent(BaseAgent):
     @torch.no_grad()
     def select_action(self, observation: dict, legal_actions: Sequence[Action]) -> Action:
         if self.state is None or self.player_id is None: raise RuntimeError("NeuralAgent needs set_state from SelfPlayRunner")
-        feats, mask = self.codec.encode_legal_actions(legal_actions)
+        feats, mask = self.codec.encode_legal_actions(legal_actions, pad_to_max=False)
         logits, _ = self.model(self.encoder.encode(self.state, self.player_id).to(self.device), feats.to(self.device), mask.to(self.device))
         probs = torch.softmax(logits[0], dim=0).cpu(); index = int(torch.argmax(probs)) if self.temperature <= 0 else int(torch.multinomial(probs, 1))
         self.last_policy = probs[:len(legal_actions)].tolist(); return self.codec.action_at(legal_actions, index)
 
 
 class MCTSAgent(BaseAgent):
-    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, seed: int = 0) -> None:
+    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, seed: int = 0, inference=None) -> None:
         from ai.mcts import MCTS
-        self.searcher = MCTS(model, encoder, simulations=simulations, seed=seed); self.state = None; self.player_id = None; self.cards = None
+        self.searcher = MCTS(model, encoder, simulations=simulations, seed=seed, inference=inference); self.state = None; self.player_id = None; self.cards = None
     def set_state(self, state, player_id: str, cards) -> None: self.state, self.player_id, self.cards = state, player_id, cards
     def select_action(self, observation: dict, legal_actions: Sequence[Action]) -> Action:
         if self.state is None or self.cards is None or self.player_id is None: raise RuntimeError("MCTSAgent needs set_state from SelfPlayRunner")

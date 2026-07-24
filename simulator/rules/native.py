@@ -9,7 +9,7 @@ import random
 from simulator.cards.loader import CardDatabase
 from simulator.effects.resolver import EffectContext, EffectResolver
 from simulator.effects import basic_effects
-from simulator.actions.validator import find_unit, opponent_id
+from simulator.actions.validator import ActionValidationError, find_unit, opponent_id
 from simulator.core.hq import HQResolver
 from simulator.core.state import UnitState
 from simulator.rules.battlefield import BattlefieldRules, FRONTLINE_UNIT_LIMIT
@@ -1833,8 +1833,12 @@ class NativeRuleEngine:
                     if "player_status" in rev:
                         player.status.pop(rev["player_status"], None)
                         continue
-                    unit = find_unit(state, rev["unit_id"])
-                    if unit is None:
+                    try:
+                        unit = find_unit(state, rev["unit_id"])
+                    except ActionValidationError:
+                        # A unit may die or be removed before its temporary
+                        # effect expires. There is then no runtime state left
+                        # to restore, so expiration must remain a no-op.
                         continue
                     if "remove_ability" in rev:
                         added = unit.status.get("added_abilities")

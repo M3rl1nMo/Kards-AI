@@ -22,27 +22,38 @@ def action_key(action: Action) -> tuple:
 class ActionEncoder:
     def __init__(self, max_actions: int = MAX_ACTIONS) -> None:
         self.max_actions = max_actions
+        self._feature_cache: dict[tuple, torch.Tensor] = {}
 
     def encode(self, action: Action) -> torch.Tensor:
+        key = action_key(action)
+        cached = self._feature_cache.get(key)
+        if cached is not None:
+            return cached
         x = torch.zeros(ACTION_FEATURE_DIM, dtype=torch.float32)
         x[_TYPE.get(type(action), 15)] = 1.0
         # Compact identifiers retain action/card/target distinctions without
         # making a network output depend on a global, ever-changing action ID.
-        values = action_key(action)[1:]
+        values = key[1:]
         for index, value in enumerate(values[:5]):
             if value is not None:
                 digest = hashlib.blake2b(str(value).encode(), digest_size=2).digest()
                 x[6 + index * 2] = int.from_bytes(digest, "big") / 65535.0
                 x[7 + index * 2] = min(1.0, len(str(value)) / 32.0)
+        # Encoded features are immutable; keeping a bounded per-encoder cache
+        # avoids hashing the same MCTS candidates at every expanded node.
+        if len(self._feature_cache) < 8192:
+            self._feature_cache[key] = x
         return x
 
-    def encode_legal_actions(self, actions: Sequence[Action]) -> tuple[torch.Tensor, torch.Tensor]:
+    def encode_legal_actions(self, actions: Sequence[Action], *, pad_to_max: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
+        """Encode legal candidates, optionally omitting mask-only padding for inference."""
         if not actions:
             raise ValueError("A non-terminal state must expose at least one legal action")
         if len(actions) > self.max_actions:
             raise ValueError("Legal action count exceeds configured MAX_ACTIONS")
-        features = torch.zeros((self.max_actions, ACTION_FEATURE_DIM), dtype=torch.float32)
-        mask = torch.zeros(self.max_actions, dtype=torch.bool)
+        size = self.max_actions if pad_to_max else len(actions)
+        features = torch.zeros((size, ACTION_FEATURE_DIM), dtype=torch.float32)
+        mask = torch.zeros(size, dtype=torch.bool)
         for index, action in enumerate(actions):
             features[index] = self.encode(action)
             mask[index] = True

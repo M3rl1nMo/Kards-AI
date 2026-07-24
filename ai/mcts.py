@@ -24,6 +24,9 @@ class MCTSNode:
     prior_probability: float = 1.0
     children: dict[int, "MCTSNode"] = field(default_factory=dict)
     actions: list[Action] = field(default_factory=list)
+    action_features: torch.Tensor | None = None
+    legal_mask: torch.Tensor | None = None
+    observations: dict[str, torch.Tensor] = field(default_factory=dict)
     visit_count: int = 0
     value_sum: float = 0.0
     expanded: bool = False
@@ -32,11 +35,13 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, c_puct: float = 1.5, seed: int = 0) -> None:
+    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, c_puct: float = 1.5, seed: int = 0, inference: Any | None = None) -> None:
         self.model, self.encoder, self.simulations, self.c_puct, self.rng, self.codec = model.eval() if model else None, encoder, simulations, c_puct, random.Random(seed), ActionEncoder()
+        self.device = next(model.parameters()).device if model else torch.device("cpu")
+        self.inference = inference
 
     def search(self, state: GameState, cards: CardDatabase, root_player: str) -> tuple[Action, dict[str, float]]:
-        root = MCTSNode(state.clone(), state.current_player); self._expand(root, cards)
+        root = MCTSNode(state.clone_for_search(), state.current_player); self._expand(root, cards)
         for _ in range(self.simulations):
             node = root; path = [node]
             while node.expanded and node.children:
@@ -50,23 +55,50 @@ class MCTS:
         return root.actions[best], {str(index): count / total for index, count in visits.items()}
 
     def _simulator(self, state: GameState, cards: CardDatabase) -> Simulator:
-        env = Simulator(cards); env.state = state.clone(); return env
+        env = Simulator(cards); env.state = state.clone_for_search(); return env
 
     def _expand(self, node: MCTSNode, cards: CardDatabase) -> None:
         if node.state.game_status.value != "in_progress": return
-        env = self._simulator(node.state, cards); node.actions = env.get_available_actions()
+        # Legal-action generation is read-only. Branch states are still
+        # cloned below before executing an action, but cloning merely to ask
+        # the validator for candidates is redundant.
+        env = Simulator(cards, state=node.state); node.actions = env.get_available_actions()
         if not node.actions: return
-        priors = self._priors(node.state, node.player_to_move, node.actions)
+        # Candidate rows are scored independently. Padding to MAX_ACTIONS is
+        # required in replay/training tensors, but would only run masked GPU
+        # work during tree search.
+        node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions, pad_to_max=False)
+        priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
         for index, action in enumerate(node.actions):
-            child_env = self._simulator(node.state, cards); child_env.step(action)
-            node.children[index] = MCTSNode(child_env.get_state(), child_env.state.current_player, node, action, priors[index])
+            child_env = self._simulator(node.state, cards)
+            # MCTS only needs the successor state. `Simulator.step()` also
+            # builds a reward tuple and a cloned public snapshot, neither of
+            # which the search consumes. Execute the identical action mutator
+            # directly to avoid that unused snapshot allocation.
+            assert child_env.state is not None
+            action.execute(child_env.state, cards)
+            # `child_env` is immediately discarded, therefore its post-step
+            # state already has exclusive ownership. Avoiding `get_state()`
+            # removes one full deep clone per expanded action without sharing
+            # mutable state between MCTS branches.
+            child_state = child_env.state
+            assert child_state is not None
+            node.children[index] = MCTSNode(child_state, child_state.current_player, node, action, priors[index])
         node.expanded = True
 
-    def _priors(self, state: GameState, player_id: str, actions: list[Action]) -> list[float]:
-        if self.model is None: return [1.0 / len(actions)] * len(actions)
-        with torch.no_grad():
-            feats, mask = self.codec.encode_legal_actions(actions); logits, _ = self.model(self.encoder.encode(state, player_id), feats, mask)
-            return torch.softmax(logits[0], dim=0)[:len(actions)].tolist()
+    def _observation(self, node: MCTSNode, player_id: str) -> torch.Tensor:
+        if player_id not in node.observations:
+            node.observations[player_id] = self.encoder.encode(node.state, player_id)
+        return node.observations[player_id]
+
+    def _priors(self, node: MCTSNode, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
+        if self.inference is not None:
+            logits = self.inference.policy(self._observation(node, player_id), features, mask)
+            return torch.softmax(logits, dim=0)[:action_count].tolist()
+        if self.model is None: return [1.0 / action_count] * action_count
+        with torch.inference_mode():
+            logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
+            return torch.softmax(logits[0], dim=0)[:action_count].tolist()
 
     def _select(self, node: MCTSNode) -> MCTSNode:
         scale = math.sqrt(node.visit_count + 1)
@@ -76,9 +108,11 @@ class MCTS:
         status = node.state.game_status.value
         if status != "in_progress": return 1.0 if (status == "player_one_won") == (root_player == "p1") else -1.0 if status != "draw" else 0.0
         self._expand(node, cards)
+        if self.inference is not None:
+            return float(self.inference.value(self._observation(node, root_player)).item())
         if self.model is None: return 0.0
-        with torch.no_grad():
-            _, value = self.model(self.encoder.encode(node.state, root_player), *self.codec.encode_legal_actions(node.actions))
+        with torch.inference_mode():
+            value = self.model.value(self._observation(node, root_player).to(self.device))
             return float(value.item())
 
     @staticmethod
