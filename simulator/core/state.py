@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
-import copy
 import json
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
+
+
+def _copy_runtime(value: Any) -> Any:
+    """Deep-copy the JSON-shaped runtime records used by game state fields."""
+    if isinstance(value, dict):
+        return {key: _copy_runtime(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_copy_runtime(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_copy_runtime(item) for item in value)
+    return value
 
 
 class GameStatus(str, Enum):
@@ -114,14 +124,14 @@ class GameState:
             current_player=self.current_player,
             players={player_id: _clone_player(player) for player_id, player in self.players.items()},
             turn_number=self.turn_number,
-            battlefield=copy.deepcopy(self.battlefield),
-            graveyard=copy.deepcopy(self.graveyard),
+            battlefield=_copy_runtime(self.battlefield),
+            graveyard=_copy_runtime(self.graveyard),
             removed_cards=list(self.removed_cards),
             game_status=self.game_status,
-            event_log=copy.deepcopy(self.event_log),
+            event_log=_copy_runtime(self.event_log),
             mulligan_pending=list(self.mulligan_pending),
             rng_seed=self.rng_seed,
-            pending_cancels=copy.deepcopy(self.pending_cancels),
+            pending_cancels=_copy_runtime(self.pending_cancels),
         )
 
     def clone_for_search(self) -> "GameState":
@@ -144,7 +154,7 @@ class GameState:
             event_log=list(self.event_log),
             mulligan_pending=list(self.mulligan_pending),
             rng_seed=self.rng_seed,
-            pending_cancels=copy.deepcopy(self.pending_cancels),
+            pending_cancels=_copy_runtime(self.pending_cancels),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -165,13 +175,13 @@ class GameState:
                 resources=ResourceState(**data.get("resources", {})),
                 hq=Headquarters(**data["hq"]) if "hq" in data else Headquarters(current_health=int(data.get("hq_health", 20))),
                 units=[UnitState(**unit) for unit in data.get("units", ())],
-                active_countermeasures=copy.deepcopy(data.get("active_countermeasures", ())),
+                active_countermeasures=_copy_runtime(data.get("active_countermeasures", ())),
                 fatigue_damage=int(data.get("fatigue_damage", 0)),
-                cost_modifiers=copy.deepcopy(data.get("cost_modifiers", ())),
-                op_cost_rules=copy.deepcopy(data.get("op_cost_rules", ())),
-                temporary_effects=copy.deepcopy(data.get("temporary_effects", ())),
-                scheduled=copy.deepcopy(data.get("scheduled", ())),
-                status=copy.deepcopy(data.get("status", {})),
+                cost_modifiers=_copy_runtime(data.get("cost_modifiers", ())),
+                op_cost_rules=_copy_runtime(data.get("op_cost_rules", ())),
+                temporary_effects=_copy_runtime(data.get("temporary_effects", ())),
+                scheduled=_copy_runtime(data.get("scheduled", ())),
+                status=_copy_runtime(data.get("status", {})),
             )
             for player_id, data in payload["players"].items()
         }
@@ -183,10 +193,10 @@ class GameState:
             graveyard={key: list(value) for key, value in payload.get("graveyard", {}).items()},
             removed_cards=list(payload.get("removed_cards", ())),
             game_status=GameStatus(payload.get("game_status", GameStatus.IN_PROGRESS)),
-            event_log=copy.deepcopy(payload.get("event_log", ())),
+            event_log=_copy_runtime(payload.get("event_log", ())),
             mulligan_pending=list(payload.get("mulligan_pending", ())),
             rng_seed=payload.get("rng_seed"),
-            pending_cancels=copy.deepcopy(payload.get("pending_cancels", ())),
+            pending_cancels=_copy_runtime(payload.get("pending_cancels", ())),
         )
 
     @classmethod
@@ -201,11 +211,11 @@ def _clone_player(player: PlayerState) -> PlayerState:
         resources=ResourceState(player.resources.kredits, player.resources.max_kredits),
         hq=Headquarters(player.hq.max_health, player.hq.current_health, player.hq.nation,
                         player.hq.defense_modifier, player.hq.damage_cap_per_turn,
-                        player.hq.immune_until_end_of_turn, copy.deepcopy(player.hq.active_effects)),
+                        player.hq.immune_until_end_of_turn, _copy_runtime(player.hq.active_effects)),
         units=[UnitState(unit.instance_id, unit.card_id, unit.attack, unit.defense, unit.owner_id,
-                         unit.position, copy.deepcopy(unit.modifiers), copy.deepcopy(unit.status)) for unit in player.units],
-        active_countermeasures=copy.deepcopy(player.active_countermeasures), fatigue_damage=player.fatigue_damage,
-        cost_modifiers=copy.deepcopy(player.cost_modifiers), op_cost_rules=copy.deepcopy(player.op_cost_rules),
-        temporary_effects=copy.deepcopy(player.temporary_effects), scheduled=copy.deepcopy(player.scheduled),
-        status=copy.deepcopy(player.status),
+                         unit.position, _copy_runtime(unit.modifiers), _copy_runtime(unit.status)) for unit in player.units],
+        active_countermeasures=_copy_runtime(player.active_countermeasures), fatigue_damage=player.fatigue_damage,
+        cost_modifiers=_copy_runtime(player.cost_modifiers), op_cost_rules=_copy_runtime(player.op_cost_rules),
+        temporary_effects=_copy_runtime(player.temporary_effects), scheduled=_copy_runtime(player.scheduled),
+        status=_copy_runtime(player.status),
     )
