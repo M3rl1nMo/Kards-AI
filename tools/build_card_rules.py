@@ -61,6 +61,7 @@ _GENUINELY_EXECUTED_KINDS: frozenset[str] = frozenset({
     "heal",
     "repair",
     "suppress",
+    "pin",
     "fight",
     "combat_damage_cap",
     "random_combat_damage",

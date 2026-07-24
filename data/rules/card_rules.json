@@ -9,7 +9,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "enemy_units",
           "amount": 0,
           "attack": 0,
@@ -46,7 +46,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -181,7 +181,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -920,7 +920,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -957,7 +957,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -1732,7 +1732,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -1889,7 +1889,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -3151,7 +3151,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -3896,7 +3896,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -4049,7 +4049,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "enemy_units",
           "amount": 0,
           "attack": 0,
@@ -4196,7 +4196,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -4619,7 +4619,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -4669,7 +4669,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "random_enemy",
           "amount": 0,
           "attack": 0,
@@ -5219,7 +5219,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -5624,7 +5624,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -5637,7 +5637,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -5802,7 +5802,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -6846,7 +6846,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -7943,7 +7943,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_friendly",
           "amount": 0,
           "attack": 0,
@@ -8126,7 +8126,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -8224,7 +8224,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -11594,7 +11594,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "friendly_units",
           "amount": 0,
           "attack": 0,
@@ -16467,7 +16467,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "friendly_units",
           "amount": 0,
           "attack": 0,
@@ -17232,7 +17232,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -18591,7 +18591,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -18604,7 +18604,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "enemy_units",
           "amount": 0,
           "attack": 0,
@@ -18784,7 +18784,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -19297,7 +19297,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -20256,7 +20256,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -20634,7 +20634,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -20938,7 +20938,7 @@
           "condition": "When you add or deploy an Alpine unit"
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -21329,7 +21329,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -22243,7 +22243,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "friendly_units",
           "amount": 0,
           "attack": 0,
@@ -22505,7 +22505,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -22518,7 +22518,7 @@
           "condition": null
         },
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -22527,7 +22527,7 @@
           "scope": "",
           "min_cost": 0,
           "set_cost": null,
-          "duration": "next_turn",
+          "duration": null,
           "condition": null
         }
       ],
@@ -23536,7 +23536,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_enemy",
           "amount": 0,
           "attack": 0,
@@ -24755,7 +24755,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -28665,7 +28665,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
@@ -31945,7 +31945,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "source",
           "amount": 0,
           "attack": 0,
@@ -33825,7 +33825,7 @@
       ],
       "actions": [
         {
-          "kind": "suppress",
+          "kind": "pin",
           "target": "selected_target",
           "amount": 0,
           "attack": 0,
