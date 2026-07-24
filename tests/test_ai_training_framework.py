@@ -9,6 +9,7 @@ from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
+from ai.inference import BatchedInference
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -68,6 +69,25 @@ class AITrainingFrameworkTests(unittest.TestCase):
         padded_logits = model.policy(state, padded_features, padded_mask)[0, :len(actions)]
         compact_logits = model.policy(state, compact_features, compact_mask)[0]
         torch.testing.assert_close(compact_logits, padded_logits)
+
+    def test_batched_inference_matches_local_network(self) -> None:
+        torch.manual_seed(13)
+        model = KARDSNet(hidden_dim=32).eval()
+        states = [torch.randn(STATE_DIM), torch.randn(STATE_DIM)]
+        features = [torch.randn(3, ACTION_FEATURE_DIM), torch.randn(5, ACTION_FEATURE_DIM)]
+        masks = [torch.tensor([True, True, False]), torch.tensor([True, False, True, True, False])]
+        with BatchedInference(model, max_batch_size=4, max_wait_ms=0) as inference:
+            for state, action_features, mask in zip(states, features, masks):
+                torch.testing.assert_close(inference.policy(state, action_features, mask), model.policy(state, action_features, mask)[0])
+                torch.testing.assert_close(inference.value(state), model.value(state)[0])
+
+    def test_batched_mcts_matches_local_search(self) -> None:
+        env = self._environment(); model = KARDSNet(hidden_dim=32).eval(); state = env.get_state()
+        local_action, local_policy = MCTS(model, self.encoder, simulations=3, seed=29).search(state, self.cards, "p1")
+        with BatchedInference(model, max_wait_ms=0) as inference:
+            batched_action, batched_policy = MCTS(model, self.encoder, simulations=3, seed=29, inference=inference).search(state, self.cards, "p1")
+        self.assertEqual(batched_action, local_action)
+        self.assertEqual(batched_policy, local_policy)
 
     def test_mcts_agent_runs(self) -> None:
         env = self._environment(); agent = MCTSAgent(None, self.encoder, simulations=2); agent.set_state(env.get_state(), "p1", self.cards)

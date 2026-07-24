@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
 import random
 from typing import Callable
@@ -120,27 +120,53 @@ class SelfPlayRunner:
         before = len(self.buffer); totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
-        cpu_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
         pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict]] = {}
         next_index = 0
-        with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
-                                 initargs=(str(card_path), model.architecture, cpu_state,
-                                           simulations, self.max_actions, device)) as pool:
-            futures = [pool.submit(_parallel_episode, index, seed, nation) for index, seed in enumerate(episode_seeds)]
-            for future in futures:
-                index, examples, report, record = future.result()
-                pending[index] = (examples, report, record)
-                while next_index in pending:
-                    examples, report, record = pending.pop(next_index)
-                    self.buffer.examples.extend(examples)
-                    if len(self.buffer.examples) > self.buffer.capacity:
-                        del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
-                    winner = "p1" if report.p1_wins else "p2" if report.p2_wins else "draw"
-                    totals[winner] += 1; turns_total += report.average_turns
-                    hq_damage_total += report.average_hq_damage; cards_played_total += report.average_cards_played
-                    self.game_records.append(record)
-                    next_index += 1
-                    if on_episode_complete:
-                        on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
+        def merge(index: int, examples: list[TrainingExample], report: SelfPlayReport, record: dict) -> None:
+            nonlocal next_index, turns_total, hq_damage_total, cards_played_total
+            pending[index] = (examples, report, record)
+            while next_index in pending:
+                examples, report, record = pending.pop(next_index)
+                self.buffer.examples.extend(examples)
+                if len(self.buffer.examples) > self.buffer.capacity:
+                    del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
+                winner = "p1" if report.p1_wins else "p2" if report.p2_wins else "draw"
+                totals[winner] += 1; turns_total += report.average_turns
+                hq_damage_total += report.average_hq_damage; cards_played_total += report.average_cards_played
+                self.game_records.append(record)
+                next_index += 1
+                if on_episode_complete:
+                    on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
+
+        if str(device).startswith("cuda"):
+            # CUDA contexts are process-local. Sharing one batched inference
+            # owner prevents every worker from loading a competing model copy.
+            from ai.agents import MCTSAgent
+            from ai.inference import BatchedInference
+
+            def threaded_episode(index: int, seed: int) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
+                buffer = ReplayBuffer(seed=seed)
+                runner = SelfPlayRunner(self.cards, self.encoder, buffer, self.max_actions, seed)
+                agents = (
+                    MCTSAgent(model, self.encoder, simulations, seed + 1, inference=inference),
+                    MCTSAgent(model, self.encoder, simulations, seed + 2, inference=inference),
+                )
+                report = runner.run(1, *agents, nation=nation)
+                return index, buffer.examples, report, runner.game_records[-1]
+
+            # Do not add a fixed latency to every small MCTS call. The worker
+            # drains requests already queued by concurrent searches.
+            with BatchedInference(model, max_wait_ms=0) as inference, ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = [pool.submit(threaded_episode, index, seed) for index, seed in enumerate(episode_seeds)]
+                for future in as_completed(futures):
+                    merge(*future.result())
+        else:
+            cpu_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
+            with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
+                                     initargs=(str(card_path), model.architecture, cpu_state,
+                                               simulations, self.max_actions, device)) as pool:
+                futures = [pool.submit(_parallel_episode, index, seed, nation) for index, seed in enumerate(episode_seeds)]
+                for future in as_completed(futures):
+                    merge(*future.result())
         return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)

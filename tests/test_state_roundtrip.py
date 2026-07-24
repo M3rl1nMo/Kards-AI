@@ -23,6 +23,7 @@ class StateRoundTripTests(unittest.TestCase):
         cloned.pending_cancels[0]["id"] = "changed"
         self.assertEqual(state.players["p1"].hand, ["radar"])
         self.assertEqual(state.event_log[0]["event"], "x")
+        self.assertEqual(state.pending_cancels[0]["id"], "a")
 
     def test_search_clone_keeps_history_but_isolates_appends(self) -> None:
         state = GameState(current_player="p1", players={"p1": PlayerState("p1"), "p2": PlayerState("p2")},

@@ -35,9 +35,12 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, c_puct: float = 1.5, seed: int = 0) -> None:
+    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, c_puct: float = 1.5, seed: int = 0, inference: Any | None = None) -> None:
         self.model, self.encoder, self.simulations, self.c_puct, self.rng, self.codec = model.eval() if model else None, encoder, simulations, c_puct, random.Random(seed), ActionEncoder()
         self.device = next(model.parameters()).device if model else torch.device("cpu")
+        if inference is not None and model is None:
+            raise ValueError("Batched inference requires a model")
+        self.inference = inference
 
     def search(self, state: GameState, cards: CardDatabase, root_player: str) -> tuple[Action, dict[str, float]]:
         root = MCTSNode(state.clone_for_search(), state.current_player); self._expand(root, cards)
@@ -89,6 +92,9 @@ class MCTS:
 
     def _priors(self, node: MCTSNode, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
         if self.model is None: return [1.0 / action_count] * action_count
+        if self.inference is not None:
+            logits = self.inference.policy(self._observation(node, player_id), features, mask)
+            return torch.softmax(logits, dim=0)[:action_count].tolist()
         with torch.no_grad():
             logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
             return torch.softmax(logits[0], dim=0)[:action_count].tolist()
@@ -102,6 +108,8 @@ class MCTS:
         if status != "in_progress": return 1.0 if (status == "player_one_won") == (root_player == "p1") else -1.0 if status != "draw" else 0.0
         self._expand(node, cards)
         if self.model is None: return 0.0
+        if self.inference is not None:
+            return float(self.inference.value(self._observation(node, root_player)).item())
         with torch.no_grad():
             value = self.model.value(self._observation(node, root_player).to(self.device))
             return float(value.item())
