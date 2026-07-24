@@ -108,7 +108,21 @@ class GameState:
 
     def clone(self) -> "GameState":
         """Return an isolated deep copy suitable for tree search branching."""
-        return copy.deepcopy(self)
+        # Keep the branchable runtime state fully isolated, but avoid generic
+        # dataclass reconstruction overhead on every MCTS edge expansion.
+        return GameState(
+            current_player=self.current_player,
+            players=copy.deepcopy(self.players),
+            turn_number=self.turn_number,
+            battlefield=copy.deepcopy(self.battlefield),
+            graveyard=copy.deepcopy(self.graveyard),
+            removed_cards=list(self.removed_cards),
+            game_status=self.game_status,
+            event_log=copy.deepcopy(self.event_log),
+            mulligan_pending=list(self.mulligan_pending),
+            rng_seed=self.rng_seed,
+            pending_cancels=copy.deepcopy(self.pending_cancels),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-safe state snapshot."""

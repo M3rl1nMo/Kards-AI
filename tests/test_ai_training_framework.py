@@ -8,6 +8,7 @@ import torch
 from ai.action_encoder import ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
+from ai.metrics import RunMetrics
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -67,6 +68,13 @@ class AITrainingFrameworkTests(unittest.TestCase):
         self.assertEqual(report.episodes, 1000)
         self.assertEqual(report.examples, 1000)
         self.assertGreaterEqual(report.average_turns, 1.0)
+
+    def test_metrics_persist_cumulative_selfplay_games(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metrics.jsonl"
+            first = RunMetrics(path, "selfplay"); first.emit("selfplay_complete", total_episodes=3)
+            second = RunMetrics(path, "selfplay")
+            self.assertEqual(second.previous_episodes, 3)
 
 
 if __name__ == "__main__": unittest.main()

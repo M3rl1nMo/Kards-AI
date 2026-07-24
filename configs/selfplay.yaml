@@ -2,4 +2,5 @@ episodes: 32
 max_actions: 300
 nation: France
 mcts_simulations: 64
+workers: 4
 replay_path: runs/replay.pkl

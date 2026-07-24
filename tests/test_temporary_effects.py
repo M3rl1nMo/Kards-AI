@@ -121,6 +121,17 @@ class TemporaryEffectsTests(unittest.TestCase):
         NativeRuleEngine.revert_temporary(state, "p1", state.turn_number)
         self.assertEqual(enemy.attack, 4)  # restored
 
+    def test_expiry_ignores_unit_that_left_play(self) -> None:
+        state = self._state(p1_units=(("u1", "greif", 3, 1),))
+        engine = NativeRuleEngine(self.cards)
+        engine._execute_action(
+            RuleAction("modify_attack", "friendly_units", amount=2, duration="this_turn"),
+            state, EffectContext("p1"),
+        )
+        state.players["p1"].units.clear()
+        NativeRuleEngine.revert_temporary(state, "p1", state.turn_number)
+        self.assertEqual(state.players["p1"].temporary_effects, [])
+
 
 if __name__ == "__main__":
     unittest.main()

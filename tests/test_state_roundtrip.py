@@ -14,6 +14,17 @@ from simulator.core.state import (
 
 
 class StateRoundTripTests(unittest.TestCase):
+    def test_clone_isolated_and_equivalent(self) -> None:
+        state = GameState(current_player="p1", players={"p1": PlayerState("p1", hand=["radar"]), "p2": PlayerState("p2")}, event_log=[{"event": "x"}], pending_cancels=[{"id": "a"}])
+        cloned = state.clone()
+        self.assertEqual(cloned.to_dict(), state.to_dict())
+        cloned.players["p1"].hand.append("new")
+        cloned.event_log[0]["event"] = "changed"
+        cloned.pending_cancels[0]["id"] = "changed"
+        self.assertEqual(state.players["p1"].hand, ["radar"])
+        self.assertEqual(state.event_log[0]["event"], "x")
+        self.assertEqual(state.pending_cancels[0]["id"], "a")
+
     def test_json_round_trip_preserves_all_rule_runtime_state(self) -> None:
         state = GameState(
             current_player="p1",
