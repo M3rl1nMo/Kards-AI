@@ -123,9 +123,13 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if urlparse(self.path).path == "/api/status":
+        request_path = urlparse(self.path).path
+        if request_path == "/api/status":
             self._json(dashboard_data()); return
-        self.path = "/monitor/index.html" if self.path == "/" else self.path
+        # Query parameters are used for cache busting.  Route by the parsed
+        # path so `/?v=...` cannot fall through to a repository directory
+        # listing.
+        self.path = "/monitor/index.html" if request_path == "/" else request_path
         super().do_GET()
 
     def do_POST(self) -> None:
