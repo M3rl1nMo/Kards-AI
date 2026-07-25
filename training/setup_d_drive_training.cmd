@@ -18,8 +18,15 @@ if not exist "%KARDS_VENV%\Scripts\python.exe" (
     echo Python launcher ^(py -3^) was not found. Install Python, then rerun this script.
     exit /b 1
   )
+)
+
+"%KARDS_VENV%\Scripts\python.exe" -c "import numpy, yaml, torch" >nul 2>&1
+if errorlevel 1 (
+  echo Installing missing CUDA training dependencies on D: ...
   "%KARDS_VENV%\Scripts\python.exe" -m pip install --upgrade pip
-  "%KARDS_VENV%\Scripts\python.exe" -m pip install -r "%KARDS_WORKSPACE%\requirements-training.txt"
+  "%KARDS_VENV%\Scripts\python.exe" -m pip install numpy PyYAML
+  "%KARDS_VENV%\Scripts\python.exe" -m pip install "torch>=2.4,<3" --index-url https://download.pytorch.org/whl/cu128
+  if errorlevel 1 exit /b 1
 )
 
 echo.
