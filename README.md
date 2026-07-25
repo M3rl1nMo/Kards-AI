@@ -16,6 +16,11 @@ when next loaded and saved. Use `training\run_parallel_selfplay.cmd` to launch
 the unattended loop, `打开监控.cmd` for the dashboard, and `停止训练.cmd` for a
 graceful stop.
 
+For an unattended Windows machine, run `training\setup_d_drive_training.cmd`
+once. It creates a complete D: workspace and virtual environment at
+`D:\KardsAI`; all mutable Python, pip, PyTorch, CUDA, temporary, and training
+files then remain on D:. The C: checkout remains a Git development copy only.
+
 ## Card data
 
 `data/source/kards_info_cards.json` is the simulator's only card-data source.

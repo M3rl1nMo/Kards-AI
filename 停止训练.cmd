@@ -1,7 +1,6 @@
 @echo off
 setlocal
-if not defined KARDS_RUNS_DIR set "KARDS_RUNS_DIR=D:\KardsAI\runs"
-if not exist "%KARDS_RUNS_DIR%" mkdir "%KARDS_RUNS_DIR%"
+call "%~dp0training\d_drive_env.cmd"
 type nul > "%KARDS_RUNS_DIR%\STOP"
 echo Graceful stop requested. Current phase will finish and save its result.
 pause
