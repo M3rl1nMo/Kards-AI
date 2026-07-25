@@ -23,7 +23,7 @@ _PARALLEL_CONTEXT: dict = {}
 
 
 def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict | None, simulations: int,
-                          max_actions: int, device: str, inference_requests=None) -> None:
+                          max_actions: int, device: str, inference_requests=None, mcts_options: dict | None = None) -> None:
     """Initialize one independent, deterministic self-play worker process."""
     from ai.agents import MCTSAgent
     from ai.network import KARDSNet
@@ -37,7 +37,7 @@ def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict |
         model.to(device).eval()
     _PARALLEL_CONTEXT.update(cards=cards, encoder=ObservationEncoder(cards), model=model,
                              simulations=simulations, max_actions=max_actions, device=device,
-                             inference_requests=inference_requests)
+                             inference_requests=inference_requests, mcts_options=mcts_options or {})
 
 
 def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
@@ -53,17 +53,17 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
         assert response_queue is not None
         inference = RemoteInferenceClient(context["inference_requests"], response_queue, context.get("worker_id", 0))
     agents = (
-        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference),
-        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference),
+        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference, **context["mcts_options"]),
+        MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference, **context["mcts_options"]),
     )
     report = runner.run(1, *agents, nation=nation)
     return index, buffer.examples, report, runner.game_records[-1]
 
 
 def _cuda_worker_loop(card_path: str, architecture: dict, simulations: int, max_actions: int,
-                      requests, response_queue, worker_id: int, tasks, results) -> None:
+                      requests, response_queue, worker_id: int, tasks, results, mcts_options: dict) -> None:
     """Run CPU-only rule simulations; CUDA inference remains in the parent."""
-    _parallel_worker_init(card_path, architecture, None, simulations, max_actions, "cpu", requests)
+    _parallel_worker_init(card_path, architecture, None, simulations, max_actions, "cpu", requests, mcts_options)
     _PARALLEL_CONTEXT["worker_id"] = worker_id
     while True:
         task = tasks.get()
@@ -194,7 +194,8 @@ class VectorizedSelfPlay:
                               turns / episodes, hq_damage / episodes, cards_played / episodes)
 
     def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", workers: int = 2,
-                     device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
+                     device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None,
+                     mcts_options: dict | None = None) -> SelfPlayReport:
         """Generate independent episodes concurrently without changing MCTS policy or rules.
 
         Results are merged in episode-index order, keeping replay ordering deterministic
@@ -202,6 +203,7 @@ class VectorizedSelfPlay:
         """
         if workers < 1:
             raise ValueError("workers must be positive")
+        mcts_options = mcts_options or {}
         before = len(self.buffer); totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
@@ -233,7 +235,7 @@ class VectorizedSelfPlay:
             service = ProcessInferenceService(model, requests, responses)
             processes = [context.Process(target=_cuda_worker_loop,
                                          args=(str(card_path), model.architecture, simulations, self.max_actions,
-                                               requests, responses[index], index, tasks, results), daemon=True)
+                                               requests, responses[index], index, tasks, results, mcts_options), daemon=True)
                          for index in range(workers)]
             for process in processes:
                 process.start()
@@ -258,7 +260,7 @@ class VectorizedSelfPlay:
             cpu_state = {key: value.detach().cpu() for key, value in model.state_dict().items()}
             with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
                                      initargs=(str(card_path), model.architecture, cpu_state,
-                                               simulations, self.max_actions, device)) as pool:
+                                               simulations, self.max_actions, device, None, mcts_options)) as pool:
                 futures = [pool.submit(_parallel_episode, index, seed, nation) for index, seed in enumerate(episode_seeds)]
                 for future in as_completed(futures):
                     merge(*future.result())

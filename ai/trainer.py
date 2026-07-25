@@ -1,5 +1,7 @@
 """Policy/value update loop with CUDA and Apple MPS selection."""
 from __future__ import annotations
+from pathlib import Path
+import random
 import torch
 from torch.nn import functional as F
 from ai.network import KARDSNet
@@ -17,6 +19,7 @@ class Trainer:
         if self.cuda:
             torch.set_float32_matmul_precision("high")
         self.scaler = torch.amp.GradScaler("cuda", enabled=self.cuda)
+        self.training_step = 0
     def train_batch(self, buffer: ReplayBuffer, batch_size: int) -> dict[str, float]:
         batch = buffer.sample(batch_size)
         if not batch: raise ValueError("Replay buffer is empty")
@@ -39,4 +42,23 @@ class Trainer:
         self.scaler.scale(loss).backward(); self.scaler.unscale_(self.optimizer)
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
         self.scaler.step(self.optimizer); self.scaler.update()
+        self.training_step += 1
         return {"loss": float(loss.item()), "policy_loss": float(policy_loss.item()), "value_loss": float(value_loss.item())}
+
+    def save_checkpoint(self, path: str | Path, *, replay_path: str | None = None, **metadata: object) -> None:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"state_dict": self.model.state_dict(), "architecture": self.model.architecture,
+                    "optimizer_state": self.optimizer.state_dict(), "scaler_state": self.scaler.state_dict(),
+                    "training_step": self.training_step, "python_random_state": random.getstate(),
+                    "replay_path": replay_path, "metadata": metadata}, path)
+
+    def load_checkpoint(self, path: str | Path) -> None:
+        payload = torch.load(path, map_location=self.device, weights_only=False)
+        self.model.load_state_dict(payload["state_dict"])
+        if payload.get("optimizer_state"):
+            self.optimizer.load_state_dict(payload["optimizer_state"])
+        if payload.get("scaler_state"):
+            self.scaler.load_state_dict(payload["scaler_state"])
+        self.training_step = int(payload.get("training_step", 0))
+        if payload.get("python_random_state"):
+            random.setstate(payload["python_random_state"])

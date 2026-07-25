@@ -33,7 +33,10 @@ class KARDSNet(nn.Module):
         action_hidden = self.action_encoder(action_features)
         expanded = state_hidden.unsqueeze(1).expand(-1, action_features.shape[1], -1)
         logits = self.policy_head(torch.cat((expanded, action_hidden), dim=-1)).squeeze(-1)
-        return logits.masked_fill(~legal_mask.bool(), -1e9)
+        # ``-1e9`` overflows under CUDA autocast float16.  The finite minimum
+        # for the active dtype is sufficient for masked softmax and keeps the
+        # real mixed-precision training path valid.
+        return logits.masked_fill(~legal_mask.bool(), torch.finfo(logits.dtype).min)
 
     def policy(self, states: torch.Tensor, action_features: torch.Tensor, legal_mask: torch.Tensor) -> torch.Tensor:
         """Return masked policy logits without evaluating the value head."""

@@ -27,13 +27,18 @@ class ReplayBuffer:
         return self.rng.sample(self.examples, min(batch_size, len(self.examples)))
     def __len__(self) -> int: return len(self.examples)
     def save(self, path: str | Path) -> None:
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as handle: pickle.dump({"capacity": self.capacity, "examples": self.examples}, handle)
+        path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        with temporary.open("wb") as handle:
+            pickle.dump({"capacity": self.capacity, "examples": self.examples, "rng_state": self.rng.getstate()}, handle)
+        temporary.replace(path)
     @classmethod
     def load(cls, path: str | Path) -> "ReplayBuffer":
         with open(path, "rb") as handle: data = pickle.load(handle)
         result = cls(data["capacity"])
         result.examples = data["examples"]
+        if data.get("rng_state"):
+            result.rng.setstate(data["rng_state"])
         for example in result.examples:
             result._compact(example)
         return result

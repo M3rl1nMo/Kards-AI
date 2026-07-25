@@ -53,9 +53,12 @@ class NeuralAgent(BaseAgent):
 
 
 class MCTSAgent(BaseAgent):
-    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, seed: int = 0, inference=None) -> None:
+    def __init__(self, model: KARDSNet | None, encoder: ObservationEncoder, simulations: int = 64, seed: int = 0, inference=None,
+                 *, temperature: float = 0.0, dirichlet_alpha: float = 0.0, exploration_fraction: float = 0.0) -> None:
         from ai.mcts import MCTS
-        self.searcher = MCTS(model, encoder, simulations=simulations, seed=seed, inference=inference); self.state = None; self.player_id = None; self.cards = None
+        self.searcher = MCTS(model, encoder, simulations=simulations, seed=seed, inference=inference)
+        self.searcher.set_training_policy(temperature=temperature, dirichlet_alpha=dirichlet_alpha, exploration_fraction=exploration_fraction)
+        self.state = None; self.player_id = None; self.cards = None
     def set_state(self, state, player_id: str, cards) -> None: self.state, self.player_id, self.cards = state, player_id, cards
     def select_action(self, observation: dict, legal_actions: Sequence[Action]) -> Action:
         if self.state is None or self.cards is None or self.player_id is None: raise RuntimeError("MCTSAgent needs set_state from SelfPlayRunner")

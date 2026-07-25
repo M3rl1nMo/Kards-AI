@@ -46,9 +46,23 @@ class MCTS:
         self.initial_expansion = initial_expansion
         self.widening_factor = widening_factor
         self.virtual_loss = virtual_loss
+        self.temperature = 0.0
+        self.dirichlet_alpha = 0.0
+        self.exploration_fraction = 0.0
+
+    def set_training_policy(self, *, temperature: float = 0.0, dirichlet_alpha: float = 0.0,
+                            exploration_fraction: float = 0.0) -> None:
+        self.temperature = max(0.0, temperature)
+        self.dirichlet_alpha = max(0.0, dirichlet_alpha)
+        self.exploration_fraction = min(1.0, max(0.0, exploration_fraction))
 
     def search(self, state: GameState, cards: CardDatabase, root_player: str) -> tuple[Action, dict[str, float]]:
         root = MCTSNode(state.clone_for_search(), state.current_player); self._expand(root, cards)
+        if self.exploration_fraction and self.dirichlet_alpha and root.priors:
+            noise = self._dirichlet(len(root.priors), self.dirichlet_alpha)
+            root.priors = [(1.0 - self.exploration_fraction) * prior + self.exploration_fraction * sample
+                           for prior, sample in zip(root.priors, noise)]
+            root.prior_order = sorted(range(len(root.actions)), key=root.priors.__getitem__, reverse=True)
         for _ in range(self.simulations):
             node = root; path = [node]
             # Nodes retain the complete legal-action list, but successor
@@ -64,8 +78,24 @@ class MCTS:
         if not root.children: return root.actions[0], {"0": 1.0}
         visits = {index: child.visit_count for index, child in root.children.items()}
         total = sum(visits.values()) or 1
-        best = max(visits, key=visits.get)
+        best = self._sample_visit(visits)
         return root.actions[best], {str(index): count / total for index, count in visits.items()}
+
+    def _sample_visit(self, visits: dict[int, int]) -> int:
+        if self.temperature <= 0.0:
+            return max(visits, key=visits.get)
+        weights = [count ** (1.0 / self.temperature) for count in visits.values()]
+        threshold = self.rng.random() * sum(weights); cumulative = 0.0
+        for index, weight in zip(visits, weights):
+            cumulative += weight
+            if cumulative >= threshold:
+                return index
+        return next(reversed(visits))
+
+    def _dirichlet(self, size: int, alpha: float) -> list[float]:
+        samples = [self.rng.gammavariate(alpha, 1.0) for _ in range(size)]
+        total = sum(samples)
+        return [sample / total for sample in samples] if total else [1.0 / size] * size
 
     def _expand(self, node: MCTSNode, cards: CardDatabase) -> None:
         if node.expanded:
