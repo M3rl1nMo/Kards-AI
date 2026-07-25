@@ -24,6 +24,7 @@ class MCTSNode:
     prior_probability: float = 1.0
     children: dict[int, "MCTSNode"] = field(default_factory=dict)
     actions: list[Action] = field(default_factory=list)
+    priors: list[float] = field(default_factory=list)
     action_features: torch.Tensor | None = None
     legal_mask: torch.Tensor | None = None
     observations: dict[str, torch.Tensor] = field(default_factory=dict)
@@ -44,8 +45,13 @@ class MCTS:
         root = MCTSNode(state.clone_for_search(), state.current_player); self._expand(root, cards)
         for _ in range(self.simulations):
             node = root; path = [node]
-            while node.expanded and node.children:
-                node = self._select(node); path.append(node)
+            # Nodes retain the complete legal-action list, but successor
+            # states are materialised only when PUCT selects that action.
+            # This keeps the search policy identical while avoiding full
+            # state clones for actions that the allotted simulations never
+            # visit.
+            while node.expanded and node.actions:
+                node = self._select(node, cards); path.append(node)
             value = self._evaluate(node, cards, root_player)
             self._backpropagate(path, value, root_player)
         if not root.children: return root.actions[0], {"0": 1.0}
@@ -54,10 +60,9 @@ class MCTS:
         best = max(visits, key=visits.get)
         return root.actions[best], {str(index): count / total for index, count in visits.items()}
 
-    def _simulator(self, state: GameState, cards: CardDatabase) -> Simulator:
-        env = Simulator(cards); env.state = state.clone_for_search(); return env
-
     def _expand(self, node: MCTSNode, cards: CardDatabase) -> None:
+        if node.expanded:
+            return
         if node.state.game_status.value != "in_progress": return
         # Legal-action generation is read-only. Branch states are still
         # cloned below before executing an action, but cloning merely to ask
@@ -68,22 +73,7 @@ class MCTS:
         # required in replay/training tensors, but would only run masked GPU
         # work during tree search.
         node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions, pad_to_max=False)
-        priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
-        for index, action in enumerate(node.actions):
-            child_env = self._simulator(node.state, cards)
-            # MCTS only needs the successor state. `Simulator.step()` also
-            # builds a reward tuple and a cloned public snapshot, neither of
-            # which the search consumes. Execute the identical action mutator
-            # directly to avoid that unused snapshot allocation.
-            assert child_env.state is not None
-            action.execute(child_env.state, cards)
-            # `child_env` is immediately discarded, therefore its post-step
-            # state already has exclusive ownership. Avoiding `get_state()`
-            # removes one full deep clone per expanded action without sharing
-            # mutable state between MCTS branches.
-            child_state = child_env.state
-            assert child_state is not None
-            node.children[index] = MCTSNode(child_state, child_state.current_player, node, action, priors[index])
+        node.priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
         node.expanded = True
 
     def _observation(self, node: MCTSNode, player_id: str) -> torch.Tensor:
@@ -100,9 +90,29 @@ class MCTS:
             logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
             return torch.softmax(logits[0], dim=0)[:action_count].tolist()
 
-    def _select(self, node: MCTSNode) -> MCTSNode:
+    def _select(self, node: MCTSNode, cards: CardDatabase) -> MCTSNode:
         scale = math.sqrt(node.visit_count + 1)
-        return max(node.children.values(), key=lambda child: child.value + self.c_puct * child.prior_probability * scale / (1 + child.visit_count))
+        best_index = max(
+            range(len(node.actions)),
+            key=lambda index: (
+                node.children[index].value + self.c_puct * node.children[index].prior_probability * scale / (1 + node.children[index].visit_count)
+                if index in node.children
+                else self.c_puct * node.priors[index] * scale
+            ),
+        )
+        child = node.children.get(best_index)
+        if child is not None:
+            return child
+
+        # Apply the exact same action implementation as before, but only for
+        # the branch PUCT has chosen.  `clone_for_search` keeps every mutable
+        # game component isolated while sharing immutable history entries.
+        child_state = node.state.clone_for_search()
+        action = node.actions[best_index]
+        action.execute(child_state, cards)
+        child = MCTSNode(child_state, child_state.current_player, node, action, node.priors[best_index])
+        node.children[best_index] = child
+        return child
 
     def _evaluate(self, node: MCTSNode, cards: CardDatabase, root_player: str) -> float:
         status = node.state.game_status.value

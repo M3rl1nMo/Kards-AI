@@ -23,6 +23,10 @@ class Simulator:
     cards: CardDatabase
     state: GameState | None = None
     replay: Replay | None = None
+    # Replay snapshots serialize the complete state after every action.  They
+    # are useful for debugging, but self-play can safely opt out because it
+    # stores its own training examples.
+    record_replay: bool = True
 
     def reset(self, player_one_deck: Iterable[str], player_two_deck: Iterable[str], nations: tuple[str | None, str | None] = (None, None), seed: int = 0, auto_mulligan: bool = True, ally_nations: tuple[str | None, str | None] = (None, None)) -> GameState:
         deck_one, deck_two = list(player_one_deck), list(player_two_deck)
@@ -49,10 +53,20 @@ class Simulator:
             MulliganAction("p2").execute(self.state, self.cards)
             self.state.current_player = "p1"
             TurnManager.start_turn(self.state, "p1", draw_card=False)
-        self.replay = Replay(self.state.to_dict())
+        self.replay = Replay(self.state.to_dict()) if self.record_replay else None
         return self.get_state()
 
     def step(self, action: Action) -> tuple[GameState, float, bool]:
+        reward, terminal = self.step_fast(action)
+        return self.get_state(), reward, terminal
+
+    def step_fast(self, action: Action) -> tuple[float, bool]:
+        """Execute an action without creating the unused public state clone.
+
+        The public ``step`` API intentionally remains unchanged.  This method
+        is for internal high-volume self-play callers that already hold the
+        simulator-owned state and only need reward/termination information.
+        """
         if self.state is None:
             raise RuntimeError("Call reset() before step()")
         opponent = opponent_id(self.state, action.player_id)
@@ -61,9 +75,10 @@ class Simulator:
         if self.replay:
             self.replay.record(action, self.state)
         reward = float(before - self.state.players[opponent].hq.current_health)
-        if self.is_terminal() and self.state.game_status != GameStatus.DRAW:
+        terminal = self.is_terminal()
+        if terminal and self.state.game_status != GameStatus.DRAW:
             reward += 100.0
-        return self.get_state(), reward, self.is_terminal()
+        return reward, terminal
 
     def get_state(self) -> GameState:
         if self.state is None:
@@ -81,28 +96,31 @@ class Simulator:
         player = self.state.players[player_id]
         actions: list[Action] = [PassAction(player_id)]
         rule_engine = engine_for(self.cards)
-        all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
+        hand_ids = tuple(player.hand)
+        unit_hand = [(card_id, "hand") for card_id in hand_ids if self.cards.get(card_id).is_unit]
+        convert_choices = [(card_id, "hand") for card_id in hand_ids] + [(card_id, "deck") for card_id in player.deck]
+        all_units: list[str] | None = None
         has_high_attack = any(unit.attack >= 4 for unit in player.units)
-        for card_id in player.hand:
-            card = self.cards.get(card_id)
+        for card_id in hand_ids:
             positions = ("support_line",)  # KARDS units deploy to the support line.
-            rule = rule_engine.rule_for(card_id)
-            targets = all_units if rule.needs_target else [None]
+            spec = rule_engine.action_spec_for(card_id)
+            if spec.needs_target:
+                if all_units is None:
+                    all_units = [unit.instance_id for candidate in self.state.players.values() for unit in candidate.units]
+                targets = all_units
+            else:
+                targets = (None,)
             selected_cards = (
-                [(candidate_id, "hand") for candidate_id in player.hand if self.cards.get(candidate_id).is_unit and candidate_id != card_id]
-                if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions)
-                else ([(candidate_id, "hand") for candidate_id in player.hand if candidate_id != card_id]
-                      + [(candidate_id, "deck") for candidate_id in player.deck])
-                if any(action.kind == "convert_to" for action in rule.actions)
+                [(candidate_id, zone) for candidate_id, zone in unit_hand if candidate_id != card_id]
+                if spec.swap_hand_unit
+                else [(candidate_id, zone) for candidate_id, zone in convert_choices if zone != "hand" or candidate_id != card_id]
+                if spec.convert_to
                 else [(None, None)]
             )
             selected_options = (
                 [None] if has_high_attack else ["blitz", "shock"]
-                if any(action.kind == "shock_tactics_choice" for action in rule.actions)
-                else [None, *[
-                    option.strip() for action in rule.actions if action.kind == "develop_options"
-                    for option in (action.card_name or "").split("|") if option.strip()
-                ]]
+                if spec.shock_tactics
+                else (None, *spec.develop_options)
             )
             for position in positions:
                 for target_unit_id in targets:

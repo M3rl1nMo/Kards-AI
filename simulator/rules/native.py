@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 import random
 
@@ -22,6 +22,32 @@ from simulator.rules import suppression
 # Lowercased nation names used by scoped combat filters (card.nation is
 # capitalized, e.g. "Germany"; RuleAction.card_name carries the lowercased form).
 _NATION_LOWER = {"britain", "germany", "usa", "soviet", "japan", "france", "italy", "poland", "finland"}
+
+
+@dataclass(frozen=True)
+class ActionGenerationSpec:
+    """Static action-shape facts compiled with each card's rule AST."""
+
+    needs_target: bool
+    swap_hand_unit: bool
+    convert_to: bool
+    shock_tactics: bool
+    develop_options: tuple[str, ...]
+
+
+def _action_generation_spec(rule: CardRule) -> ActionGenerationSpec:
+    actions = rule.actions
+    return ActionGenerationSpec(
+        needs_target=rule.needs_target,
+        swap_hand_unit=any(action.kind == "swap_hand_unit_with_friendly" for action in actions),
+        convert_to=any(action.kind == "convert_to" for action in actions),
+        shock_tactics=any(action.kind == "shock_tactics_choice" for action in actions),
+        develop_options=tuple(
+            option.strip()
+            for action in actions if action.kind == "develop_options"
+            for option in (action.card_name or "").split("|") if option.strip()
+        ),
+    )
 
 
 def _expiry_turn(duration: str | None, current_turn: int) -> int | None:
@@ -86,6 +112,7 @@ class NativeRuleEngine:
             card.id: self._augment_event_triggers(self.store.get(card.id) or self.parser.parse(card))
             for card in cards
         }
+        self._action_specs = {card_id: _action_generation_spec(rule) for card_id, rule in self._rules.items()}
         self._by_name = {card.name.upper(): card.id for card in cards}
         # Transient reference to the card selected by a choose_one action during
         # a single execute() run. Consumed by subsequent actions with
@@ -108,6 +135,10 @@ class NativeRuleEngine:
 
     def rule_for(self, card_id: str) -> CardRule:
         return self._rules[card_id]
+
+    def action_spec_for(self, card_id: str) -> ActionGenerationSpec:
+        """Return cached static facts used by the high-frequency action API."""
+        return self._action_specs[card_id]
 
     def execute(self, card_id: str, event: str, state, context: EffectContext) -> bool:
         if context.source_unit_id:

@@ -91,7 +91,9 @@ class SelfPlayRunner:
         totals = {"p1": 0, "p2": 0, "draw": 0}; before = len(self.buffer)
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         for _ in range(episodes):
-            env = Simulator(self.cards)
+            # Debug replay serializes every full state; the training replay
+            # buffer below already retains the required policy/value samples.
+            env = Simulator(self.cards, record_replay=False)
             decks = [build_random_deck(self.cards, seed=self.rng.randrange(2**31), main_nation=nation) for _ in range(2)]
             env.reset(*decks, nations=(nation, nation), seed=self.rng.randrange(2**31)); pending: list[tuple[TrainingExample, str]] = []
             player_one.reset(); player_two.reset()
@@ -115,7 +117,7 @@ class SelfPlayRunner:
                 features, mask = self.codec.encode_legal_actions(legal, pad_to_max=False)
                 policy = agent.last_policy or [float(a == action) for a in legal]
                 pending.append((TrainingExample(self.encoder.encode(state, player_id).tolist(), features.tolist(), mask.tolist(), policy, 0.0), player_id))
-                env.step(action)
+                env.step_fast(action)
             final_state = env.state  # type: ignore[assignment]
             status = final_state.game_status.value
             winner = "p1" if status == "player_one_won" else "p2" if status == "player_two_won" else None
