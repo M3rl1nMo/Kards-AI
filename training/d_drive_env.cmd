@@ -2,7 +2,8 @@
 rem Shared environment: keep every mutable training artifact on D:.
 set "KARDS_HOME=D:\KardsAI"
 set "KARDS_WORKSPACE=%KARDS_HOME%\workspace"
-set "KARDS_VENV=%KARDS_HOME%\venv"
+set "KARDS_PYTHON=%KARDS_HOME%\python\python.exe"
+set "KARDS_VENV=%KARDS_HOME%\training-venv"
 set "KARDS_RUNS_DIR=%KARDS_HOME%\runs"
 set "TEMP=%KARDS_HOME%\temp"
 set "TMP=%KARDS_HOME%\temp"

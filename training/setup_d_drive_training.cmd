@@ -11,11 +11,16 @@ if not exist "%KARDS_WORKSPACE%\.git" (
   echo D: training workspace already exists: %KARDS_WORKSPACE%
 )
 
+if not exist "%KARDS_PYTHON%" (
+  echo Complete D: Python is missing: %KARDS_PYTHON%
+  exit /b 1
+)
+
 if not exist "%KARDS_VENV%\Scripts\python.exe" (
   echo Creating a D: virtual environment ...
-  py -3 -m venv "%KARDS_VENV%"
+  "%KARDS_PYTHON%" -m venv "%KARDS_VENV%"
   if errorlevel 1 (
-    echo Python launcher ^(py -3^) was not found. Install Python, then rerun this script.
+    echo Failed to create the D: virtual environment.
     exit /b 1
   )
 )
@@ -25,7 +30,7 @@ if errorlevel 1 (
   echo Installing missing CUDA training dependencies on D: ...
   "%KARDS_VENV%\Scripts\python.exe" -m pip install --upgrade pip
   "%KARDS_VENV%\Scripts\python.exe" -m pip install numpy PyYAML
-  "%KARDS_VENV%\Scripts\python.exe" -m pip install "torch>=2.4,<3" --index-url https://download.pytorch.org/whl/cu128
+  "%KARDS_VENV%\Scripts\python.exe" -m pip install --timeout 900 --retries 10 "torch>=2.4,<3" --index-url https://download.pytorch.org/whl/cu128
   if errorlevel 1 exit /b 1
 )
 
