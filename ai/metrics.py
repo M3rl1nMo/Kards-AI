@@ -22,7 +22,11 @@ class RunMetrics:
         if self.path is None or not self.path.exists():
             return 0
         total = 0
-        for line in self.path.read_text(encoding="utf-8").splitlines():
+        # Avoid rereading an unbounded JSONL history at every child process.
+        with self.path.open("rb") as handle:
+            handle.seek(max(0, self.path.stat().st_size - 1_048_576))
+            text = handle.read().decode("utf-8", errors="ignore")
+        for line in text.splitlines():
             try:
                 item = json.loads(line)
             except json.JSONDecodeError:

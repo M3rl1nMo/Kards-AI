@@ -7,9 +7,10 @@ from pathlib import Path
 import subprocess
 import sys
 from datetime import datetime, timezone
+from ai.runtime import runs_dir
 
 ROOT = Path(__file__).parent
-RUNS = ROOT / "runs"
+RUNS = runs_dir()
 
 
 def execute(arguments: list[str]) -> None:
@@ -26,7 +27,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--evaluation-games", type=int, default=50)
     args = parser.parse_args()
-    RUNS.mkdir(exist_ok=True); stop_file = RUNS / "STOP"; stop_file.unlink(missing_ok=True)
+    RUNS.mkdir(parents=True, exist_ok=True); stop_file = RUNS / "STOP"; stop_file.unlink(missing_ok=True)
     checkpoint, replay, metrics = RUNS / "kardsnet.pt", RUNS / "replay.pkl", RUNS / "training_metrics.jsonl"
     iteration = 0
     while args.cycles == 0 or iteration < args.cycles:

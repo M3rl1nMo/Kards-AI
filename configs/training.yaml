@@ -2,3 +2,4 @@ batch_size: 64
 updates: 100
 learning_rate: 0.0003
 checkpoint: runs/kardsnet.pt
+replay_path: runs/replay.pkl

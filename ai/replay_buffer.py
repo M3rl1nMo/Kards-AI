@@ -17,9 +17,10 @@ class TrainingExample:
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int = 100_000, seed: int = 0) -> None:
+    def __init__(self, capacity: int = 50_000, seed: int = 0) -> None:
         self.capacity, self.examples, self.rng = capacity, [], random.Random(seed)
     def add(self, example: TrainingExample) -> None:
+        self._compact(example)
         if len(self.examples) >= self.capacity: self.examples.pop(0)
         self.examples.append(example)
     def sample(self, batch_size: int) -> list[TrainingExample]:
@@ -31,4 +32,25 @@ class ReplayBuffer:
     @classmethod
     def load(cls, path: str | Path) -> "ReplayBuffer":
         with open(path, "rb") as handle: data = pickle.load(handle)
-        result = cls(data["capacity"]); result.examples = data["examples"]; return result
+        result = cls(data["capacity"])
+        result.examples = data["examples"]
+        for example in result.examples:
+            result._compact(example)
+        return result
+
+    @staticmethod
+    def _compact(example: TrainingExample) -> None:
+        """Drop padded action slots retained by older replay files.
+
+        A previous format stored 512 action rows for every decision even when
+        only a few actions were legal.  Keeping only the meaningful prefix
+        shrinks resident replay memory and pickle traffic dramatically.
+        """
+        if not example.legal_mask:
+            return
+        last_legal = max((index for index, legal in enumerate(example.legal_mask) if legal), default=-1) + 1
+        if last_legal <= 0:
+            raise ValueError("Training example has no legal actions")
+        example.action_features = example.action_features[:last_legal]
+        example.legal_mask = example.legal_mask[:last_legal]
+        example.policy = example.policy[:last_legal]

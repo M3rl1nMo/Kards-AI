@@ -5,9 +5,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 from urllib.parse import urlparse
+from ai.runtime import runs_dir
 
 ROOT = Path(__file__).parent
-RUNS = ROOT / "runs"
+RUNS = runs_dir()
 
 
 def records(name: str) -> list[dict]:

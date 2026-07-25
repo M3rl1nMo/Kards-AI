@@ -110,10 +110,11 @@ class SelfPlayRunner:
                     except TypeError: agent.set_state(state, player_id)
                 observation = env.get_observation(player_id); agent.observe(observation)
                 action = agent.select_action(observation, legal)
-                features, mask = self.codec.encode_legal_actions(legal)
+                # Replay needs only legal candidates.  Padding to 512 here
+                # previously consumed most RAM and was rewritten to disk.
+                features, mask = self.codec.encode_legal_actions(legal, pad_to_max=False)
                 policy = agent.last_policy or [float(a == action) for a in legal]
-                padded_policy = policy + [0.0] * (self.codec.max_actions - len(policy))
-                pending.append((TrainingExample(self.encoder.encode(state, player_id).tolist(), features.tolist(), mask.tolist(), padded_policy, 0.0), player_id))
+                pending.append((TrainingExample(self.encoder.encode(state, player_id).tolist(), features.tolist(), mask.tolist(), policy, 0.0), player_id))
                 env.step(action)
             final_state = env.state  # type: ignore[assignment]
             status = final_state.game_status.value

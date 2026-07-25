@@ -4,3 +4,4 @@ nation: France
 mcts_simulations: 64
 workers: 4
 replay_path: runs/replay.pkl
+replay_capacity: 50000

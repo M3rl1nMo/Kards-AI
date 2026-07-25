@@ -6,6 +6,16 @@ For a fresh Codex or Windows training-machine setup, read
 Core, headless rules simulator for KARDS AI training. This repository deliberately
 contains no UI, networking, or client code.
 
+## Training storage and performance
+
+Training artifacts now default to `D:\KardsAI\runs` (set `KARDS_RUNS_DIR` to
+override it). This includes replay data, checkpoints, logs, evaluation reports,
+and the dashboard's input. The replay buffer stores only legal action slots and
+is bounded to 50,000 examples by default; old padded replay files are compacted
+when next loaded and saved. Use `training\run_parallel_selfplay.cmd` to launch
+the unattended loop, `打开监控.cmd` for the dashboard, and `停止训练.cmd` for a
+graceful stop.
+
 ## Card data
 
 `data/source/kards_info_cards.json` is the simulator's only card-data source.
