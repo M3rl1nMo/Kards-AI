@@ -69,6 +69,15 @@ def status() -> str:
         return "Error"
     if (RUNS / "STOP").exists():
         return "Stopping"
+    # A long self-play episode can be quiet for several minutes.  Check the
+    # command line only after lightweight file checks, so a quiet live worker
+    # is not misreported as stopped.
+    try:
+        commands = subprocess.check_output(["wmic", "process", "where", "name='python.exe'", "get", "CommandLine"], text=True, timeout=1)
+        if any("auto_train.py" in line or "selfplay.py" in line for line in commands.splitlines()):
+            return "Running"
+    except (FileNotFoundError, subprocess.SubprocessError):
+        pass
     if log and (time.time() - (RUNS / "formal_training.log").stat().st_mtime < 180):
         return "Running"
     return "Stopped"
