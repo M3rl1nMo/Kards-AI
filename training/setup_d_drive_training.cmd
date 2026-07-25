@@ -29,8 +29,9 @@ if not exist "%KARDS_VENV%\Scripts\python.exe" (
 if errorlevel 1 (
   echo Installing missing CUDA training dependencies on D: ...
   "%KARDS_VENV%\Scripts\python.exe" -m pip install --upgrade pip
-  "%KARDS_VENV%\Scripts\python.exe" -m pip install numpy PyYAML
-  "%KARDS_VENV%\Scripts\python.exe" -m pip install --timeout 900 --retries 10 "torch>=2.4,<3" --index-url https://download.pytorch.org/whl/cu128
+  "%KARDS_VENV%\Scripts\python.exe" -m pip install numpy PyYAML filelock typing-extensions "setuptools<82" sympy networkx jinja2 fsspec
+  rem Install the large wheel last and without resolver churn: it is cached on D:.
+  "%KARDS_VENV%\Scripts\python.exe" -m pip install --no-deps --timeout 900 --retries 10 "torch>=2.4,<3" --index-url https://download.pytorch.org/whl/cu128
   if errorlevel 1 exit /b 1
 )
 
