@@ -92,9 +92,11 @@ def dashboard_data() -> dict:
     train = [item for item in metrics if item.get("event") in {"train_progress", "train_complete"}]
     evaluations = records("cycle_history.jsonl")
     latest = (train + selfplay)[-1] if train or selfplay else {}
+    total_games = max((int(item.get("total_episodes", 0)) for item in selfplay), default=0)
     replay = RUNS / "replay.pkl"; checkpoint = RUNS / "kardsnet.pt"
     return {
         "status": status(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "latest": latest,
+        "training": {"total_games": total_games},
         "selfplay": selfplay[-200:], "train": train[-500:], "evaluations": evaluations[-100:],
         "games": records("games.jsonl", 50), "log": tail_log(), "system": system_usage(),
         "artifacts": {"replay_bytes": replay.stat().st_size if replay.exists() else 0,
