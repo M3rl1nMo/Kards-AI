@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable
 import random
 
@@ -27,8 +27,10 @@ class Simulator:
     # are useful for debugging, but self-play can safely opt out because it
     # stores its own training examples.
     record_replay: bool = True
+    _action_cache: list[Action] | None = field(default=None, init=False, repr=False)
 
     def reset(self, player_one_deck: Iterable[str], player_two_deck: Iterable[str], nations: tuple[str | None, str | None] = (None, None), seed: int = 0, auto_mulligan: bool = True, ally_nations: tuple[str | None, str | None] = (None, None)) -> GameState:
+        self._action_cache = None
         deck_one, deck_two = list(player_one_deck), list(player_two_deck)
         nation_one = nations[0] or self._infer_nation(deck_one)
         nation_two = nations[1] or self._infer_nation(deck_two)
@@ -69,6 +71,7 @@ class Simulator:
         """
         if self.state is None:
             raise RuntimeError("Call reset() before step()")
+        self._action_cache = None
         opponent = opponent_id(self.state, action.player_id)
         before = self.state.players[opponent].hq.current_health
         action.execute(self.state, self.cards)
@@ -88,11 +91,16 @@ class Simulator:
     def get_available_actions(self) -> list[Action]:
         if self.state is None or self.is_terminal():
             return []
+        if self._action_cache is not None:
+            # Never expose the cached container: callers may reorder/filter
+            # legal candidates, while a state has not changed underneath it.
+            return list(self._action_cache)
         player_id = self.state.current_player
         if self.state.mulligan_pending:
             if player_id not in self.state.mulligan_pending:
                 return []
-            return [MulliganAction(player_id, subset) for subset in _subsets(tuple(self.state.players[player_id].hand))]
+            self._action_cache = [MulliganAction(player_id, subset) for subset in _subsets(tuple(self.state.players[player_id].hand))]
+            return list(self._action_cache)
         player = self.state.players[player_id]
         actions: list[Action] = [PassAction(player_id)]
         rule_engine = engine_for(self.cards)
@@ -137,7 +145,8 @@ class Simulator:
                 action = AttackAction(player_id, unit.instance_id, target)
                 if _is_valid(action, self.state, self.cards):
                     actions.append(action)
-        return actions
+        self._action_cache = actions
+        return list(self._action_cache)
 
     def is_terminal(self) -> bool:
         return self.state is not None and self.state.game_status != GameStatus.IN_PROGRESS

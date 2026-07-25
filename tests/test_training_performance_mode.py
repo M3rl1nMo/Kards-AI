@@ -39,6 +39,17 @@ class TrainingPerformanceModeTests(unittest.TestCase):
         self.assertEqual(fast_env.state.to_dict(), public_state.to_dict())  # type: ignore[union-attr]
         self.assertIsNone(fast_env.replay)
 
+    def test_action_cache_returns_independent_lists_and_invalidates_after_step(self) -> None:
+        env = self._environment(record_replay=False)
+        first = env.get_available_actions()
+        second = env.get_available_actions()
+        self.assertEqual(first, second)
+        self.assertIsNot(first, second)
+        first.clear()
+        self.assertTrue(env.get_available_actions())
+        env.step_fast(second[0])
+        self.assertIsNone(env._action_cache)
+
 
 if __name__ == "__main__":
     unittest.main()

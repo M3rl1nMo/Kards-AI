@@ -140,6 +140,59 @@ class SelfPlayRunner:
         return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
 
+
+class VectorizedSelfPlay:
+    """Concurrent, independent environments sharing one batched GPU queue.
+
+    This is deliberately a scheduler rather than a second simulator: every
+    lane owns a normal ``Simulator`` and follows ``SelfPlayRunner.run``.  The
+    only shared mutable component is the inference queue, which serialises
+    model execution and batches requests from independent MCTS trees.
+    """
+
+    def __init__(self, cards: CardDatabase, encoder: ObservationEncoder, buffer: ReplayBuffer,
+                 max_actions: int = 300, seed: int = 0) -> None:
+        self.cards, self.encoder, self.buffer = cards, encoder, buffer
+        self.max_actions, self.rng = max_actions, random.Random(seed)
+        self.game_records: list[dict] = []
+
+    def run(self, episodes: int, model, simulations: int = 64, *, environments: int = 32,
+            nation: str = "France", max_batch_size: int = 32, max_wait_ms: float = 2.0) -> SelfPlayReport:
+        if episodes < 1 or environments < 1:
+            raise ValueError("episodes and environments must be positive")
+        from ai.agents import MCTSAgent
+        from ai.inference import BatchedInference
+
+        seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
+
+        def play(index: int, seed: int, inference: BatchedInference):
+            local_buffer = ReplayBuffer(seed=seed)
+            runner = SelfPlayRunner(self.cards, self.encoder, local_buffer, self.max_actions, seed)
+            first = MCTSAgent(model, self.encoder, simulations, seed + 1, inference=inference)
+            second = MCTSAgent(model, self.encoder, simulations, seed + 2, inference=inference)
+            report = runner.run(1, first, second, nation=nation)
+            return index, local_buffer.examples, report, runner.game_records[-1]
+
+        completed: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict]] = {}
+        with BatchedInference(model, max_batch_size=max_batch_size, max_wait_ms=max_wait_ms) as inference:
+            with ThreadPoolExecutor(max_workers=min(environments, episodes)) as pool:
+                futures = [pool.submit(play, index, seed, inference) for index, seed in enumerate(seeds)]
+                for future in as_completed(futures):
+                    index, examples, report, record = future.result()
+                    completed[index] = (examples, report, record)
+
+        totals = {"p1": 0, "p2": 0, "draw": 0}
+        turns = hq_damage = 0.0; cards_played = 0
+        for index in range(episodes):
+            examples, report, record = completed[index]
+            self.buffer.examples.extend(examples)
+            if len(self.buffer.examples) > self.buffer.capacity:
+                del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
+            totals["p1"] += report.p1_wins; totals["p2"] += report.p2_wins; totals["draw"] += report.draws
+            turns += report.average_turns; hq_damage += report.average_hq_damage; cards_played += report.average_cards_played
+        return SelfPlayReport(episodes, sum(len(item[0]) for item in completed.values()), totals["p1"], totals["p2"], totals["draw"],
+                              turns / episodes, hq_damage / episodes, cards_played / episodes)
+
     def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", workers: int = 2,
                      device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
         """Generate independent episodes concurrently without changing MCTS policy or rules.
@@ -211,3 +264,9 @@ class SelfPlayRunner:
                     merge(*future.result())
         return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
+
+
+# ``run_parallel`` predates VectorizedSelfPlay and remains part of the
+# SelfPlayRunner public API.  The implementation is shared because both
+# schedulers own the same cards/encoder/buffer/rng state.
+SelfPlayRunner.run_parallel = VectorizedSelfPlay.run_parallel
