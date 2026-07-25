@@ -69,6 +69,9 @@ def status() -> str:
         return "Error"
     if (RUNS / "STOP").exists():
         return "Stopping"
+    metrics_path = RUNS / "training_metrics.jsonl"
+    if metrics_path.exists() and time.time() - metrics_path.stat().st_mtime < 180:
+        return "Running"
     # A long self-play episode can be quiet for several minutes.  Check the
     # command line only after lightweight file checks, so a quiet live worker
     # is not misreported as stopped.
