@@ -18,6 +18,8 @@ class KeywordEngine:
     @staticmethod
     def has(card, keyword, unit=None):
         """Check catalog and runtime-granted abilities with removal overrides."""
+        if unit is not None and unit.status.get("suppressed"):
+            return False
         name = keyword.lower()
         removed = {str(value).lower() for value in (unit.status.get("removed_abilities", ()) if unit else ())}
         added = {str(value).lower() for value in (unit.status.get("added_abilities", ()) if unit else ())}
@@ -47,6 +49,8 @@ class KeywordEngine:
 
     @staticmethod
     def heavy_armor(card, unit=None):
+        if unit is not None and unit.status.get("suppressed"):
+            return 0
         removed = {str(value).lower() for value in (unit.status.get("removed_abilities", ()) if unit else ())}
         if "heavyarmor" in removed or "heavy armor" in removed:
             return 0
@@ -67,7 +71,12 @@ class KeywordEngine:
     @staticmethod
     def is_guarded(state, target, attacker_card, cards):
         if KeywordEngine.can_ignore_guard(attacker_card): return False
-        line = state.battlefield.get(target.position, [])
+        # Each player has an independent line. The shared battlefield list is
+        # used for stable serialization only, so filter it before adjacency.
+        line = [
+            unit_id for unit_id in state.battlefield.get(target.position, [])
+            if any(unit.instance_id == unit_id and unit.owner_id == target.owner_id for unit in state.players[target.owner_id].units)
+        ]
         try: index = line.index(target.instance_id)
         except ValueError: return False
         for neighbor in (index - 1, index + 1):
@@ -77,4 +86,25 @@ class KeywordEngine:
                     for unit in player.units:
                         if unit.instance_id == unit_id and unit.owner_id == target.owner_id and KeywordEngine.has(cards.get(unit.card_id), "guard", unit):
                             return True
+        return False
+
+    @staticmethod
+    def is_hq_guarded(state, player_id, attacker_card, cards) -> bool:
+        """Return whether the support-line unit adjacent to HQ has Guard.
+
+        The state stores only units in support-line order; HQ is the fixed
+        endpoint immediately before index zero.
+        """
+        if KeywordEngine.can_ignore_guard(attacker_card):
+            return False
+        support = [
+            unit_id for unit_id in state.battlefield.get("support_line", [])
+            if any(unit.instance_id == unit_id and unit.owner_id == player_id for unit in state.players[player_id].units)
+        ]
+        if not support:
+            return False
+        adjacent_id = support[0]
+        for unit in state.players[player_id].units:
+            if unit.instance_id == adjacent_id:
+                return KeywordEngine.has(cards.get(unit.card_id), "guard", unit)
         return False

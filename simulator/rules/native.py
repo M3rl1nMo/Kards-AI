@@ -17,6 +17,7 @@ from simulator.rules.parser import CardRule, RuleAction, RuleParser
 from simulator.rules.store import CardRuleStore
 from simulator.rules.condition import evaluate as condition_evaluate
 from simulator.rules.keywords import KeywordEngine
+from simulator.rules import suppression
 
 # Lowercased nation names used by scoped combat filters (card.nation is
 # capitalized, e.g. "Germany"; RuleAction.card_name carries the lowercased form).
@@ -109,7 +110,20 @@ class NativeRuleEngine:
         return self._rules[card_id]
 
     def execute(self, card_id: str, event: str, state, context: EffectContext) -> bool:
+        if context.source_unit_id:
+            source = find_unit(state, context.source_unit_id)
+            if source is not None and source.status.get("suppressed"):
+                return False
         rule = self.rule_for(card_id)
+        if context.target_unit_id and context.source_unit_id:
+            try:
+                target = find_unit(state, context.target_unit_id)
+                source = find_unit(state, context.source_unit_id)
+            except ActionValidationError:
+                target = source = None
+            if target is not None and source is not None and target.owner_id != source.owner_id and target.status.get("covert"):
+                if not any(action.card_name == "can_target_covert" for action in rule.actions):
+                    return False
         if event not in rule.triggers:
             return False
         # "Once per turn" belongs to the card rule, not necessarily to an
@@ -144,9 +158,19 @@ class NativeRuleEngine:
                     ctx = replace(context, metadata={**context.metadata, "target_card_id": tu.card_id, "target_owner_id": tu.owner_id})
             except Exception:
                 pass
+        if "reveal target covert" in rule.source_text.lower() and context.target_unit_id:
+            target = find_unit(state, context.target_unit_id)
+            if target is not None:
+                target.status.pop("covert", None)
         for action in rule.actions:
             self._execute_action(action, state, ctx)
             executed = True
+            if state.game_status.value != "in_progress":
+                break
+        # Native rules contain several hand mutations (return, exchange,
+        # generated cards). Reconcile Intel once the atomic rule resolves.
+        from simulator.rules.intel import refresh as refresh_intel
+        refresh_intel(state)
         state.event_log.append({"event": "native_rule_executed", "card_id": card_id, "trigger": event, "status": rule.status})
         return executed
 
@@ -170,6 +194,8 @@ class NativeRuleEngine:
                 # still valid; it simply has no living target owner.
                 pass
         for unit in units:
+            if state.game_status.value != "in_progress":
+                break
             if unit.card_id not in self.cards:
                 continue
             rule = self.rule_for(unit.card_id)
@@ -469,7 +495,8 @@ class NativeRuleEngine:
             options = [name.strip() for name in (action.card_name or "").split("|") if name.strip()]
             if not options:
                 return
-            chosen_name = random.Random((state.rng_seed or 0) + len(state.event_log)).choice(options)
+            requested = context.metadata.get("selected_option")
+            chosen_name = requested if requested in options else random.Random((state.rng_seed or 0) + len(state.event_log)).choice(options)
             card_id = self._by_name.get(chosen_name.upper())
             if card_id is None:
                 state.event_log.append({"event": "develop_failed", "name": chosen_name})
@@ -1039,6 +1066,8 @@ class NativeRuleEngine:
             unit = find_unit(state, context.source_unit_id)
             if unit:
                 unit.status["target_select"] = action.card_name or "always_chosen"
+                if action.card_name == "can_target_covert":
+                    unit.status["can_target_covert"] = True
             state.event_log.append({"event": "target_select_applied", "source_unit_id": context.source_unit_id})
             return
         # ── Enemy action restrictions ────────────────────────────────────────
@@ -1094,9 +1123,10 @@ class NativeRuleEngine:
             state.event_log.append({"event": "hq_damage_bonus", "source_unit_id": context.source_unit_id})
             return
         if action.kind == "countermeasure_lock":
-            opp = opponent_id(state, context.player_id)
-            state.players[opp].status["countermeasure_lock"] = True
-            state.event_log.append({"event": "countermeasure_lock", "player_id": opp})
+            source = find_unit(state, context.source_unit_id) if context.source_unit_id else None
+            if source:
+                source.status["countermeasure_lock"] = True
+                state.event_log.append({"event": "countermeasure_lock", "source_unit_id": source.instance_id})
             return
         if action.kind == "hq_defense_lock" and context.source_unit_id:
             unit = find_unit(state, context.source_unit_id)
@@ -1505,7 +1535,38 @@ class NativeRuleEngine:
             card_id = self._by_name.get((action.card_name or "").upper())
             if card_id:
                 card = self.cards.get(card_id)
-                if card is not None and card.is_unit:
+                target = None
+                if context.target_unit_id:
+                    try:
+                        target = find_unit(state, context.target_unit_id)
+                    except ActionValidationError:
+                        pass
+                if card is not None and card.is_unit and target is not None:
+                    # Convert changes the existing battlefield object instead
+                    # of creating a second unit. Converted state lasts only
+                    # for this battle because UnitState never leaves GameState.
+                    target.card_id = card_id
+                    target.attack = card.attack or 0
+                    target.defense = card.defense or 0
+                    target.modifiers.clear()
+                    target.status.clear()
+                    state.event_log.append({"event": "unit_converted", "unit_id": target.instance_id, "card_id": card_id})
+                elif context.metadata.get("selected_card_id"):
+                    # Hand/deck conversions retain the selected card's zone and
+                    # replace only that card instance (first matching catalog
+                    # id, because deck/hand still store card ids).
+                    selected_id = context.metadata["selected_card_id"]
+                    owner = state.players[context.player_id]
+                    selected_zone = context.metadata.get("selected_card_zone", "hand")
+                    if selected_zone == "hand" and selected_id in owner.hand:
+                        owner.hand[owner.hand.index(selected_id)] = card_id
+                        state.event_log.append({"event": "hand_card_converted", "from_card_id": selected_id, "card_id": card_id})
+                    elif selected_zone == "deck" and selected_id in owner.deck:
+                        owner.deck[owner.deck.index(selected_id)] = card_id
+                        state.event_log.append({"event": "deck_card_converted", "from_card_id": selected_id, "card_id": card_id})
+                    else:
+                        state.event_log.append({"event": "convert_target_missing", "card_id": selected_id})
+                elif card is not None and card.is_unit:
                     self._deploy_named_card(state, context, card_id)
                 else:
                     self._add_to_hand(state, context.player_id, card_id)
@@ -1612,6 +1673,8 @@ class NativeRuleEngine:
             else:
                 remaining.append(entry)
         player.scheduled = remaining
+        from simulator.rules.intel import refresh as refresh_intel
+        refresh_intel(state)
 
     @staticmethod
     def _apply_delayed(entry: dict, state) -> None:
@@ -1802,18 +1865,10 @@ class NativeRuleEngine:
             elif action.kind == "modify_defense":
                 unit.defense += action.amount
             elif action.kind == "suppress":
-                cannot_val = unit.status.get("cannot")
-                if cannot_val in ("be_suppressed", "be_pinned", True):
-                    continue  # unit immune to suppress/pin
-                if unit.status.get("veteran"):
-                    unit.status["veteran_before_suppression"] = True
-                    unit.status.pop("veteran", None)
-                unit.status["suppressed"] = True
+                suppression.apply(unit, self.cards.get(unit.card_id))
             elif action.kind == "pin":
-                cannot_val = unit.status.get("cannot")
-                if cannot_val in ("be_pinned", "be_suppressed", True):
-                    continue
-                unit.status["pinned"] = True
+                from simulator.rules.pin import apply as apply_pin
+                apply_pin(unit)
             elif action.kind == "destroy":
                 basic_effects.destroy(state, unit)
         self.emit_damage_since(state, start)
@@ -1846,12 +1901,13 @@ class NativeRuleEngine:
                 reverts.append({"unit_id": unit.instance_id, "remove_ability": action.card_name})
                 continue
             if action.kind == "suppress":
-                unit.status["suppressed"] = True
-                reverts.append({"unit_id": unit.instance_id, "attr": "suppressed", "delta": 1})
+                if suppression.apply(unit, self.cards.get(unit.card_id)):
+                    reverts.append({"unit_id": unit.instance_id, "attr": "suppressed", "delta": 1})
                 continue
             if action.kind == "pin":
-                unit.status["pinned"] = True
-                reverts.append({"unit_id": unit.instance_id, "attr": "pinned", "delta": 1})
+                from simulator.rules.pin import apply as apply_pin
+                if apply_pin(unit):
+                    reverts.append({"unit_id": unit.instance_id, "attr": "pinned", "delta": 1})
                 continue
             if action.kind == "buff":
                 reverts.append({"unit_id": unit.instance_id, "attr": "attack", "delta": action.attack})
@@ -1905,9 +1961,7 @@ class NativeRuleEngine:
                     elif "restore_attack" in rev:
                         unit.attack = rev["restore_attack"]
                     elif rev.get("attr") == "suppressed":
-                        unit.status.pop("suppressed", None)
-                        if unit.status.pop("veteran_before_suppression", False):
-                            unit.status["veteran"] = True
+                        suppression.restore(unit)
                     elif rev.get("attr") == "pinned":
                         unit.status.pop("pinned", None)
                     else:

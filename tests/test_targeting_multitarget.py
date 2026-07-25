@@ -88,6 +88,15 @@ class TargetingMultiTargetTests(unittest.TestCase):
         self.assertIn("suppressed", air_unit.status)
         self.assertNotIn("suppressed", ground_unit.status)
 
+    def test_suppression_honors_explicit_immunity(self) -> None:
+        state = self._state(p2_units=(("e1", "greif", 3, 4),))
+        unit = state.players["p2"].units[0]
+        unit.status["cannot_be_suppressed"] = True
+        NativeRuleEngine(self.cards)._execute_action(
+            RuleAction("suppress", "enemy_units"), state, EffectContext("p1"),
+        )
+        self.assertNotIn("suppressed", unit.status)
+
     def test_deal_damage_to_all_enemy_units(self) -> None:
         state = self._state(p2_units=(("e1", "greif", 3, 5), ("e2", "10th_para_battalion", 2, 5)))
         engine = NativeRuleEngine(self.cards)

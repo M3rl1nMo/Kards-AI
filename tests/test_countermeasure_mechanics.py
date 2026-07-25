@@ -95,6 +95,30 @@ class CountermeasureMechanicsTests(unittest.TestCase):
         rule = self.parser.parse(self.cards.get("hit_the_drop_point"))
         self.assertTrue(any(a.kind == "suppress" and a.target == "selected_target" for a in rule.actions))
 
+    def test_c6n_saiun_prevents_active_countermeasures_from_triggering(self) -> None:
+        state = self._state(
+            p2_units=(("saiun", "c6n_saiun", 1, 1),), p2_hand=("interception",),
+            p2_active=({"card_id": "interception", "activated_turn": 1},),
+        )
+        engine = NativeRuleEngine(self.cards)
+        engine.execute("c6n_saiun", "on_deploy", state, EffectContext("p2", "c6n_saiun", "saiun"))
+        cancelled = CountermeasureResolver.intercept(
+            state, self.cards, "p1", "on_command_played", EffectContext("p1", "critical_damage"),
+        )
+        self.assertFalse(cancelled)
+        self.assertEqual(len(state.players["p2"].active_countermeasures), 1)
+        self.assertTrue(any(e["event"] == "countermeasure_trigger_blocked" for e in state.event_log))
+
+    def test_c6n_saiun_blocks_countermeasures_globally(self) -> None:
+        state = self._state(
+            p1_units=(("saiun", "c6n_saiun", 1, 1),), p2_hand=("interception",),
+            p2_active=({"card_id": "interception", "activated_turn": 1},),
+        )
+        NativeRuleEngine(self.cards).execute("c6n_saiun", "on_deploy", state, EffectContext("p1", "c6n_saiun", "saiun"))
+        self.assertFalse(CountermeasureResolver.intercept(
+            state, self.cards, "p1", "on_command_played", EffectContext("p1", "critical_damage"),
+        ))
+
     def test_parser_lost_convoy_negative_attack(self) -> None:
         rule = self.parser.parse(self.cards.get("lost_convoy"))
         self.assertEqual(rule.status, "implemented")

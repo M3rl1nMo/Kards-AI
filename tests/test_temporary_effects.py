@@ -97,6 +97,23 @@ class TemporaryEffectsTests(unittest.TestCase):
         NativeRuleEngine.revert_temporary(state, "p1", state.turn_number + 1)
         self.assertEqual(unit.attack, 3)
 
+    def test_temporary_suppression_strips_then_restores_runtime_state(self) -> None:
+        state = self._state(p1_units=(("u1", "greif", 8, 9),))
+        unit = state.players["p1"].units[0]
+        unit.status.update({"added_abilities": ["blitz"], "veteran": True})
+        unit.modifiers.append({"type": "set_operation_cost", "value": 0})
+        engine = NativeRuleEngine(self.cards)
+        engine._execute_action(
+            RuleAction("suppress", "friendly_units", duration="this_turn"), state, EffectContext("p1"),
+        )
+        self.assertTrue(unit.status["suppressed"])
+        self.assertEqual((unit.attack, unit.defense), (self.cards.get("greif").attack, self.cards.get("greif").defense))
+        self.assertEqual(unit.modifiers, [])
+        self.assertFalse(unit.status.get("veteran"))
+        TurnManager.end_turn(state, "p1")
+        self.assertEqual((unit.attack, unit.defense), (8, 9))
+        self.assertEqual(unit.status["added_abilities"], ["blitz"])
+
     def test_temporary_cost_modifier_expires(self) -> None:
         state = self._state()
         engine = NativeRuleEngine(self.cards)

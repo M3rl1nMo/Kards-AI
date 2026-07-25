@@ -58,6 +58,8 @@ class TurnManager:
             state.event_log.append({"event": "card_overdrawn", "player_id": player_id, "card_id": card_id})
             return None
         player.hand.append(card_id)
+        from simulator.rules.intel import refresh
+        refresh(state)
         state.event_log.append({"event": "card_drawn", "player_id": player_id, "card_id": card_id})
         return card_id
 

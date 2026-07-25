@@ -88,21 +88,27 @@ class Simulator:
             positions = ("support_line",)  # KARDS units deploy to the support line.
             rule = rule_engine.rule_for(card_id)
             targets = all_units if rule.needs_target else [None]
-            selected_hand_cards = (
-                [candidate_id for candidate_id in player.hand if self.cards.get(candidate_id).is_unit and candidate_id != card_id]
+            selected_cards = (
+                [(candidate_id, "hand") for candidate_id in player.hand if self.cards.get(candidate_id).is_unit and candidate_id != card_id]
                 if any(action.kind == "swap_hand_unit_with_friendly" for action in rule.actions)
-                else [None]
+                else ([(candidate_id, "hand") for candidate_id in player.hand if candidate_id != card_id]
+                      + [(candidate_id, "deck") for candidate_id in player.deck])
+                if any(action.kind == "convert_to" for action in rule.actions)
+                else [(None, None)]
             )
             selected_options = (
                 [None] if has_high_attack else ["blitz", "shock"]
                 if any(action.kind == "shock_tactics_choice" for action in rule.actions)
-                else [None]
+                else [None, *[
+                    option.strip() for action in rule.actions if action.kind == "develop_options"
+                    for option in (action.card_name or "").split("|") if option.strip()
+                ]]
             )
             for position in positions:
                 for target_unit_id in targets:
-                    for selected_card_id in selected_hand_cards:
+                    for selected_card_id, selected_card_zone in selected_cards:
                         for selected_option in selected_options:
-                            action = PlayCardAction(player_id, card_id, position, target_unit_id, selected_card_id, selected_option)
+                            action = PlayCardAction(player_id, card_id, position, target_unit_id, selected_card_id, selected_option, selected_card_zone)
                             if _is_valid(action, self.state, self.cards):
                                 actions.append(action)
         enemy_id = opponent_id(self.state, player_id)
@@ -140,6 +146,9 @@ class Simulator:
         player = self.state.players[player_id]
         enemy = self.state.players[opponent_id(self.state, player_id)]
         opponent_view = _observation_player(enemy, False)
+        # Countermeasure activation is deliberately hidden: exposing remaining
+        # kredits would reveal the activation payment to the opponent.
+        opponent_view["kredits"] = None
         opponent_view["known_hand"] = list(player.status.get("known_enemy_hand", ()))
         return {"turn": self.state.turn_number, "current": self.state.current_player == player_id,
                 "self": _observation_player(player, True), "opponent": opponent_view,

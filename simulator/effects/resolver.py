@@ -37,11 +37,26 @@ class EffectResolver:
 
     def resolve(self, effect: Mapping[str, Any], state: GameState, context: EffectContext) -> None:
         """Resolve one effect document, supporting stable and legacy source shapes."""
+        if state.game_status.value != "in_progress":
+            return
+        # Keep the public primitive layer consistent with native unit abilities:
+        # an enemy unit ability may not affect a Covert target unless a caller
+        # has explicitly revealed it first.
+        if context.source_unit_id and context.target_unit_id:
+            source = find_unit(state, context.source_unit_id)
+            target = find_unit(state, context.target_unit_id)
+            if source is not None and target is not None and source.owner_id != target.owner_id and target.status.get("covert"):
+                state.event_log.append({"event": "covert_effect_ignored", "target_unit_id": target.instance_id})
+                return
         if not self._conditions_met(effect.get("conditions", effect.get("condition", [])), state, context):
             return
         for action in effect.get("actions", [effect]):
             if isinstance(action, Mapping):
                 self._resolve_action(action, state, context)
+                if state.game_status.value != "in_progress":
+                    break
+        from simulator.rules.intel import refresh as refresh_intel
+        refresh_intel(state)
 
     def emit(self, event: str, state: GameState, context: EffectContext) -> None:
         """Drain event-triggered effects in FIFO order for deterministic simulations."""
@@ -100,6 +115,8 @@ class EffectResolver:
                 card_id = player.hand.pop(0)
                 state.graveyard.setdefault(context.player_id, []).append(card_id)
                 state.event_log.append({"event": "card_discarded", "player_id": context.player_id, "card_id": card_id})
+            from simulator.rules.intel import refresh
+            refresh(state)
         elif kind == "destroy":
             for target in _units(targets):
                 basic_effects.destroy(state, target)
@@ -110,11 +127,15 @@ class EffectResolver:
         elif kind in {"spawn", "spawn_unit"}:
             self._spawn(state, context.player_id, str(action.get("card_reference", "")), str(action.get("position", "support_line")))
         elif kind == "suppress":
+            # Deferred to avoid resolver -> rules package -> native -> resolver
+            # import recursion during simulator startup.
+            from simulator.rules import suppression
             for target in _units(targets):
-                target.status["suppressed"] = True
+                suppression.apply(target, self.cards.get(target.card_id))
         elif kind == "pin":
+            from simulator.rules.pin import apply as apply_pin
             for target in _units(targets):
-                target.status["pinned"] = True
+                apply_pin(target)
         elif kind in {"add_keyword", "remove_keyword"}:
             keyword = str(action.get("keyword", ""))
             for target in _units(targets):

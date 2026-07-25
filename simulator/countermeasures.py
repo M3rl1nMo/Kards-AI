@@ -18,6 +18,11 @@ class CountermeasureResolver:
         fails, the countermeasure stays active and the action proceeds normally.
         """
         enemy = opponent_id(state, acting_player_id)
+        # C6N SAIUN-style effects are sourced by an in-play unit.  Do not use
+        # a sticky player flag: the lock must disappear when that unit leaves.
+        if any(unit.status.get("countermeasure_lock") for player in state.players.values() for unit in player.units):
+            state.event_log.append({"event": "countermeasure_trigger_blocked", "player_id": enemy, "global": True})
+            return False
         cancelled = False
         # Iterate over a snapshot so modifications from execute() do not skew
         # the loop.
@@ -28,6 +33,17 @@ class CountermeasureResolver:
             rule = engine_for(cards).rule_for(card_id)
             if event not in rule.triggers:
                 continue
+            # Covert units cannot be affected by countermeasures unless the
+            # countermeasure explicitly says it can target/affect Covert.
+            covert_target_id = context.target_unit_id or context.source_unit_id
+            if covert_target_id:
+                try:
+                    target = next(unit for player in state.players.values() for unit in player.units if unit.instance_id == covert_target_id)
+                except StopIteration:
+                    target = None
+                if target is not None and target.status.get("covert") and target.owner_id != enemy:
+                    if not any(action.card_name == "can_target_covert" for action in rule.actions):
+                        continue
 
             # Check that at least one action would actually fire (conditions
             # satisfied) BEFORE consuming the countermeasure.
@@ -88,6 +104,8 @@ class CountermeasureResolver:
             state.players[enemy].active_countermeasures.remove(counter)
             if card_id in state.players[enemy].hand:
                 state.players[enemy].hand.remove(card_id)
+            from simulator.rules.intel import refresh as refresh_intel
+            refresh_intel(state)
             state.graveyard.setdefault(enemy, []).append(card_id)
             state.event_log.append({
                 "event": "countermeasure_triggered",

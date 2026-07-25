@@ -8,6 +8,8 @@ class AbilityEngine:
 
     @staticmethod
     def has(card, unit, ability: str) -> bool:
+        if unit.status.get("suppressed"):
+            return False
         name = ability.lower()
         removed = {item.lower() for item in unit.status.get("removed_abilities", ())}
         added = {item.lower() for item in unit.status.get("added_abilities", ())}

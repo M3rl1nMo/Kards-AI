@@ -88,3 +88,5 @@ def remove_dead_units(state: GameState) -> None:
             state.graveyard.setdefault(player_id, []).append(unit.card_id)
             state.event_log.append({"event": "unit_died", "player_id": player_id, "unit_id": unit.instance_id, "card_id": unit.card_id})
         player.units = survivors
+    from simulator.rules.intel import refresh
+    refresh(state)

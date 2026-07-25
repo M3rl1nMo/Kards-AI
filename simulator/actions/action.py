@@ -17,6 +17,7 @@ from simulator.rules.keywords import KeywordEngine
 from simulator.rules.abilities import AbilityEngine
 from simulator.rules.native import engine_for
 from simulator.countermeasures import CountermeasureResolver
+from simulator.rules import intel as intel_rules
 
 
 class Action(ABC):
@@ -39,6 +40,7 @@ class PlayCardAction(Action):
     target_unit_id: str | None = None
     selected_card_id: str | None = None
     selected_option: str | None = None
+    selected_card_zone: str | None = None
 
     def validate(self, state: GameState, cards: CardDatabase) -> None:
         require_active_player(state, self.player_id)
@@ -69,6 +71,12 @@ class PlayCardAction(Action):
             selected_card = cards.get(self.selected_card_id) if self.selected_card_id in cards else None
             if selected_card is None or not selected_card.is_unit:
                 raise ActionValidationError("Selected hand card must be a unit")
+        if any(action.kind == "convert_to" for action in rule.actions) and self.selected_card_id is not None:
+            selected_zone = self.selected_card_zone or "hand"
+            if selected_zone not in {"hand", "deck"}:
+                raise ActionValidationError("Convert target zone must be hand or deck")
+            if self.selected_card_id not in getattr(player, selected_zone):
+                raise ActionValidationError("Selected conversion card is absent from its zone")
         if any(action.kind == "shock_tactics_choice" for action in rule.actions):
             if self.target_unit_id is None:
                 raise ActionValidationError("This card requires a ground unit target")
@@ -142,15 +150,11 @@ class PlayCardAction(Action):
             state.event_log.append({"event": "countermeasure_activated", "player_id": self.player_id, "card_id": card.id})
             return state
         player.hand.remove(self.card_id)
+        intel_rules.refresh(state)
         player.resources.kredits -= card_play_cost(state, self.player_id, card, cards) + _target_tax(state, self.target_unit_id, self.player_id)
         intel = KeywordEngine.numeric(card, "intel")
         if intel:
-            enemy = state.players[opponent_id(state, self.player_id)]
-            known = enemy.hand[:intel]
-            player.status.setdefault("known_enemy_hand", [])
-            for card_id in known:
-                if card_id not in player.status["known_enemy_hand"]:
-                    player.status["known_enemy_hand"].append(card_id)
+            known = intel_rules.reveal(state, self.player_id, opponent_id(state, self.player_id), intel)
             state.event_log.append({"event": "intel_revealed", "player_id": self.player_id, "count": len(known)})
         if card.is_unit:
             instance_id = _next_unit_id(state, self.card_id)
@@ -162,7 +166,7 @@ class PlayCardAction(Action):
             state.battlefield[self.position].append(instance_id)
             apply_op_cost_rules(state, self.player_id, unit, cards)
             state.event_log.append({"event": "unit_deployed", "player_id": self.player_id, "card_id": self.card_id, "unit_id": instance_id})
-            metadata = {key: value for key, value in (("selected_card_id", self.selected_card_id), ("selected_option", self.selected_option)) if value is not None}
+            metadata = {key: value for key, value in (("selected_card_id", self.selected_card_id), ("selected_option", self.selected_option), ("selected_card_zone", self.selected_card_zone)) if value is not None}
             context = EffectContext(self.player_id, self.card_id, instance_id, self.target_unit_id, metadata=metadata)
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, instance_id, self.target_unit_id, event="on_targeted_by_enemy_effect"))
@@ -216,7 +220,7 @@ class PlayCardAction(Action):
                 return state
             state.graveyard.setdefault(self.player_id, []).append(self.card_id)
             state.event_log.append({"event": "command_played", "player_id": self.player_id, "card_id": self.card_id})
-            metadata = {key: value for key, value in (("selected_card_id", self.selected_card_id), ("selected_option", self.selected_option)) if value is not None}
+            metadata = {key: value for key, value in (("selected_card_id", self.selected_card_id), ("selected_option", self.selected_option), ("selected_card_zone", self.selected_card_zone)) if value is not None}
             context = EffectContext(self.player_id, self.card_id, target_unit_id=self.target_unit_id, metadata=metadata)
             if self.target_unit_id is not None:
                 engine_for(cards).emit("on_targeted_by_enemy_effect", state, EffectContext(self.player_id, card.id, target_unit_id=self.target_unit_id, event="on_targeted_by_enemy_effect"))
@@ -286,7 +290,8 @@ class AttackAction(Action):
             target = find_unit(state, self.target_unit_id)
             if target.owner_id == self.player_id:
                 raise ActionValidationError("Unit cannot attack a friendly target")
-            if target.status.get("covert") and not attacker.status.get("can_target_covert"):
+            can_target_covert = attacker.status.get("can_target_covert") or attacker.status.get("target_select") == "can_target_covert"
+            if target.status.get("covert") and not can_target_covert:
                 raise ActionValidationError("Covert unit cannot be attacked")
             if AbilityEngine.has_smokescreen(cards.get(target.card_id), target):
                 raise ActionValidationError("Unit with Smokescreen cannot be attacked")
@@ -294,8 +299,11 @@ class AttackAction(Action):
                 raise ActionValidationError("Target cannot be attacked by ground units in support line")
             if KeywordEngine.is_guarded(state, target, card, cards):
                 raise ActionValidationError("Target is guarded")
-        elif attacker.status.get("cannot_attack_hq"):
-            raise ActionValidationError("Unit cannot attack enemy HQ")
+        else:
+            if attacker.status.get("cannot_attack_hq"):
+                raise ActionValidationError("Unit cannot attack enemy HQ")
+            if KeywordEngine.is_hq_guarded(state, opponent_id(state, self.player_id), card, cards):
+                raise ActionValidationError("Enemy HQ is guarded")
         if state.players[self.player_id].resources.kredits < _operation_cost(attacker, card) + _target_tax(state, self.target_unit_id, self.player_id):
             raise ActionValidationError("Insufficient kredits for operation")
 
@@ -378,7 +386,10 @@ class AttackAction(Action):
             if hq_dmg > 0:
                 resolver.resolve({"type": "damage", "target": "enemy_hq", "value": {"amount": hq_dmg}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, metadata={"combat_damage": True}))
         live_unit_ids = {unit.instance_id for player in state.players.values() for unit in player.units}
-        if attacker.instance_id in live_unit_ids and target.instance_id in live_unit_ids:
+        shock = KeywordEngine.has(cards.get(attacker.card_id), "shock", attacker)
+        if shock:
+            AbilityEngine.consume(attacker, "shock")
+        if not shock and attacker.instance_id in live_unit_ids and target.instance_id in live_unit_ids:
             death_start = len(state.event_log)
             return_damage = _cap_combat_damage(attacker, target.attack)
             resolver.resolve({"type": "damage", "target": "self", "value": {"amount": return_damage}}, state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, metadata={"combat_damage": True}))
@@ -488,6 +499,8 @@ def _next_unit_id(state: GameState, card_id: str) -> str:
 
 
 def _operation_cost(unit: UnitState, card) -> int:
+    if unit.status.get("covert"):
+        return 1
     set_val = next((m["value"] for m in unit.modifiers if m.get("type") == "set_operation_cost"), None)
     if set_val is not None:
         return max(0, set_val)
