@@ -103,7 +103,7 @@ class SelfPlayRunner:
 
     def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France",
             on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
-        totals = {"p1": 0, "p2": 0, "draw": 0}; before = len(self.buffer)
+        totals = {"p1": 0, "p2": 0, "draw": 0}; before = len(self.buffer); generated = 0
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         for _ in range(episodes):
             # Debug replay serializes every full state; the training replay
@@ -150,9 +150,10 @@ class SelfPlayRunner:
             for example, player_id in pending:
                 example.value = 0.0 if winner is None else (1.0 if winner == player_id else -1.0)
                 self.buffer.add(example)
+            generated += len(pending)
             if on_episode_complete:
-                on_episode_complete(sum(totals.values()), totals.copy(), len(self.buffer) - before)
-        return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
+                on_episode_complete(sum(totals.values()), totals.copy(), generated)
+        return SelfPlayReport(episodes, generated, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
 
 
@@ -220,7 +221,7 @@ class VectorizedSelfPlay:
         if workers < 1:
             raise ValueError("workers must be positive")
         mcts_options = mcts_options or {}
-        before = len(self.buffer); totals = {"p1": 0, "p2": 0, "draw": 0}
+        before = len(self.buffer); generated = 0; totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
         pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict, dict[str, float], dict[str, float]]] = {}
@@ -230,11 +231,12 @@ class VectorizedSelfPlay:
         transport_totals: dict[str, float] = {}
         def merge(index: int, examples: list[TrainingExample], report: SelfPlayReport, record: dict,
                   async_stats: dict[str, float], transport_stats: dict[str, float]) -> None:
-            nonlocal next_index, turns_total, hq_damage_total, cards_played_total
+            nonlocal next_index, turns_total, hq_damage_total, cards_played_total, generated
             pending[index] = (examples, report, record, async_stats, transport_stats)
             while next_index in pending:
                 examples, report, record, async_stats, transport_stats = pending.pop(next_index)
                 self.buffer.examples.extend(examples)
+                generated += len(examples)
                 if len(self.buffer.examples) > self.buffer.capacity:
                     del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
                 winner = "p1" if report.p1_wins else "p2" if report.p2_wins else "draw"
@@ -247,7 +249,7 @@ class VectorizedSelfPlay:
                 for key, value in transport_stats.items(): transport_totals[key] = transport_totals.get(key, 0.0) + value
                 next_index += 1
                 if on_episode_complete:
-                    on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
+                    on_episode_complete(next_index, totals.copy(), generated)
 
         if str(device).startswith("cuda"):
             # GPU contexts are process-local. Keep all CUDA work in the
@@ -311,7 +313,7 @@ class VectorizedSelfPlay:
             "average_deserialization_ms": 1000.0 * transport_totals.get("deserialization_seconds", 0.0) / requests_total if requests_total else 0.0,
             "average_inference_wait_ms": 1000.0 * transport_totals.get("inference_wait_seconds", 0.0) / requests_total if requests_total else 0.0,
         }
-        return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
+        return SelfPlayReport(episodes, generated, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
 
 
