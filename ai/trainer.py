@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 import random
+import numpy as np
 import torch
 from torch.nn import functional as F
 from ai.network import KARDSNet
@@ -50,6 +51,8 @@ class Trainer:
         torch.save({"state_dict": self.model.state_dict(), "architecture": self.model.architecture,
                     "optimizer_state": self.optimizer.state_dict(), "scaler_state": self.scaler.state_dict(),
                     "training_step": self.training_step, "python_random_state": random.getstate(),
+                    "numpy_random_state": np.random.get_state(), "torch_random_state": torch.get_rng_state(),
+                    "cuda_random_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
                     "replay_path": replay_path, "metadata": metadata}, path)
 
     def load_checkpoint(self, path: str | Path) -> None:
@@ -62,3 +65,9 @@ class Trainer:
         self.training_step = int(payload.get("training_step", 0))
         if payload.get("python_random_state"):
             random.setstate(payload["python_random_state"])
+        if payload.get("numpy_random_state"):
+            np.random.set_state(payload["numpy_random_state"])
+        if payload.get("torch_random_state") is not None:
+            torch.set_rng_state(payload["torch_random_state"].cpu())
+        if payload.get("cuda_random_states") and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all([state.cpu() for state in payload["cuda_random_states"]])

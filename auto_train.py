@@ -43,11 +43,11 @@ def main() -> None:
     while args.cycles == 0 or iteration < args.cycles:
         if not wait_for_resume(stop_file, pause_file): break
         iteration += 1
-        model_args = ["--model", str(checkpoint)] if checkpoint.exists() else []
-        execute(["selfplay.py", "--episodes", str(args.episodes), "--mcts-simulations", str(args.mcts_simulations), "--workers", str(args.workers), "--device", "cuda", "--replay", str(replay), "--append-replay", "--metrics", str(metrics), "--progress-every", "1", *model_args])
+        model_args = lambda: ["--model", str(checkpoint)] if checkpoint.exists() else []
+        execute(["selfplay.py", "--episodes", str(args.episodes), "--mcts-simulations", str(args.mcts_simulations), "--workers", str(args.workers), "--device", "cuda", "--replay", str(replay), "--append-replay", "--metrics", str(metrics), "--progress-every", "1", *model_args()])
         if stop_file.exists(): break
         if not wait_for_resume(stop_file, pause_file): break
-        execute(["train.py", "--replay", str(replay), "--updates", str(args.updates), "--batch-size", str(args.batch_size), "--checkpoint", str(checkpoint), "--metrics", str(metrics), "--device", "cuda", *model_args])
+        execute(["train.py", "--replay", str(replay), "--updates", str(args.updates), "--batch-size", str(args.batch_size), "--checkpoint", str(checkpoint), "--metrics", str(metrics), "--device", "cuda", *model_args()])
         if stop_file.exists(): break
         (RUNS / "SAVE_CHECKPOINT").unlink(missing_ok=True)
         if not wait_for_resume(stop_file, pause_file): break

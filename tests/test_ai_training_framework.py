@@ -1,9 +1,11 @@
 """End-to-end smoke tests for the separate AI training layer."""
 from pathlib import Path
+import random
 import tempfile
 import unittest
 import multiprocessing as mp
 
+import numpy as np
 import torch
 
 from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
@@ -156,6 +158,20 @@ class AITrainingFrameworkTests(unittest.TestCase):
         self.assertGreater(report.examples, 0)
         metrics = Trainer(KARDSNet(hidden_dim=32), device="cpu").train_batch(buffer, 4)
         self.assertIn("loss", metrics)
+
+    def test_trainer_checkpoint_restores_optimizer_step_and_rng(self) -> None:
+        buffer = ReplayBuffer(); runner = SelfPlayRunner(self.cards, self.encoder, buffer, max_actions=1, seed=44)
+        runner.run(1, RandomAgent(1), RandomAgent(2))
+        trainer = Trainer(KARDSNet(hidden_dim=32), device="cpu")
+        trainer.train_batch(buffer, 1)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trainer.pt"; trainer.save_checkpoint(path, replay_path="replay.pkl")
+            expected = (random.random(), float(np.random.rand()), float(torch.rand(())))
+            restored = Trainer(KARDSNet(hidden_dim=32), device="cpu"); restored.load_checkpoint(path)
+            actual = (random.random(), float(np.random.rand()), float(torch.rand(())))
+            self.assertEqual(restored.training_step, trainer.training_step)
+            self.assertTrue(restored.optimizer.state_dict()["state"])
+            self.assertEqual(actual, expected)
 
     def test_random_agent_can_start_one_thousand_games(self) -> None:
         """Required scale check: agent/environment contract survives 1,000 resets."""
