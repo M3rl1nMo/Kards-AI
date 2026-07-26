@@ -33,7 +33,8 @@ def records(name: str, limit: int = 2_000) -> list[dict]:
 
 
 def tail_log(lines: int = 120) -> list[str]:
-    path = RUNS / "formal_training.log"
+    path = RUNS / "logs" / "training.log"
+    if not path.exists(): path = RUNS / "formal_training.log"
     if not path.exists():
         return []
     with path.open("rb") as handle:
@@ -81,7 +82,9 @@ def status() -> str:
             return "Running"
     except (FileNotFoundError, subprocess.SubprocessError):
         pass
-    if log and (time.time() - (RUNS / "formal_training.log").stat().st_mtime < 180):
+    log_path = RUNS / "logs" / "training.log"
+    if not log_path.exists(): log_path = RUNS / "formal_training.log"
+    if log and log_path.exists() and (time.time() - log_path.stat().st_mtime < 180):
         return "Running"
     return "Stopped"
 
