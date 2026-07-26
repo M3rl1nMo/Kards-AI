@@ -52,15 +52,15 @@ class AITrainingFrameworkTests(unittest.TestCase):
             path = Path(directory) / "model.pt"; model.save_checkpoint(path); restored = KARDSNet.load_checkpoint(path)
             self.assertIsInstance(restored, KARDSNet)
 
-    def test_split_policy_and_value_match_forward(self) -> None:
+    def test_forward_returns_policy_and_value(self) -> None:
         torch.manual_seed(7)
         model = KARDSNet(hidden_dim=32).eval()
         states = torch.randn(2, STATE_DIM)
         actions = torch.randn(2, 5, ACTION_FEATURE_DIM)
         mask = torch.tensor([[True, True, False, True, False], [True, False, True, True, True]])
         logits, values = model(states, actions, mask)
-        torch.testing.assert_close(model.policy(states, actions, mask), logits)
-        torch.testing.assert_close(model.value(states), values)
+        self.assertEqual(tuple(logits.shape), (2, 5))
+        self.assertEqual(tuple(values.shape), (2,))
 
     def test_compact_legal_action_inference_matches_padded_slots(self) -> None:
         env = self._environment(); model = KARDSNet(hidden_dim=32).eval()
@@ -68,8 +68,8 @@ class AITrainingFrameworkTests(unittest.TestCase):
         padded_features, padded_mask = codec.encode_legal_actions(actions)
         compact_features, compact_mask = codec.encode_legal_actions(actions, pad_to_max=False)
         state = self.encoder.encode(env.get_state(), "p1")
-        padded_logits = model.policy(state, padded_features, padded_mask)[0, :len(actions)]
-        compact_logits = model.policy(state, compact_features, compact_mask)[0]
+        padded_logits = model(state, padded_features, padded_mask)[0][0, :len(actions)]
+        compact_logits = model(state, compact_features, compact_mask)[0][0]
         torch.testing.assert_close(compact_logits, padded_logits)
 
     def test_action_feature_cache_preserves_encoded_values(self) -> None:
@@ -87,8 +87,9 @@ class AITrainingFrameworkTests(unittest.TestCase):
         masks = [torch.tensor([True, True, False]), torch.tensor([True, False, True, True, False])]
         with BatchedInference(model, max_batch_size=4, max_wait_ms=0) as inference:
             for state, action_features, mask in zip(states, features, masks):
-                torch.testing.assert_close(inference.policy(state, action_features, mask), model.policy(state, action_features, mask)[0])
-                torch.testing.assert_close(inference.value(state), model.value(state)[0])
+                logits, value = inference.evaluate(state, action_features, mask)
+                expected_logits, expected_value = model(state, action_features, mask)
+                torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
 
     def test_process_inference_matches_local_network(self) -> None:
         model = KARDSNet(hidden_dim=32).eval()
@@ -98,8 +99,9 @@ class AITrainingFrameworkTests(unittest.TestCase):
             client = RemoteInferenceClient(requests, replies)
             state = torch.randn(STATE_DIM); features = torch.randn(3, ACTION_FEATURE_DIM)
             mask = torch.tensor([True, True, False])
-            torch.testing.assert_close(client.policy(state, features, mask), model.policy(state, features, mask)[0])
-            torch.testing.assert_close(client.value(state), model.value(state)[0])
+            logits, value = client.evaluate(state, features, mask)
+            expected_logits, expected_value = model(state, features, mask)
+            torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
         finally:
             service.close(); manager.shutdown()
 

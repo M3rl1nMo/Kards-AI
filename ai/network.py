@@ -10,7 +10,7 @@ from ai.observation import STATE_DIM
 
 
 class KARDSNet(nn.Module):
-    def __init__(self, state_dim: int = STATE_DIM, action_dim: int = ACTION_FEATURE_DIM, hidden_dim: int = 256) -> None:
+    def __init__(self, state_dim: int = STATE_DIM, action_dim: int = ACTION_FEATURE_DIM, hidden_dim: int = 128) -> None:
         super().__init__()
         self.architecture = {"state_dim": state_dim, "action_dim": action_dim, "hidden_dim": hidden_dim}
         self.state_encoder = nn.Sequential(nn.Linear(state_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU())
@@ -37,17 +37,6 @@ class KARDSNet(nn.Module):
         # for the active dtype is sufficient for masked softmax and keeps the
         # real mixed-precision training path valid.
         return logits.masked_fill(~legal_mask.bool(), torch.finfo(logits.dtype).min)
-
-    def policy(self, states: torch.Tensor, action_features: torch.Tensor, legal_mask: torch.Tensor) -> torch.Tensor:
-        """Return masked policy logits without evaluating the value head."""
-        states = self._batched_states(states)
-        action_features, legal_mask = self._batched_actions(action_features, legal_mask)
-        return self._policy_from_state_hidden(self.state_encoder(states), action_features, legal_mask)
-
-    def value(self, states: torch.Tensor) -> torch.Tensor:
-        """Return the value-head output without encoding candidate actions."""
-        states = self._batched_states(states)
-        return self.value_head(self.state_encoder(states)).squeeze(-1)
 
     def forward(self, states: torch.Tensor, action_features: torch.Tensor, legal_mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         states = self._batched_states(states)

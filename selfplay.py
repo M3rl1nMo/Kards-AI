@@ -41,5 +41,6 @@ def main() -> None:
     with games_path.open("a", encoding="utf-8") as handle:
         for index, game in enumerate(runner.game_records, start=metrics.previous_episodes + 1):
             handle.write(json.dumps({"game": index, **game}, ensure_ascii=False) + "\n")
-    metrics.emit("selfplay_complete", report=report, total_episodes=metrics.previous_episodes + report.episodes, replay_path=str(args.replay or cfg["replay_path"])); print(report)
+    metrics.emit("selfplay_complete", report=report, total_episodes=metrics.previous_episodes + report.episodes,
+                 inference=runner.last_inference_stats, replay_path=str(args.replay or cfg["replay_path"])); print(report)
 if __name__ == "__main__": main()

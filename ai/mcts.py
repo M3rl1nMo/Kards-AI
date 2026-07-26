@@ -30,6 +30,7 @@ class MCTSNode:
     action_features: torch.Tensor | None = None
     legal_mask: torch.Tensor | None = None
     observations: dict[str, torch.Tensor] = field(default_factory=dict)
+    evaluations: dict[str, tuple[torch.Tensor, float]] = field(default_factory=dict)
     visit_count: int = 0
     value_sum: float = 0.0
     expanded: bool = False
@@ -110,7 +111,8 @@ class MCTS:
         # required in replay/training tensors, but would only run masked GPU
         # work during tree search.
         node.action_features, node.legal_mask = self.codec.encode_legal_actions(node.actions, pad_to_max=False)
-        node.priors = self._priors(node, node.player_to_move, node.action_features, node.legal_mask, len(node.actions))
+        logits, _ = self._network(node, node.player_to_move)
+        node.priors = torch.softmax(logits, dim=0)[:len(node.actions)].tolist()
         # Rule legality is never pruned.  This ordering only controls which
         # legal successor is materialised first; progressive widening admits
         # every candidate as search visits grow.
@@ -122,14 +124,23 @@ class MCTS:
             node.observations[player_id] = self.encoder.encode(node.state, player_id)
         return node.observations[player_id]
 
-    def _priors(self, node: MCTSNode, player_id: str, features: torch.Tensor, mask: torch.Tensor, action_count: int) -> list[float]:
+    def _network(self, node: MCTSNode, player_id: str) -> tuple[torch.Tensor, float]:
+        """Return policy and value from one shared model forward per view."""
+        cached = node.evaluations.get(player_id)
+        if cached is not None:
+            return cached
+        assert node.action_features is not None and node.legal_mask is not None
         if self.inference is not None:
-            logits = self.inference.policy(self._observation(node, player_id), features, mask)
-            return torch.softmax(logits, dim=0)[:action_count].tolist()
-        if self.model is None: return [1.0 / action_count] * action_count
-        with torch.inference_mode():
-            logits = self.model.policy(self._observation(node, player_id).to(self.device), features.to(self.device), mask.to(self.device))
-            return torch.softmax(logits[0], dim=0)[:action_count].tolist()
+            logits, value = self.inference.evaluate(self._observation(node, player_id), node.action_features, node.legal_mask)
+            result = (logits, float(value.item()))
+        elif self.model is None:
+            result = (torch.zeros(len(node.actions)), 0.0)
+        else:
+            with torch.inference_mode():
+                logits, value = self.model(self._observation(node, player_id).to(self.device), node.action_features.to(self.device), node.legal_mask.to(self.device))
+                result = (logits[0].cpu(), float(value.item()))
+        node.evaluations[player_id] = result
+        return result
 
     def _select(self, node: MCTSNode, cards: CardDatabase) -> MCTSNode:
         candidates = self._candidate_indices(node)
@@ -173,12 +184,7 @@ class MCTS:
         status = node.state.game_status.value
         if status != "in_progress": return 1.0 if (status == "player_one_won") == (root_player == "p1") else -1.0 if status != "draw" else 0.0
         self._expand(node, cards)
-        if self.inference is not None:
-            return float(self.inference.value(self._observation(node, root_player)).item())
-        if self.model is None: return 0.0
-        with torch.inference_mode():
-            value = self.model.value(self._observation(node, root_player).to(self.device))
-            return float(value.item())
+        return self._network(node, root_player)[1]
 
     @staticmethod
     def _backpropagate(path: list[MCTSNode], value: float, root_player: str) -> None:

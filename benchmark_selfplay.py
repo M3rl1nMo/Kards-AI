@@ -25,7 +25,7 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for this benchmark")
     root = Path(__file__).parent; cards = CardDatabase.from_file(root / "data/source/kards_info_cards.json")
-    model = KARDSNet(hidden_dim=32).to("cuda").eval()
+    model = KARDSNet(hidden_dim=128).to("cuda").eval()
     runner = SelfPlayRunner(cards, ObservationEncoder(cards), ReplayBuffer(), args.max_actions, seed=301)
     started = perf_counter()
     if args.workers == 1:

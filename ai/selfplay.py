@@ -85,6 +85,7 @@ class SelfPlayRunner:
     def __init__(self, cards: CardDatabase, encoder: ObservationEncoder, buffer: ReplayBuffer, max_actions: int = 300, seed: int = 0) -> None:
         self.cards, self.encoder, self.buffer, self.max_actions, self.rng, self.codec = cards, encoder, buffer, max_actions, random.Random(seed), ActionEncoder()
         self.game_records: list[dict] = []
+        self.last_inference_stats: dict[str, float] = {}
 
     def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France",
             on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
@@ -195,7 +196,7 @@ class VectorizedSelfPlay:
 
     def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", workers: int = 2,
                      device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None,
-                     mcts_options: dict | None = None) -> SelfPlayReport:
+                     mcts_options: dict | None = None, measure_inference: bool = False) -> SelfPlayReport:
         """Generate independent episodes concurrently without changing MCTS policy or rules.
 
         Results are merged in episode-index order, keeping replay ordering deterministic
@@ -232,7 +233,8 @@ class VectorizedSelfPlay:
             context = mp.get_context("spawn")
             requests, tasks, results = context.Queue(), context.Queue(), context.Queue()
             responses = [context.Queue() for _ in range(workers)]
-            service = ProcessInferenceService(model, requests, responses)
+            service = ProcessInferenceService(model, requests, responses, max_batch_size=128, max_wait_ms=5.0,
+                                              measure_gpu_time=measure_inference)
             processes = [context.Process(target=_cuda_worker_loop,
                                          args=(str(card_path), model.architecture, simulations, self.max_actions,
                                                requests, responses[index], index, tasks, results, mcts_options), daemon=True)
@@ -252,6 +254,7 @@ class VectorizedSelfPlay:
                     merge(*payload); completed += 1
             finally:
                 service.close()
+                self.last_inference_stats = service.stats()
                 for process in processes:
                     process.join(timeout=5)
                     if process.is_alive():
