@@ -17,26 +17,58 @@ class TrainingExample:
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int = 50_000, seed: int = 0) -> None:
-        self.capacity, self.examples, self.rng = capacity, [], random.Random(seed)
+    def __init__(self, capacity: int = 50_000, seed: int = 0, recent_fraction: float = 0.6) -> None:
+        self.capacity, self.rng = capacity, random.Random(seed)
+        self.recent_fraction = recent_fraction
+        self.recent: list[TrainingExample] = []
+        self.archive: list[TrainingExample] = []
+        self.seen = 0
+    @property
+    def examples(self) -> list[TrainingExample]:
+        """Compatibility view; sampling deliberately mixes recent and old games."""
+        return self.recent + self.archive
+    def extend(self, examples: list[TrainingExample]) -> None:
+        for example in examples:
+            self.add(example)
     def add(self, example: TrainingExample) -> None:
         self._compact(example)
-        if len(self.examples) >= self.capacity: self.examples.pop(0)
-        self.examples.append(example)
+        self.seen += 1
+        recent_cap = max(1, int(self.capacity * self.recent_fraction))
+        archive_cap = max(1, self.capacity - recent_cap)
+        if len(self.recent) >= recent_cap:
+            displaced = self.recent.pop(0)
+            # Reservoir retention prevents a new self-play cycle from erasing
+            # all successful older policies.
+            if len(self.archive) < archive_cap:
+                self.archive.append(displaced)
+            else:
+                slot = self.rng.randrange(self.seen)
+                if slot < archive_cap:
+                    self.archive[slot] = displaced
+        self.recent.append(example)
     def sample(self, batch_size: int) -> list[TrainingExample]:
-        return self.rng.sample(self.examples, min(batch_size, len(self.examples)))
-    def __len__(self) -> int: return len(self.examples)
+        population = self.examples
+        return self.rng.sample(population, min(batch_size, len(population)))
+    def __len__(self) -> int: return len(self.recent) + len(self.archive)
     def save(self, path: str | Path) -> None:
         path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(path.suffix + ".tmp")
         with temporary.open("wb") as handle:
-            pickle.dump({"capacity": self.capacity, "examples": self.examples, "rng_state": self.rng.getstate()}, handle)
+            pickle.dump({"capacity": self.capacity, "recent_fraction": self.recent_fraction,
+                         "recent": self.recent, "archive": self.archive, "seen": self.seen,
+                         "rng_state": self.rng.getstate()}, handle)
         temporary.replace(path)
     @classmethod
     def load(cls, path: str | Path) -> "ReplayBuffer":
         with open(path, "rb") as handle: data = pickle.load(handle)
-        result = cls(data["capacity"])
-        result.examples = data["examples"]
+        result = cls(data["capacity"], recent_fraction=float(data.get("recent_fraction", 0.6)))
+        # Read the old flat replay format once, then keep it as the archive.
+        if "examples" in data:
+            result.archive = data["examples"][-result.capacity:]
+            result.seen = len(result.archive)
+        else:
+            result.recent, result.archive = data.get("recent", []), data.get("archive", [])
+            result.seen = int(data.get("seen", len(result.recent) + len(result.archive)))
         if data.get("rng_state"):
             result.rng.setstate(data["rng_state"])
         for example in result.examples:

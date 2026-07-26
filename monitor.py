@@ -93,7 +93,7 @@ def dashboard_data() -> dict:
     metrics = records("training_metrics.jsonl")
     selfplay = [item for item in metrics if item.get("event") in {"selfplay_progress", "selfplay_complete"}]
     train = [item for item in metrics if item.get("event") in {"train_progress", "train_complete"}]
-    evaluations = records("cycle_history.jsonl")
+    evaluations = records("evaluation_history.jsonl") or records("cycle_history.jsonl")
     latest = (train + selfplay)[-1] if train or selfplay else {}
     total_games = max((int(item.get("total_episodes", 0)) for item in selfplay), default=0)
     replay = RUNS / "replay.pkl"; checkpoint = RUNS / "latest.pt"
@@ -106,6 +106,8 @@ def dashboard_data() -> dict:
         "artifacts": {"replay_bytes": replay.stat().st_size if replay.exists() else 0,
                       "checkpoint_time": checkpoint.stat().st_mtime if checkpoint.exists() else None,
                       "replay_exists": replay.exists(), "checkpoint_exists": checkpoint.exists()},
+        "champion": {"exists": (RUNS / "champion.pt").exists(),
+                     "candidate_exists": (RUNS / "candidate.pt").exists()},
         "controls": {"paused": (RUNS / "PAUSE").exists(), "workers": latest.get("workers")},
     }
 

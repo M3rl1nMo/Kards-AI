@@ -40,31 +40,51 @@ def main() -> None:
     cycles = 0 if args.cycles is None else args.cycles; episodes=args.episodes or int(spcfg["episodes_per_cycle"]); sims=args.mcts_simulations or int(spcfg["simulations"]); workers=args.workers or int(spcfg["workers"]); updates=args.updates or int(tcfg["updates_per_cycle"]); batch=args.batch_size or int(tcfg["batch_size"]); eval_games=args.evaluation_games or int(ecfg["games_per_opponent"])
     RUNS.mkdir(parents=True, exist_ok=True); stop_file = RUNS / "STOP"; stop_file.unlink(missing_ok=True); pause_file = RUNS / "PAUSE"
     checkpoint, replay, metrics = RUNS / lcfg["latest_checkpoint"], RUNS / lcfg["replay_path"], RUNS / lcfg["metrics_path"]
+    champion, candidate = RUNS / "champion.pt", RUNS / "candidate.pt"
     checkpoints = RUNS / lcfg["history_dir"]; checkpoints.mkdir(exist_ok=True); (RUNS / "config_snapshot.yaml").write_text(Path(args.config).read_text(encoding="utf-8"), encoding="utf-8")
+    if not champion.exists() and checkpoint.exists():
+        shutil.copy2(checkpoint, champion)
+    if not champion.exists():
+        raise RuntimeError("No checkpoint is available to initialise the Champion model")
+    # `latest.pt` is always the accepted Champion.  A candidate can therefore
+    # fail an iteration without becoming the next self-play policy.
+    shutil.copy2(champion, checkpoint)
     iteration = 0
     while cycles == 0 or iteration < cycles:
         if not wait_for_resume(stop_file, pause_file): break
         iteration += 1
-        model_args = lambda: ["--model", str(checkpoint)] if checkpoint.exists() else []
-        execute(["selfplay.py", "--episodes", str(episodes), "--mcts-simulations", str(sims), "--workers", str(workers), "--max-actions", str(spcfg["max_actions"]), "--device", "cuda", "--replay", str(replay), "--append-replay", "--replay-capacity", str(spcfg["replay_capacity"]), "--metrics", str(metrics), "--progress-every", "1", "--async-mcts", "--max-pending-leaves", str(spcfg["max_pending_leaves"]), *model_args()])
+        execute(["selfplay.py", "--episodes", str(episodes), "--mcts-simulations", str(sims), "--workers", str(workers), "--max-actions", str(spcfg["max_actions"]), "--device", "cuda", "--replay", str(replay), "--append-replay", "--replay-capacity", str(spcfg["replay_capacity"]), "--metrics", str(metrics), "--progress-every", "1", "--async-mcts", "--max-pending-leaves", str(spcfg["max_pending_leaves"]), "--model", str(champion)])
         if stop_file.exists(): break
 
         if not wait_for_resume(stop_file, pause_file): break
-        execute(["train.py", "--replay", str(replay), "--updates", str(updates), "--batch-size", str(batch), "--learning-rate", str(tcfg["learning_rate"]), "--checkpoint", str(checkpoint), "--metrics", str(metrics), "--device", "cuda", *model_args()])
+        shutil.copy2(champion, candidate)
+        payload_before = __import__("torch").load(candidate, map_location="cpu", weights_only=False)
+        prior_step = int(payload_before.get("training_step", 0)); decay_every = int(tcfg.get("lr_decay_every_steps", 1000))
+        learning_rate = max(float(tcfg.get("min_learning_rate", tcfg["learning_rate"])),
+                            float(tcfg["learning_rate"]) * float(tcfg.get("lr_decay", 1.0)) ** (prior_step // max(1, decay_every)))
+        execute(["train.py", "--replay", str(replay), "--updates", str(updates), "--batch-size", str(batch), "--learning-rate", str(learning_rate), "--checkpoint", str(candidate), "--model", str(candidate), "--metrics", str(metrics), "--device", "cuda"])
         if stop_file.exists(): break
-        torch = __import__("torch"); payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
-        payload.setdefault("metadata", {}).update({"timestamp_utc": datetime.now(timezone.utc).isoformat(), "config_snapshot": cfg,
+        torch = __import__("torch"); payload = torch.load(candidate, map_location="cpu", weights_only=False)
+        payload.setdefault("metadata", {}).update({"timestamp_utc": datetime.now(timezone.utc).isoformat(), "config_snapshot": cfg, "learning_rate": learning_rate,
                                                      "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()})
-        torch.save(payload, checkpoint); step=int(payload.get("training_step", 0)); history=checkpoints / f"checkpoint_step_{step}.pt"; shutil.copy2(checkpoint, history)
+        torch.save(payload, candidate); step=int(payload.get("training_step", 0))
         for old in sorted(checkpoints.glob("checkpoint_step_*.pt"))[:-int(ccfg["keep_last"])]: old.unlink()
         (RUNS / "SAVE_CHECKPOINT").unlink(missing_ok=True)
         if not wait_for_resume(stop_file, pause_file): break
         reports=[]
         for opponent in ecfg["opponents"]:
             report = RUNS / "evaluations" / f"cycle-{iteration:05d}-{opponent}.json"; report.parent.mkdir(exist_ok=True)
-            execute(["evaluate.py", "--model", str(checkpoint), "--games", str(eval_games), "--opponent", opponent, "--report", str(report)]); reports.append(report)
+            execute(["evaluate.py", "--model", str(candidate), "--games", str(eval_games), "--opponent", opponent, "--report", str(report)]); reports.append(report)
+        gate_report = RUNS / "evaluations" / f"cycle-{iteration:05d}-champion.json"
+        execute(["evaluate.py", "--model", str(candidate), "--games", str(ecfg.get("champion_games", eval_games)), "--opponent", "model", "--opponent-model", str(champion), "--report", str(gate_report)])
+        gate = json.loads(gate_report.read_text(encoding="utf-8"))
+        promoted = float(gate["win_rate"]) >= float(ecfg.get("promotion_win_rate", 0.55))
+        if promoted: shutil.copy2(candidate, champion)
+        shutil.copy2(champion, checkpoint)
+        history=checkpoints / f"checkpoint_step_{step}.pt"; shutil.copy2(checkpoint, history)
+        reports.append(gate_report)
         with (RUNS / lcfg["evaluation_history"]).open("a", encoding="utf-8") as handle:
-            for report in reports: handle.write(json.dumps({"cycle": iteration, "timestamp_utc": datetime.now(timezone.utc).isoformat(), "training_step": step, "report": str(report), **json.loads(report.read_text(encoding="utf-8"))}, ensure_ascii=False) + "\n")
+            for report in reports: handle.write(json.dumps({"cycle": iteration, "timestamp_utc": datetime.now(timezone.utc).isoformat(), "training_step": step, "report": str(report), "candidate_vs_champion": report == gate_report, "promoted": promoted if report == gate_report else None, **json.loads(report.read_text(encoding="utf-8"))}, ensure_ascii=False) + "\n")
         if stop_file.exists(): break
 
     (RUNS / "training.lock").unlink(missing_ok=True); (RUNS / "training.pid").unlink(missing_ok=True)

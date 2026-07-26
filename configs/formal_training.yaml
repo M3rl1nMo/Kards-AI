@@ -7,19 +7,25 @@ self_play:
   max_pending_leaves: 8
   max_actions: 300
   nation: France
-  replay_capacity: 50000
+  replay_capacity: 250000
+  replay_recent_fraction: 0.6
 model:
   hidden_dim: 128
 training:
   batch_size: 64
-  learning_rate: 0.0003
-  updates_per_cycle: 100
+  learning_rate: 0.0001
+  min_learning_rate: 0.00003
+  lr_decay_every_steps: 1000
+  lr_decay: 0.9
+  updates_per_cycle: 800
 checkpoint:
   keep_last: 10
   interval_cycles: 1
 evaluation:
   interval_games: 10000
-  games_per_opponent: 20
+  games_per_opponent: 100
+  champion_games: 100
+  promotion_win_rate: 0.55
   opponents: [random, rule]
 logging:
   metrics_path: training_metrics.jsonl

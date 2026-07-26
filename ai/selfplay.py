@@ -201,9 +201,7 @@ class VectorizedSelfPlay:
         turns = hq_damage = 0.0; cards_played = 0
         for index in range(episodes):
             examples, report, record = completed[index]
-            self.buffer.examples.extend(examples)
-            if len(self.buffer.examples) > self.buffer.capacity:
-                del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
+            self.buffer.extend(examples)
             totals["p1"] += report.p1_wins; totals["p2"] += report.p2_wins; totals["draw"] += report.draws
             turns += report.average_turns; hq_damage += report.average_hq_damage; cards_played += report.average_cards_played
         return SelfPlayReport(episodes, sum(len(item[0]) for item in completed.values()), totals["p1"], totals["p2"], totals["draw"],
@@ -235,10 +233,8 @@ class VectorizedSelfPlay:
             pending[index] = (examples, report, record, async_stats, transport_stats)
             while next_index in pending:
                 examples, report, record, async_stats, transport_stats = pending.pop(next_index)
-                self.buffer.examples.extend(examples)
+                self.buffer.extend(examples)
                 generated += len(examples)
-                if len(self.buffer.examples) > self.buffer.capacity:
-                    del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
                 winner = "p1" if report.p1_wins else "p2" if report.p2_wins else "draw"
                 totals[winner] += 1; turns_total += report.average_turns
                 hq_damage_total += report.average_hq_damage; cards_played_total += report.average_cards_played
