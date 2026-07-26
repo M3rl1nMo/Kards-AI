@@ -40,7 +40,7 @@ def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict |
                              inference_requests=inference_requests, mcts_options=mcts_options or {})
 
 
-def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple[int, list[TrainingExample], SelfPlayReport, dict]:
+def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple[int, list[TrainingExample], SelfPlayReport, dict, dict[str, float]]:
     """Run one episode in a worker; result ordering is restored by the parent."""
     from ai.agents import MCTSAgent
 
@@ -57,7 +57,13 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference, **context["mcts_options"]),
     )
     report = runner.run(1, *agents, nation=nation)
-    return index, buffer.examples, report, runner.game_records[-1]
+    totals = {"searches": 0.0, "submitted_leaves": 0.0, "completed_leaves": 0.0,
+              "latency_sum_ms": 0.0, "pending_queue_peak": 0.0}
+    for agent in agents:
+        for key in ("searches", "submitted_leaves", "completed_leaves", "latency_sum_ms"):
+            totals[key] += agent.searcher.async_totals.get(key, 0.0)
+        totals["pending_queue_peak"] = max(totals["pending_queue_peak"], agent.searcher.async_totals.get("pending_queue_peak", 0.0))
+    return index, buffer.examples, report, runner.game_records[-1], totals
 
 
 def _cuda_worker_loop(card_path: str, architecture: dict, simulations: int, max_actions: int,
@@ -86,6 +92,7 @@ class SelfPlayRunner:
         self.cards, self.encoder, self.buffer, self.max_actions, self.rng, self.codec = cards, encoder, buffer, max_actions, random.Random(seed), ActionEncoder()
         self.game_records: list[dict] = []
         self.last_inference_stats: dict[str, float] = {}
+        self.last_async_stats: dict[str, float] = {}
 
     def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France",
             on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
@@ -208,13 +215,16 @@ class VectorizedSelfPlay:
         before = len(self.buffer); totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
-        pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict]] = {}
+        pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict, dict[str, float]]] = {}
         next_index = 0
-        def merge(index: int, examples: list[TrainingExample], report: SelfPlayReport, record: dict) -> None:
+        async_totals = {"searches": 0.0, "submitted_leaves": 0.0, "completed_leaves": 0.0,
+                        "latency_sum_ms": 0.0, "pending_queue_peak": 0.0}
+        def merge(index: int, examples: list[TrainingExample], report: SelfPlayReport, record: dict,
+                  async_stats: dict[str, float]) -> None:
             nonlocal next_index, turns_total, hq_damage_total, cards_played_total
-            pending[index] = (examples, report, record)
+            pending[index] = (examples, report, record, async_stats)
             while next_index in pending:
-                examples, report, record = pending.pop(next_index)
+                examples, report, record, async_stats = pending.pop(next_index)
                 self.buffer.examples.extend(examples)
                 if len(self.buffer.examples) > self.buffer.capacity:
                     del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
@@ -222,6 +232,9 @@ class VectorizedSelfPlay:
                 totals[winner] += 1; turns_total += report.average_turns
                 hq_damage_total += report.average_hq_damage; cards_played_total += report.average_cards_played
                 self.game_records.append(record)
+                for key in ("searches", "submitted_leaves", "completed_leaves", "latency_sum_ms"):
+                    async_totals[key] += async_stats.get(key, 0.0)
+                async_totals["pending_queue_peak"] = max(async_totals["pending_queue_peak"], async_stats.get("pending_queue_peak", 0.0))
                 next_index += 1
                 if on_episode_complete:
                     on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
@@ -267,6 +280,13 @@ class VectorizedSelfPlay:
                 futures = [pool.submit(_parallel_episode, index, seed, nation) for index, seed in enumerate(episode_seeds)]
                 for future in as_completed(futures):
                     merge(*future.result())
+        searches = async_totals["searches"]
+        self.last_async_stats = {
+            "pending_queue_peak": async_totals["pending_queue_peak"],
+            "average_inference_latency_ms": async_totals["latency_sum_ms"] / async_totals["completed_leaves"] if async_totals["completed_leaves"] else 0.0,
+            "async_searches": searches,
+            "async_submitted_leaves": async_totals["submitted_leaves"],
+        }
         return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)
 

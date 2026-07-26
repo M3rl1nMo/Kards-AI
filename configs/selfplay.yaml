@@ -6,5 +6,8 @@ workers: 4
 temperature: 1.0
 dirichlet_alpha: 0.3
 exploration_fraction: 0.25
+# Set false to retain the synchronous MCTS compatibility path.
+async_inference: true
+max_pending_leaves: 16
 replay_path: runs/replay.pkl
 replay_capacity: 50000

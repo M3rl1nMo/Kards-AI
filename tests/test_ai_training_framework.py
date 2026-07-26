@@ -121,6 +121,14 @@ class AITrainingFrameworkTests(unittest.TestCase):
         self.assertEqual(batched_action, local_action)
         self.assertEqual(batched_policy, local_policy)
 
+    def test_async_batched_mcts_produces_legal_policy(self) -> None:
+        env = self._environment(); model = KARDSNet(hidden_dim=32).eval(); state = env.get_state()
+        with BatchedInference(model, max_wait_ms=0) as inference:
+            action, policy = MCTS(model, self.encoder, simulations=3, seed=29, inference=inference,
+                                  async_inference=True, max_pending_leaves=3).search(state, self.cards, "p1")
+        self.assertIn(action, env.get_available_actions())
+        self.assertAlmostEqual(sum(policy.values()), 1.0)
+
     def test_mcts_agent_runs(self) -> None:
         env = self._environment(); agent = MCTSAgent(None, self.encoder, simulations=2); agent.set_state(env.get_state(), "p1", self.cards)
         action = agent.select_action(env.get_observation("p1"), env.get_available_actions()); env.step(action)

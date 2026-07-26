@@ -54,10 +54,13 @@ class BatchedInference:
             self._closed = True; self._queue.put(None); self._thread.join()
 
     def evaluate(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        return self.submit(state, features, mask).result()
+
+    def submit(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> Future:
         if self._closed: raise RuntimeError("BatchedInference is closed")
         future: Future = Future()
         self._queue.put(_Request(state.detach().cpu(), features.detach().cpu(), mask.detach().cpu(), future))
-        return future.result()
+        return future
 
     def stats(self) -> dict[str, float]: return self.metrics.snapshot()
 
@@ -96,15 +99,53 @@ class RemoteInferenceClient:
 
     def __init__(self, request_queue, response_queue, worker_id: int = 0) -> None:
         self.request_queue, self.response_queue, self.worker_id, self._next_request = request_queue, response_queue, worker_id, 0
+        self._pending: dict[int, Future] = {}
 
     def evaluate(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        future = self.submit(state, features, mask)
+        while not future.done():
+            self.poll(block=True)
+        return future.result()
+
+    def submit(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> Future:
         request_id = self._next_request; self._next_request += 1
+        future: Future = Future(); self._pending[request_id] = future
         self.request_queue.put((self.worker_id, request_id, state.tolist(), features.tolist(), mask.tolist()))
-        response_id, payload = self.response_queue.get()
-        if response_id != request_id: raise RuntimeError("Received an inference response for another request")
-        if isinstance(payload, str): raise RuntimeError(payload)
-        logits, value = payload
-        return torch.tensor(logits, dtype=torch.float32), torch.tensor(value, dtype=torch.float32)
+        return future
+
+    def poll(self, *, block: bool = False) -> int:
+        """Resolve completed responses without blocking an async tree search."""
+        completed = 0
+        while True:
+            try:
+                response_id, payload = self.response_queue.get() if block and not completed else self.response_queue.get_nowait()
+            except Empty:
+                return completed
+            future = self._pending.pop(response_id, None)
+            if future is None:
+                raise RuntimeError("Received an inference response for an unknown request")
+            if isinstance(payload, str): future.set_exception(RuntimeError(payload))
+            else:
+                logits, value = payload; future.set_result((torch.tensor(logits, dtype=torch.float32), torch.tensor(value, dtype=torch.float32)))
+            completed += 1
+
+
+class AsyncInferenceQueue:
+    """Non-blocking adapter used by async MCTS to observe queue pressure."""
+
+    def __init__(self, inference) -> None:
+        self.inference, self.pending, self.pending_peak = inference, 0, 0
+
+    def submit(self, state: torch.Tensor, features: torch.Tensor, mask: torch.Tensor) -> Future:
+        future = self.inference.submit(state, features, mask); self.pending += 1; self.pending_peak = max(self.pending_peak, self.pending)
+        return future
+
+    def poll(self) -> None:
+        if hasattr(self.inference, "poll"): self.inference.poll()
+
+    def resolved(self, future: Future) -> tuple[torch.Tensor, torch.Tensor]:
+        self.pending -= 1
+        return future.result()
 
 
 class ProcessInferenceService:

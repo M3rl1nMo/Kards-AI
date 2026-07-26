@@ -32,7 +32,8 @@ def main() -> None:
     model = KARDSNet(hidden_dim=128).to("cuda").eval()
     started = perf_counter()
     report = runner.run_parallel(args.episodes, model, args.simulations, ROOT / "data/source/kards_info_cards.json",
-                                 workers=args.workers, device="cuda", measure_inference=True)
+                                 workers=args.workers, device="cuda", measure_inference=True,
+                                 mcts_options={"async_inference": True, "max_pending_leaves": 16})
     elapsed = perf_counter() - started; stats = runner.last_inference_stats
     print(" ".join((
         f"games_per_second={report.episodes / elapsed:.4f}",
@@ -42,6 +43,8 @@ def main() -> None:
         f"average_batch_size={stats.get('average_batch_size', 0):.3f}",
         f"inferences_per_second={stats.get('inferences_per_second', 0):.2f}",
         f"gpu_seconds={stats.get('gpu_seconds', 0):.4f}",
+        f"inference_latency_ms={runner.last_async_stats.get('average_inference_latency_ms', 0):.3f}",
+        f"pending_queue_peak={runner.last_async_stats.get('pending_queue_peak', 0):.0f}",
     )))
 
 
