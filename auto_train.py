@@ -41,14 +41,17 @@ def main() -> None:
     RUNS.mkdir(parents=True, exist_ok=True); stop_file = RUNS / "STOP"; stop_file.unlink(missing_ok=True); pause_file = RUNS / "PAUSE"
     checkpoint, replay, metrics = RUNS / lcfg["latest_checkpoint"], RUNS / lcfg["replay_path"], RUNS / lcfg["metrics_path"]
     champion, candidate = RUNS / "champion.pt", RUNS / "candidate.pt"
+    best_external, best_metrics = RUNS / "best_external.pt", RUNS / "best_external_metrics.json"
     checkpoints = RUNS / lcfg["history_dir"]; checkpoints.mkdir(exist_ok=True); (RUNS / "config_snapshot.yaml").write_text(Path(args.config).read_text(encoding="utf-8"), encoding="utf-8")
     if not champion.exists() and checkpoint.exists():
         shutil.copy2(checkpoint, champion)
     if not champion.exists():
         raise RuntimeError("No checkpoint is available to initialise the Champion model")
-    # `latest.pt` is always the accepted Champion.  A candidate can therefore
-    # fail an iteration without becoming the next self-play policy.
-    shutil.copy2(champion, checkpoint)
+    # `latest.pt` is the historical best generalisation model, while Champion
+    # remains the local self-play opponent.  Neither is overwritten by a
+    # candidate that merely exploits the immediately preceding Champion.
+    if not best_external.exists(): shutil.copy2(champion, best_external)
+    shutil.copy2(best_external, checkpoint)
     iteration = 0
     while cycles == 0 or iteration < cycles:
         if not wait_for_resume(stop_file, pause_file): break
@@ -71,20 +74,35 @@ def main() -> None:
         for old in sorted(checkpoints.glob("checkpoint_step_*.pt"))[:-int(ccfg["keep_last"])]: old.unlink()
         (RUNS / "SAVE_CHECKPOINT").unlink(missing_ok=True)
         if not wait_for_resume(stop_file, pause_file): break
-        reports=[]
+        reports=[]; candidate_scores = {}; champion_scores = {}
         for opponent in ecfg["opponents"]:
-            report = RUNS / "evaluations" / f"cycle-{iteration:05d}-{opponent}.json"; report.parent.mkdir(exist_ok=True)
-            execute(["evaluate.py", "--model", str(candidate), "--games", str(eval_games), "--opponent", opponent, "--report", str(report)]); reports.append(report)
+            report = RUNS / "evaluations" / f"cycle-{iteration:05d}-candidate-{opponent}.json"; report.parent.mkdir(exist_ok=True)
+            execute(["evaluate.py", "--model", str(candidate), "--games", str(eval_games), "--opponent", opponent, "--report", str(report)])
+            candidate_scores[opponent] = json.loads(report.read_text(encoding="utf-8")); reports.append(("candidate", report))
+            baseline = RUNS / "evaluations" / f"cycle-{iteration:05d}-champion-{opponent}.json"
+            execute(["evaluate.py", "--model", str(champion), "--games", str(eval_games), "--opponent", opponent, "--report", str(baseline)])
+            champion_scores[opponent] = json.loads(baseline.read_text(encoding="utf-8")); reports.append(("champion", baseline))
         gate_report = RUNS / "evaluations" / f"cycle-{iteration:05d}-champion.json"
         execute(["evaluate.py", "--model", str(candidate), "--games", str(ecfg.get("champion_games", eval_games)), "--opponent", "model", "--opponent-model", str(champion), "--report", str(gate_report)])
         gate = json.loads(gate_report.read_text(encoding="utf-8"))
-        promoted = float(gate["win_rate"]) >= float(ecfg.get("promotion_win_rate", 0.55))
+        tolerance = float(ecfg.get("external_tolerance", 0.0))
+        external_ok = all(candidate_scores[name]["win_rate"] + tolerance >= champion_scores[name]["win_rate"] for name in ecfg["opponents"])
+        promoted = float(gate["win_rate"]) >= float(ecfg.get("promotion_win_rate", 0.55)) and external_ok
         if promoted: shutil.copy2(candidate, champion)
-        shutil.copy2(champion, checkpoint)
+        candidate_score = sum(item["win_rate"] for item in candidate_scores.values()) / len(candidate_scores)
+        best_score = float(json.loads(best_metrics.read_text(encoding="utf-8")).get("score", -1.0)) if best_metrics.exists() else -1.0
+        best_updated = promoted and candidate_score >= best_score
+        if best_updated:
+            shutil.copy2(candidate, best_external)
+            best_metrics.write_text(json.dumps({"score": candidate_score, "training_step": step, "cycle": iteration, "scores": candidate_scores}, indent=2), encoding="utf-8")
+        elif not best_metrics.exists():
+            champion_score = sum(item["win_rate"] for item in champion_scores.values()) / len(champion_scores)
+            best_metrics.write_text(json.dumps({"score": champion_score, "training_step": prior_step, "cycle": iteration, "scores": champion_scores}, indent=2), encoding="utf-8")
+        shutil.copy2(best_external, checkpoint)
         history=checkpoints / f"checkpoint_step_{step}.pt"; shutil.copy2(checkpoint, history)
-        reports.append(gate_report)
+        reports.append(("gate", gate_report))
         with (RUNS / lcfg["evaluation_history"]).open("a", encoding="utf-8") as handle:
-            for report in reports: handle.write(json.dumps({"cycle": iteration, "timestamp_utc": datetime.now(timezone.utc).isoformat(), "training_step": step, "report": str(report), "candidate_vs_champion": report == gate_report, "promoted": promoted if report == gate_report else None, **json.loads(report.read_text(encoding="utf-8"))}, ensure_ascii=False) + "\n")
+            for role, report in reports: handle.write(json.dumps({"cycle": iteration, "timestamp_utc": datetime.now(timezone.utc).isoformat(), "training_step": step, "report": str(report), "role": role, "candidate_vs_champion": role == "gate", "promoted": promoted if role == "gate" else None, "external_gate_passed": external_ok if role == "gate" else None, "best_external_updated": best_updated if role == "gate" else None, **json.loads(report.read_text(encoding="utf-8"))}, ensure_ascii=False) + "\n")
         if stop_file.exists(): break
 
     (RUNS / "training.lock").unlink(missing_ok=True); (RUNS / "training.pid").unlink(missing_ok=True)

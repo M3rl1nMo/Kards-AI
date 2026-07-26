@@ -26,6 +26,7 @@ evaluation:
   games_per_opponent: 100
   champion_games: 100
   promotion_win_rate: 0.55
+  external_tolerance: 0.0
   opponents: [random, rule]
 logging:
   metrics_path: training_metrics.jsonl
