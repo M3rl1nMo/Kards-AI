@@ -1,0 +1,29 @@
+self_play:
+  episodes_per_cycle: 1000
+  workers: 16
+  simulations: 16
+  async_mcts: true
+  shared_memory: true
+  max_pending_leaves: 8
+  max_actions: 300
+  nation: France
+  replay_capacity: 50000
+model:
+  hidden_dim: 128
+training:
+  batch_size: 64
+  learning_rate: 0.0003
+  updates_per_cycle: 100
+checkpoint:
+  keep_last: 10
+  interval_cycles: 1
+evaluation:
+  interval_games: 10000
+  games_per_opponent: 20
+  opponents: [random, rule]
+logging:
+  metrics_path: training_metrics.jsonl
+  replay_path: replay.pkl
+  latest_checkpoint: latest.pt
+  history_dir: checkpoints
+  evaluation_history: evaluation_history.jsonl

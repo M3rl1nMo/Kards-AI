@@ -93,7 +93,8 @@ def dashboard_data() -> dict:
     evaluations = records("cycle_history.jsonl")
     latest = (train + selfplay)[-1] if train or selfplay else {}
     total_games = max((int(item.get("total_episodes", 0)) for item in selfplay), default=0)
-    replay = RUNS / "replay.pkl"; checkpoint = RUNS / "kardsnet.pt"
+    replay = RUNS / "replay.pkl"; checkpoint = RUNS / "latest.pt"
+    if not checkpoint.exists(): checkpoint = RUNS / "kardsnet.pt"
     return {
         "status": status(), "timestamp_utc": datetime.now(timezone.utc).isoformat(), "latest": latest,
         "training": {"total_games": total_games},
