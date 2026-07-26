@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import math, random
 from concurrent.futures import Future
 from threading import RLock
-from time import perf_counter, sleep
+from time import perf_counter
 from typing import Any
 import torch
 
@@ -114,7 +114,7 @@ class MCTS:
             raise RuntimeError("MCTS root has no legal actions")
         queue = AsyncInferenceQueue(self.inference)
         root_future = queue.submit(self._observation(root, root.player_to_move), root.action_features, root.legal_mask)  # type: ignore[arg-type]
-        while not root_future.done(): queue.poll(); sleep(0.0005)
+        while not root_future.done(): queue.wait([root_future], timeout=0.005)
         self._apply_evaluation(root, queue.resolved(root_future))
         pending: list[tuple[Future, MCTSNode, list[MCTSNode], float]] = []
         submitted = completed = 0; pending_peak = 0; latencies: list[float] = []
@@ -134,7 +134,7 @@ class MCTS:
                 pending.append((future, node, path, perf_counter())); submitted += 1; pending_peak = max(pending_peak, len(pending))
             queue.poll(); resolved = [item for item in pending if item[0].done()]
             if not resolved:
-                sleep(0.0005); continue
+                queue.wait([item[0] for item in pending], timeout=0.005); continue
             for future, node, path, started in resolved:
                 pending.remove((future, node, path, started))
                 with node.lock:

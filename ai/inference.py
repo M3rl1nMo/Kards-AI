@@ -218,27 +218,39 @@ class RemoteInferenceClient:
                 response = self.response_queue.get() if block and not completed else self.response_queue.get_nowait()
             except Empty:
                 return completed
-            if len(response) == 2:
-                response_id, payload = response; slot = None
-            else:
-                response_id, slot, payload = response
-            future = self._pending.pop(response_id, None)
-            if future is None:
-                raise RuntimeError("Received an inference response for an unknown request")
-            self.metrics["inference_wait_seconds"] += perf_counter() - self._submitted_at.pop(response_id)
-            if isinstance(payload, str):
-                if slot is not None and self._shared is not None: self._free_slots.append(slot)
-                future.set_exception(RuntimeError(payload))
-            elif slot is not None and self._shared is not None:
-                started = perf_counter(); count = int(self._shared.counts[self.worker_id, slot])
-                logits = torch.from_numpy(self._shared.logits[self.worker_id, slot, :count].copy())
-                value = torch.tensor(float(self._shared.values[self.worker_id, slot]), dtype=torch.float32)
-                self._free_slots.append(slot); self.metrics["deserialization_seconds"] += perf_counter() - started
-                future.set_result((logits, value))
-            else:
-                started = perf_counter(); logits, value = payload; future.set_result((torch.tensor(logits, dtype=torch.float32), torch.tensor(value, dtype=torch.float32)))
-                self.metrics["deserialization_seconds"] += perf_counter() - started
+            self._resolve_response(response)
             completed += 1
+
+    def wait(self, timeout: float | None = None) -> int:
+        """Block on the response queue once, then drain ready replies."""
+        try:
+            response = self.response_queue.get(timeout=timeout)
+        except Empty:
+            return 0
+        self._resolve_response(response)
+        return 1 + self.poll()
+
+    def _resolve_response(self, response) -> None:
+        if len(response) == 2:
+            response_id, payload = response; slot = None
+        else:
+            response_id, slot, payload = response
+        future = self._pending.pop(response_id, None)
+        if future is None:
+            raise RuntimeError("Received an inference response for an unknown request")
+        self.metrics["inference_wait_seconds"] += perf_counter() - self._submitted_at.pop(response_id)
+        if isinstance(payload, str):
+            if slot is not None and self._shared is not None: self._free_slots.append(slot)
+            future.set_exception(RuntimeError(payload))
+        elif slot is not None and self._shared is not None:
+            started = perf_counter(); count = int(self._shared.counts[self.worker_id, slot])
+            logits = torch.from_numpy(self._shared.logits[self.worker_id, slot, :count].copy())
+            value = torch.tensor(float(self._shared.values[self.worker_id, slot]), dtype=torch.float32)
+            self._free_slots.append(slot); self.metrics["deserialization_seconds"] += perf_counter() - started
+            future.set_result((logits, value))
+        else:
+            started = perf_counter(); logits, value = payload; future.set_result((torch.tensor(logits, dtype=torch.float32), torch.tensor(value, dtype=torch.float32)))
+            self.metrics["deserialization_seconds"] += perf_counter() - started
 
 
 class AsyncInferenceQueue:
@@ -253,6 +265,13 @@ class AsyncInferenceQueue:
 
     def poll(self) -> None:
         if hasattr(self.inference, "poll"): self.inference.poll()
+
+    def wait(self, futures: list[Future], timeout: float) -> None:
+        if hasattr(self.inference, "wait"):
+            self.inference.wait(timeout)
+        else:
+            from concurrent.futures import wait
+            wait(futures, timeout=timeout)
 
     def resolved(self, future: Future) -> tuple[torch.Tensor, torch.Tensor]:
         self.pending -= 1
