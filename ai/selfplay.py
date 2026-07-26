@@ -23,7 +23,8 @@ _PARALLEL_CONTEXT: dict = {}
 
 
 def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict | None, simulations: int,
-                          max_actions: int, device: str, inference_requests=None, mcts_options: dict | None = None) -> None:
+                          max_actions: int, device: str, inference_requests=None, mcts_options: dict | None = None,
+                          shared_inference_spec=None) -> None:
     """Initialize one independent, deterministic self-play worker process."""
     from ai.agents import MCTSAgent
     from ai.network import KARDSNet
@@ -37,10 +38,11 @@ def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict |
         model.to(device).eval()
     _PARALLEL_CONTEXT.update(cards=cards, encoder=ObservationEncoder(cards), model=model,
                              simulations=simulations, max_actions=max_actions, device=device,
-                             inference_requests=inference_requests, mcts_options=mcts_options or {})
+                             inference_requests=inference_requests, mcts_options=mcts_options or {},
+                             shared_inference_spec=shared_inference_spec)
 
 
-def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple[int, list[TrainingExample], SelfPlayReport, dict, dict[str, float]]:
+def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple:
     """Run one episode in a worker; result ordering is restored by the parent."""
     from ai.agents import MCTSAgent
 
@@ -51,7 +53,8 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
     if context.get("inference_requests") is not None:
         from ai.inference import RemoteInferenceClient
         assert response_queue is not None
-        inference = RemoteInferenceClient(context["inference_requests"], response_queue, context.get("worker_id", 0))
+        inference = RemoteInferenceClient(context["inference_requests"], response_queue, context.get("worker_id", 0),
+                                          context.get("shared_inference_spec"))
     agents = (
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference, **context["mcts_options"]),
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference, **context["mcts_options"]),
@@ -63,13 +66,16 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
         for key in ("searches", "submitted_leaves", "completed_leaves", "latency_sum_ms"):
             totals[key] += agent.searcher.async_totals.get(key, 0.0)
         totals["pending_queue_peak"] = max(totals["pending_queue_peak"], agent.searcher.async_totals.get("pending_queue_peak", 0.0))
-    return index, buffer.examples, report, runner.game_records[-1], totals
+    transport = inference.stats() if inference is not None else {}
+    if inference is not None: inference.close()
+    return index, buffer.examples, report, runner.game_records[-1], totals, transport
 
 
 def _cuda_worker_loop(card_path: str, architecture: dict, simulations: int, max_actions: int,
-                      requests, response_queue, worker_id: int, tasks, results, mcts_options: dict) -> None:
+                      requests, response_queue, worker_id: int, tasks, results, mcts_options: dict,
+                      shared_inference_spec=None) -> None:
     """Run CPU-only rule simulations; CUDA inference remains in the parent."""
-    _parallel_worker_init(card_path, architecture, None, simulations, max_actions, "cpu", requests, mcts_options)
+    _parallel_worker_init(card_path, architecture, None, simulations, max_actions, "cpu", requests, mcts_options, shared_inference_spec)
     _PARALLEL_CONTEXT["worker_id"] = worker_id
     while True:
         task = tasks.get()
@@ -93,6 +99,7 @@ class SelfPlayRunner:
         self.game_records: list[dict] = []
         self.last_inference_stats: dict[str, float] = {}
         self.last_async_stats: dict[str, float] = {}
+        self.last_transport_stats: dict[str, float] = {}
 
     def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France",
             on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
@@ -203,7 +210,8 @@ class VectorizedSelfPlay:
 
     def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", workers: int = 2,
                      device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None,
-                     mcts_options: dict | None = None, measure_inference: bool = False) -> SelfPlayReport:
+                     mcts_options: dict | None = None, measure_inference: bool = False,
+                     shared_inference: bool = True) -> SelfPlayReport:
         """Generate independent episodes concurrently without changing MCTS policy or rules.
 
         Results are merged in episode-index order, keeping replay ordering deterministic
@@ -215,16 +223,17 @@ class VectorizedSelfPlay:
         before = len(self.buffer); totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
-        pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict, dict[str, float]]] = {}
+        pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict, dict[str, float], dict[str, float]]] = {}
         next_index = 0
         async_totals = {"searches": 0.0, "submitted_leaves": 0.0, "completed_leaves": 0.0,
                         "latency_sum_ms": 0.0, "pending_queue_peak": 0.0}
+        transport_totals: dict[str, float] = {}
         def merge(index: int, examples: list[TrainingExample], report: SelfPlayReport, record: dict,
-                  async_stats: dict[str, float]) -> None:
+                  async_stats: dict[str, float], transport_stats: dict[str, float]) -> None:
             nonlocal next_index, turns_total, hq_damage_total, cards_played_total
-            pending[index] = (examples, report, record, async_stats)
+            pending[index] = (examples, report, record, async_stats, transport_stats)
             while next_index in pending:
-                examples, report, record, async_stats = pending.pop(next_index)
+                examples, report, record, async_stats, transport_stats = pending.pop(next_index)
                 self.buffer.examples.extend(examples)
                 if len(self.buffer.examples) > self.buffer.capacity:
                     del self.buffer.examples[:len(self.buffer.examples) - self.buffer.capacity]
@@ -235,6 +244,7 @@ class VectorizedSelfPlay:
                 for key in ("searches", "submitted_leaves", "completed_leaves", "latency_sum_ms"):
                     async_totals[key] += async_stats.get(key, 0.0)
                 async_totals["pending_queue_peak"] = max(async_totals["pending_queue_peak"], async_stats.get("pending_queue_peak", 0.0))
+                for key, value in transport_stats.items(): transport_totals[key] = transport_totals.get(key, 0.0) + value
                 next_index += 1
                 if on_episode_complete:
                     on_episode_complete(next_index, totals.copy(), len(self.buffer) - before)
@@ -246,11 +256,16 @@ class VectorizedSelfPlay:
             context = mp.get_context("spawn")
             requests, tasks, results = context.Queue(), context.Queue(), context.Queue()
             responses = [context.Queue() for _ in range(workers)]
+            from ai.inference import SharedInferenceBuffers
+            shared_buffers = (SharedInferenceBuffers.create(workers, slots_per_worker=max(32, int(mcts_options.get("max_pending_leaves", 16)) * 2))
+                              if shared_inference else None)
             service = ProcessInferenceService(model, requests, responses, max_batch_size=128, max_wait_ms=5.0,
-                                              measure_gpu_time=measure_inference)
+                                              measure_gpu_time=measure_inference,
+                                              shared_spec=shared_buffers.spec if shared_buffers else None)
             processes = [context.Process(target=_cuda_worker_loop,
                                          args=(str(card_path), model.architecture, simulations, self.max_actions,
-                                               requests, responses[index], index, tasks, results, mcts_options), daemon=True)
+                                               requests, responses[index], index, tasks, results, mcts_options,
+                                               shared_buffers.spec if shared_buffers else None), daemon=True)
                          for index in range(workers)]
             for process in processes:
                 process.start()
@@ -268,6 +283,7 @@ class VectorizedSelfPlay:
             finally:
                 service.close()
                 self.last_inference_stats = service.stats()
+                if shared_buffers is not None: shared_buffers.unlink()
                 for process in processes:
                     process.join(timeout=5)
                     if process.is_alive():
@@ -286,6 +302,14 @@ class VectorizedSelfPlay:
             "average_inference_latency_ms": async_totals["latency_sum_ms"] / async_totals["completed_leaves"] if async_totals["completed_leaves"] else 0.0,
             "async_searches": searches,
             "async_submitted_leaves": async_totals["submitted_leaves"],
+        }
+        requests_total = transport_totals.get("requests", 0.0)
+        self.last_transport_stats = {
+            **transport_totals,
+            "average_request_transport_ms": 1000.0 * transport_totals.get("request_transport_seconds", 0.0) / requests_total if requests_total else 0.0,
+            "average_serialization_ms": 1000.0 * transport_totals.get("serialization_seconds", 0.0) / requests_total if requests_total else 0.0,
+            "average_deserialization_ms": 1000.0 * transport_totals.get("deserialization_seconds", 0.0) / requests_total if requests_total else 0.0,
+            "average_inference_wait_ms": 1000.0 * transport_totals.get("inference_wait_seconds", 0.0) / requests_total if requests_total else 0.0,
         }
         return SelfPlayReport(episodes, len(self.buffer) - before, totals["p1"], totals["p2"], totals["draw"],
                               turns_total / episodes, hq_damage_total / episodes, cards_played_total / episodes)

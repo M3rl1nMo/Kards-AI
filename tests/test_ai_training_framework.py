@@ -10,7 +10,7 @@ from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
-from ai.inference import BatchedInference, ProcessInferenceService, RemoteInferenceClient
+from ai.inference import BatchedInference, ProcessInferenceService, RemoteInferenceClient, SharedInferenceBuffers
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -104,6 +104,23 @@ class AITrainingFrameworkTests(unittest.TestCase):
             torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
         finally:
             service.close(); manager.shutdown()
+
+    def test_shared_process_inference_matches_local_network(self) -> None:
+        model = KARDSNet(hidden_dim=32).eval()
+        manager = mp.Manager(); requests = manager.Queue(); replies = manager.Queue()
+        buffers = SharedInferenceBuffers.create(1, slots_per_worker=2)
+        service = ProcessInferenceService(model, requests, [replies], max_wait_ms=0, shared_spec=buffers.spec)
+        try:
+            client = RemoteInferenceClient(requests, replies, shared_spec=buffers.spec)
+            state = torch.randn(STATE_DIM); features = torch.randn(3, ACTION_FEATURE_DIM)
+            mask = torch.tensor([True, True, False])
+            logits, value = client.evaluate(state, features, mask)
+            expected_logits, expected_value = model(state, features, mask)
+            torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
+            self.assertGreater(client.stats()["requests"], 0)
+            client.close()
+        finally:
+            service.close(); buffers.unlink(); manager.shutdown()
 
     @unittest.skipUnless(torch.cuda.is_available(), "requires CUDA")
     def test_cuda_parallel_selfplay_uses_process_workers(self) -> None:

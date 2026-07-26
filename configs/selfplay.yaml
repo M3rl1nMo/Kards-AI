@@ -9,5 +9,6 @@ exploration_fraction: 0.25
 # Set false to retain the synchronous MCTS compatibility path.
 async_inference: true
 max_pending_leaves: 16
+shared_inference: true
 replay_path: runs/replay.pkl
 replay_capacity: 50000

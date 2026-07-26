@@ -26,6 +26,7 @@ def main() -> None:
     fraction = args.exploration_fraction if args.exploration_fraction is not None else float(cfg.get("exploration_fraction", 0.25))
     async_mcts = args.async_mcts or bool(cfg.get("async_inference", False))
     max_pending_leaves = args.max_pending_leaves or int(cfg.get("max_pending_leaves", 16))
+    shared_inference = bool(cfg.get("shared_inference", True))
     agents = (MCTSAgent(model, encoder, sims, args.seed + 1, temperature=temperature, dirichlet_alpha=alpha, exploration_fraction=fraction), MCTSAgent(model, encoder, sims, args.seed + 2, temperature=temperature, dirichlet_alpha=alpha, exploration_fraction=fraction))
     episodes = args.episodes or int(cfg["episodes"]); metrics = RunMetrics(runtime_path(args.metrics, "training_metrics.jsonl"), "selfplay")
     def progress(completed, totals, examples):
@@ -37,7 +38,7 @@ def main() -> None:
     workers = args.workers or int(cfg.get("workers", 1)); replay_path = runtime_path(args.replay or cfg.get("replay_path"), "replay.pkl"); capacity = args.replay_capacity or int(cfg.get("replay_capacity", 50_000)); buffer = ReplayBuffer.load(replay_path) if args.append_replay and replay_path.exists() else ReplayBuffer(capacity=capacity, seed=args.seed); buffer.capacity = capacity; runner = SelfPlayRunner(cards, encoder, buffer, args.max_actions or int(cfg["max_actions"]), args.seed)
     options = {"temperature": temperature, "dirichlet_alpha": alpha, "exploration_fraction": fraction,
                "async_inference": async_mcts, "max_pending_leaves": max_pending_leaves}
-    report = runner.run_parallel(episodes, model, sims, ROOT / "data/source/kards_info_cards.json", nation=args.nation or str(cfg["nation"]), workers=workers, device=device, on_episode_complete=progress, mcts_options=options) if workers > 1 else runner.run(episodes, *agents, nation=args.nation or str(cfg["nation"]), on_episode_complete=progress)
+    report = runner.run_parallel(episodes, model, sims, ROOT / "data/source/kards_info_cards.json", nation=args.nation or str(cfg["nation"]), workers=workers, device=device, on_episode_complete=progress, mcts_options=options, shared_inference=shared_inference) if workers > 1 else runner.run(episodes, *agents, nation=args.nation or str(cfg["nation"]), on_episode_complete=progress)
     buffer = runner.buffer
     buffer.save(replay_path)
     games_path = runtime_path(None, "games.jsonl"); games_path.parent.mkdir(parents=True, exist_ok=True)
