@@ -31,6 +31,11 @@ evaluation:
   promotion_win_rate: 0.55
   external_tolerance: 0.0
   opponents: [random, rule]
+  fair_benchmark:
+    games: 500
+    simulations: 16
+    seed: 20260727
+    nations: [Britain, France, Germany, Japan, Soviet, USA]
 logging:
   metrics_path: training_metrics.jsonl
   replay_path: replay.pkl
