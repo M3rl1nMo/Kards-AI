@@ -17,7 +17,10 @@ training:
   min_learning_rate: 0.00003
   lr_decay_every_steps: 1000
   lr_decay: 0.9
-  updates_per_cycle: 800
+  # Mature candidates were consistently overstepping the external gate after
+  # 800 updates.  Use a smaller policy-iteration step while preserving the
+  # same replay distribution and learning-rate schedule.
+  updates_per_cycle: 500
 checkpoint:
   keep_last: 10
   interval_cycles: 1
