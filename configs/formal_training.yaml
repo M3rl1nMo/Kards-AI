@@ -6,8 +6,9 @@ self_play:
   shared_memory: true
   max_pending_leaves: 8
   max_actions: 300
-  # Verified official main-nation + ally pairs. France is intentionally
-  # ally-only. Each pair has passed twenty complete simulator smoke games.
+  # Every official combination available in the bundled catalogue. France is
+  # ally-only; ANZAC is omitted because this data source contains no ANZAC
+  # cards. Both sides use the sampled pair symmetrically for fair self-play.
   deck_pool:
     - {main: Britain, ally: France}
     - {main: Britain, ally: Poland}
@@ -15,6 +16,40 @@ self_play:
     - {main: Germany, ally: Finland}
     - {main: USA, ally: Britain}
     - {main: Soviet, ally: Poland}
+    - {main: Britain, ally: Germany}
+    - {main: Britain, ally: USA}
+    - {main: Britain, ally: Soviet}
+    - {main: Britain, ally: Japan}
+    - {main: Britain, ally: Italy}
+    - {main: Britain, ally: Finland}
+    - {main: Germany, ally: Britain}
+    - {main: Germany, ally: USA}
+    - {main: Germany, ally: Soviet}
+    - {main: Germany, ally: Japan}
+    - {main: Germany, ally: France}
+    - {main: Germany, ally: Poland}
+    - {main: USA, ally: Germany}
+    - {main: USA, ally: Soviet}
+    - {main: USA, ally: Japan}
+    - {main: USA, ally: France}
+    - {main: USA, ally: Italy}
+    - {main: USA, ally: Poland}
+    - {main: USA, ally: Finland}
+    - {main: Soviet, ally: Britain}
+    - {main: Soviet, ally: Germany}
+    - {main: Soviet, ally: USA}
+    - {main: Soviet, ally: Japan}
+    - {main: Soviet, ally: France}
+    - {main: Soviet, ally: Italy}
+    - {main: Soviet, ally: Finland}
+    - {main: Japan, ally: Britain}
+    - {main: Japan, ally: Germany}
+    - {main: Japan, ally: USA}
+    - {main: Japan, ally: Soviet}
+    - {main: Japan, ally: France}
+    - {main: Japan, ally: Italy}
+    - {main: Japan, ally: Poland}
+    - {main: Japan, ally: Finland}
   replay_capacity: 250000
   replay_recent_fraction: 0.6
 model:

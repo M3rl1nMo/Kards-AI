@@ -10,7 +10,10 @@ import torch
 from simulator.actions.action import Action, AttackAction, MoveUnitAction, MulliganAction, PassAction, PlayCardAction, UseAbilityAction
 
 ACTION_FEATURE_DIM = 16
-MAX_ACTIONS = 512
+# KARDS orders can combine many selectable cards and battlefield targets.  The
+# original 512-row transport limit rejected legal Japanese deck positions;
+# 1024 covers the full currently bundled card catalogue without pruning.
+MAX_ACTIONS = 1024
 _TYPE = {PassAction: 0, PlayCardAction: 1, AttackAction: 2, MoveUnitAction: 3, UseAbilityAction: 4, MulliganAction: 5}
 
 
