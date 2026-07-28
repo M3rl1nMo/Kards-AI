@@ -7,7 +7,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from simulator.actions.validator import find_unit, opponent_id
+from simulator.actions.validator import ActionValidationError, find_unit, opponent_id
 from simulator.cards.loader import CardDatabase
 from simulator.core.hq import HQResolver
 from simulator.core.state import GameState, UnitState
@@ -43,8 +43,16 @@ class EffectResolver:
         # an enemy unit ability may not affect a Covert target unless a caller
         # has explicitly revealed it first.
         if context.source_unit_id and context.target_unit_id:
-            source = find_unit(state, context.source_unit_id)
-            target = find_unit(state, context.target_unit_id)
+            # An event can outlive a unit it refers to: for example, combat
+            # damage can destroy the target before a later FIFO listener is
+            # resolved.  Such a targeted effect has no legal target and must
+            # fizzle rather than making the whole game invalid.
+            try:
+                source = find_unit(state, context.source_unit_id)
+                target = find_unit(state, context.target_unit_id)
+            except ActionValidationError:
+                state.event_log.append({"event": "effect_target_no_longer_exists", "target_unit_id": context.target_unit_id})
+                return
             if source is not None and target is not None and source.owner_id != target.owner_id and target.status.get("covert"):
                 state.event_log.append({"event": "covert_effect_ignored", "target_unit_id": target.instance_id})
                 return

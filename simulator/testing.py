@@ -12,6 +12,11 @@ from simulator.core.game import Simulator
 from simulator.core.state import GameState
 from simulator.rules.deck import DeckValidator
 
+# KARDS deck building: only the five major nations may be the main nation.
+# France, Italy, Poland and Finland are allies in the bundled catalogue.
+OFFICIAL_MAIN_NATIONS = ("Britain", "Germany", "USA", "Soviet", "Japan")
+OFFICIAL_ALLY_NATIONS = ("Germany", "Britain", "Soviet", "Japan", "USA", "France", "Italy", "Poland", "Finland", "ANZAC")
+
 
 @dataclass(frozen=True)
 class SimulationReport:
@@ -22,13 +27,20 @@ class SimulationReport:
     final_state: GameState
 
 
-def build_random_deck(cards: CardDatabase, size: int = 40, seed: int | None = None, main_nation: str = "France", ally_nation: str | None = None) -> list[str]:
+def build_random_deck(cards: CardDatabase, size: int = 40, seed: int | None = None, main_nation: str = "France", ally_nation: str | None = None,
+                      ally_limit: int = 12, enforce_official_nations: bool = False) -> list[str]:
     """Build a seeded, 40-card-deck-builder-legal kards.info deck.
 
     ``OnlySpawnable`` is excluded; ``reserved`` is intentionally allowed.
     """
     if size != 40:
         raise ValueError("KARDS decks must contain exactly 40 cards")
+    if enforce_official_nations and main_nation not in OFFICIAL_MAIN_NATIONS:
+        raise ValueError(f"Main nation must be one of {OFFICIAL_MAIN_NATIONS}: {main_nation}")
+    if enforce_official_nations and ally_nation is not None and ally_nation not in OFFICIAL_ALLY_NATIONS:
+        raise ValueError(f"Unsupported ally nation: {ally_nation}")
+    if ally_nation == main_nation:
+        raise ValueError("Main and ally nations must differ")
     allowed_nations = {main_nation, ally_nation, "Neutral"}
     candidates = [
         card for card in cards
@@ -38,17 +50,22 @@ def build_random_deck(cards: CardDatabase, size: int = 40, seed: int | None = No
     rng.shuffle(candidates)
     limits = {"standard": 4, "limited": 3, "special": 2, "elite": 1}
     deck: list[str] = []
+    ally_count = 0
     for card in candidates:
         copies = limits.get(card.rarity.lower(), 0)
+        if card.nation == ally_nation:
+            copies = min(copies, max(0, ally_limit - ally_count))
         for _ in range(copies):
             if len(deck) == size:
                 break
             deck.append(card.id)
+            if card.nation == ally_nation:
+                ally_count += 1
         if len(deck) == size:
             break
     if len(deck) != size:
         raise ValueError("Insufficient collectible cards to build a legal deck")
-    validation = DeckValidator(cards).validate(deck, main_nation, ally_nation)
+    validation = DeckValidator(cards).validate(deck, main_nation, ally_nation, ally_limit=ally_limit)
     if not validation.valid:
         raise AssertionError("Generated illegal deck: " + "; ".join(validation.errors))
     return deck

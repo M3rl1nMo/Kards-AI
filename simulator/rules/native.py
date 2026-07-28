@@ -190,11 +190,25 @@ class NativeRuleEngine:
             except Exception:
                 pass
         if "reveal target covert" in rule.source_text.lower() and context.target_unit_id:
-            target = find_unit(state, context.target_unit_id)
+            try:
+                target = find_unit(state, context.target_unit_id)
+            except ActionValidationError:
+                target = None
             if target is not None:
                 target.status.pop("covert", None)
         for action in rule.actions:
-            self._execute_action(action, state, ctx)
+            try:
+                self._execute_action(action, state, ctx)
+            except ActionValidationError as error:
+                # A multi-clause card can remove its selected unit before a
+                # later clause runs.  The later clause then has no target and
+                # legally fizzles; it must not abort the enclosing game.
+                stale_ids = {candidate for candidate in (ctx.source_unit_id, ctx.target_unit_id) if candidate}
+                if stale_ids and any(candidate in str(error) for candidate in stale_ids):
+                    state.event_log.append({"event": "native_rule_stale_reference", "card_id": card_id,
+                                            "trigger": event, "detail": str(error)})
+                    continue
+                raise
             executed = True
             if state.game_status.value != "in_progress":
                 break
@@ -2019,7 +2033,7 @@ class NativeRuleEngine:
     def _move_units(self, position: str, action: RuleAction, state, context) -> None:
         """Move resolved units (single target or a scoped group) to a position."""
         if action.target in ("friendly_units", "enemy_units"):
-            units = _resolve_units_scoped(action.target, action, state, context)
+            units = self._resolve_units_scoped(action.target, action, state, context)
         elif action.target in ("selected_friendly", "selected_enemy", "selected_target", "target") and context.target_unit_id:
             unit = find_unit(state, context.target_unit_id)
             units = [unit] if unit is not None else []

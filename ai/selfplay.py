@@ -42,7 +42,7 @@ def _parallel_worker_init(card_path: str, architecture: dict, state_dict: dict |
                              shared_inference_spec=shared_inference_spec)
 
 
-def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -> tuple:
+def _parallel_episode(index: int, seed: int, nation: str, ally_nation: str | None = None, response_queue=None) -> tuple:
     """Run one episode in a worker; result ordering is restored by the parent."""
     from ai.agents import MCTSAgent
 
@@ -59,7 +59,7 @@ def _parallel_episode(index: int, seed: int, nation: str, response_queue=None) -
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 1, inference=inference, **context["mcts_options"]),
         MCTSAgent(context["model"], context["encoder"], context["simulations"], seed + 2, inference=inference, **context["mcts_options"]),
     )
-    report = runner.run(1, *agents, nation=nation)
+    report = runner.run(1, *agents, nation=nation, ally_nation=ally_nation)
     totals = {"searches": 0.0, "submitted_leaves": 0.0, "completed_leaves": 0.0,
               "latency_sum_ms": 0.0, "pending_queue_peak": 0.0}
     for agent in agents:
@@ -101,16 +101,19 @@ class SelfPlayRunner:
         self.last_async_stats: dict[str, float] = {}
         self.last_transport_stats: dict[str, float] = {}
 
-    def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France",
+    def run(self, episodes: int, player_one: BaseAgent, player_two: BaseAgent, nation: str = "France", ally_nation: str | None = None,
+            deck_pool: list[tuple[str, str | None]] | None = None,
             on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None) -> SelfPlayReport:
         totals = {"p1": 0, "p2": 0, "draw": 0}; before = len(self.buffer); generated = 0
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
         for _ in range(episodes):
             # Debug replay serializes every full state; the training replay
             # buffer below already retains the required policy/value samples.
+            main_nation, selected_ally = self.rng.choice(deck_pool) if deck_pool else (nation, ally_nation)
             env = Simulator(self.cards, record_replay=False)
-            decks = [build_random_deck(self.cards, seed=self.rng.randrange(2**31), main_nation=nation) for _ in range(2)]
-            env.reset(*decks, nations=(nation, nation), seed=self.rng.randrange(2**31)); pending: list[tuple[TrainingExample, str]] = []
+            decks = [build_random_deck(self.cards, seed=self.rng.randrange(2**31), main_nation=main_nation,
+                                       ally_nation=selected_ally, enforce_official_nations=bool(deck_pool)) for _ in range(2)]
+            env.reset(*decks, nations=(main_nation, main_nation), ally_nations=(selected_ally, selected_ally), seed=self.rng.randrange(2**31)); pending: list[tuple[TrainingExample, str]] = []
             player_one.reset(); player_two.reset()
             for _ in range(self.max_actions):
                 if env.is_terminal(): break
@@ -207,7 +210,8 @@ class VectorizedSelfPlay:
         return SelfPlayReport(episodes, sum(len(item[0]) for item in completed.values()), totals["p1"], totals["p2"], totals["draw"],
                               turns / episodes, hq_damage / episodes, cards_played / episodes)
 
-    def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", workers: int = 2,
+    def run_parallel(self, episodes: int, model, simulations: int, card_path: str | Path, nation: str = "France", ally_nation: str | None = None,
+                     deck_pool: list[tuple[str, str | None]] | None = None, workers: int = 2,
                      device: str = "cuda", on_episode_complete: Callable[[int, dict[str, int], int], None] | None = None,
                      mcts_options: dict | None = None, measure_inference: bool = False,
                      shared_inference: bool = True) -> SelfPlayReport:
@@ -221,7 +225,7 @@ class VectorizedSelfPlay:
         mcts_options = mcts_options or {}
         before = len(self.buffer); generated = 0; totals = {"p1": 0, "p2": 0, "draw": 0}
         turns_total = 0; hq_damage_total = 0.0; cards_played_total = 0
-        episode_seeds = [self.rng.randrange(2**31) for _ in range(episodes)]
+        episode_specs = [(self.rng.randrange(2**31), *(self.rng.choice(deck_pool) if deck_pool else (nation, ally_nation))) for _ in range(episodes)]
         pending: dict[int, tuple[list[TrainingExample], SelfPlayReport, dict, dict[str, float], dict[str, float]]] = {}
         next_index = 0
         async_totals = {"searches": 0.0, "submitted_leaves": 0.0, "completed_leaves": 0.0,
@@ -268,8 +272,8 @@ class VectorizedSelfPlay:
             for process in processes:
                 process.start()
             try:
-                for index, seed in enumerate(episode_seeds):
-                    tasks.put((index, seed, nation))
+                for index, (seed, main_nation, selected_ally) in enumerate(episode_specs):
+                    tasks.put((index, seed, main_nation, selected_ally))
                 for _ in processes:
                     tasks.put(None)
                 completed = 0
@@ -291,7 +295,7 @@ class VectorizedSelfPlay:
             with ProcessPoolExecutor(max_workers=workers, initializer=_parallel_worker_init,
                                      initargs=(str(card_path), model.architecture, cpu_state,
                                                simulations, self.max_actions, device, None, mcts_options)) as pool:
-                futures = [pool.submit(_parallel_episode, index, seed, nation) for index, seed in enumerate(episode_seeds)]
+                futures = [pool.submit(_parallel_episode, index, seed, main_nation, selected_ally) for index, (seed, main_nation, selected_ally) in enumerate(episode_specs)]
                 for future in as_completed(futures):
                     merge(*future.result())
         searches = async_totals["searches"]

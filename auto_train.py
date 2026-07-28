@@ -56,7 +56,7 @@ def main() -> None:
     while cycles == 0 or iteration < cycles:
         if not wait_for_resume(stop_file, pause_file): break
         iteration += 1
-        execute(["selfplay.py", "--episodes", str(episodes), "--mcts-simulations", str(sims), "--workers", str(workers), "--max-actions", str(spcfg["max_actions"]), "--device", "cuda", "--replay", str(replay), "--append-replay", "--replay-capacity", str(spcfg["replay_capacity"]), "--metrics", str(metrics), "--progress-every", "1", "--async-mcts", "--max-pending-leaves", str(spcfg["max_pending_leaves"]), "--model", str(champion)])
+        execute(["selfplay.py", "--episodes", str(episodes), "--mcts-simulations", str(sims), "--workers", str(workers), "--max-actions", str(spcfg["max_actions"]), "--device", "cuda", "--replay", str(replay), "--append-replay", "--replay-capacity", str(spcfg["replay_capacity"]), "--metrics", str(metrics), "--progress-every", "1", "--async-mcts", "--max-pending-leaves", str(spcfg["max_pending_leaves"]), "--deck-pool", json.dumps(spcfg["deck_pool"]), "--model", str(champion)])
         if stop_file.exists(): break
 
         if not wait_for_resume(stop_file, pause_file): break

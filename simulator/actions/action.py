@@ -337,9 +337,25 @@ class AttackAction(Action):
             resolver.emit("after_attack", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
             return state
 
-        target = find_unit(state, self.target_unit_id)
+        # Attack listeners may legally remove or return the defender before
+        # combat damage is dealt.  Re-check after the FIFO trigger window;
+        # combat then ends without trying to damage an entity that left play.
+        try:
+            target = find_unit(state, self.target_unit_id)
+        except ActionValidationError:
+            state.event_log.append({"event": "attack_target_no_longer_exists", "attacker_id": attacker.instance_id,
+                                    "target_id": self.target_unit_id})
+            resolver.emit("after_attack", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+            return state
         target.status.pop("covert", None)
         engine_for(cards).emit("on_targeted_by_enemy_attack", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id, target.instance_id, event="on_targeted_by_enemy_attack"))
+        try:
+            target = find_unit(state, self.target_unit_id)
+        except ActionValidationError:
+            state.event_log.append({"event": "attack_target_no_longer_exists", "attacker_id": attacker.instance_id,
+                                    "target_id": self.target_unit_id})
+            resolver.emit("after_attack", state, EffectContext(self.player_id, attacker.card_id, attacker.instance_id))
+            return state
         if AbilityEngine.has_ambush(cards.get(target.card_id), target) and not target.status.get("ambush_used_this_round"):
             target.status["ambush_used_this_round"] = True
             resolver.resolve({"type": "damage", "target": "self", "value": {"amount": target.attack}}, state, EffectContext(target.owner_id, target.card_id, target.instance_id, attacker.instance_id))

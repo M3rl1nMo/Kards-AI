@@ -6,7 +6,15 @@ self_play:
   shared_memory: true
   max_pending_leaves: 8
   max_actions: 300
-  nation: France
+  # Verified official main-nation + ally pairs. France is intentionally
+  # ally-only. Each pair has passed twenty complete simulator smoke games.
+  deck_pool:
+    - {main: Britain, ally: France}
+    - {main: Britain, ally: Poland}
+    - {main: Germany, ally: Italy}
+    - {main: Germany, ally: Finland}
+    - {main: USA, ally: Britain}
+    - {main: Soviet, ally: Poland}
   replay_capacity: 250000
   replay_recent_fraction: 0.6
 model:

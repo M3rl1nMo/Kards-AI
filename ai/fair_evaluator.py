@@ -38,7 +38,7 @@ class FairEvaluator:
         self.cards, self.encoder, self.seed = cards, encoder, seed
 
     def evaluate(self, model, opponent: str, *, games: int = 500, simulations: int = 16,
-                 nations: list[str] | None = None) -> FairEvaluationReport:
+                 nations: list[str] | None = None, deck_pool: list[tuple[str, str | None]] | None = None) -> FairEvaluationReport:
         if games < 2:
             raise ValueError("Fair evaluation requires at least two games to alternate seats")
         if opponent not in {"random", "rule", "model"}:
@@ -55,7 +55,7 @@ class FairEvaluator:
             candidate_first = index % 2 == 0
             report = runner.run(1, candidate if candidate_first else rival,
                                 rival if candidate_first else candidate,
-                                nation=nations[index % len(nations)])
+                                nation=nations[index % len(nations)], deck_pool=deck_pool)
             if candidate_first:
                 wins += report.p1_wins; losses += report.p2_wins; p1_games += 1
             else:
