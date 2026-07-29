@@ -15,8 +15,16 @@ class EvaluationReport:
 
 class Evaluator:
     def __init__(self, cards: CardDatabase, encoder: ObservationEncoder, seed: int = 0) -> None: self.cards, self.encoder, self.seed = cards, encoder, seed
-    def evaluate(self, candidate: BaseAgent, opponent: BaseAgent, games: int = 20) -> EvaluationReport:
-        buffer = ReplayBuffer(); report = SelfPlayRunner(self.cards, self.encoder, buffer, seed=self.seed).run(games, candidate, opponent)
+    def evaluate(self, candidate: BaseAgent, opponent: BaseAgent, games: int = 20,
+                 *, deck_pool: list[tuple[str, str | None]] | None = None) -> EvaluationReport:
+        """Evaluate on the supplied legal deck distribution, with a fixed seed.
+
+        ``deck_pool`` must match the formal self-play distribution when used
+        for Champion promotion.  Falling back to the legacy default is kept
+        only for callers that do not provide a training configuration.
+        """
+        buffer = ReplayBuffer(); report = SelfPlayRunner(self.cards, self.encoder, buffer, seed=self.seed).run(
+            games, candidate, opponent, deck_pool=deck_pool)
         return EvaluationReport(games, report.p1_wins, report.p2_wins, report.draws, report.p1_wins / games,
                                 report.average_turns, report.average_hq_damage, report.average_cards_played)
 

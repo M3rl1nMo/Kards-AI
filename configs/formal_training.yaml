@@ -68,6 +68,7 @@ checkpoint:
   keep_last: 10
   interval_cycles: 1
 evaluation:
+  seed: 20260730
   interval_games: 10000
   games_per_opponent: 100
   champion_games: 100

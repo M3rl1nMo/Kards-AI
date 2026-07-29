@@ -13,6 +13,7 @@ from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
 from ai.inference import BatchedInference, ProcessInferenceService, RemoteInferenceClient, SharedInferenceBuffers
+from ai.evaluator import Evaluator
 from ai.network import KARDSNet
 from ai.observation import ObservationEncoder, STATE_DIM
 from ai.replay_buffer import ReplayBuffer
@@ -40,6 +41,11 @@ class AITrainingFrameworkTests(unittest.TestCase):
         self.assertNotIn("ConcedeAction", {type(action).__name__ for action in legal})
         action = agent.select_action(env.get_observation("p1"), legal)
         env.step(action); self.assertIsNotNone(env.state)
+
+    def test_evaluator_supports_official_main_and_ally_deck_pool(self) -> None:
+        report = Evaluator(self.cards, self.encoder, seed=73).evaluate(
+            RandomAgent(1), RandomAgent(2), games=2, deck_pool=[("Britain", "France")])
+        self.assertEqual(report.games, 2)
 
     def test_fixed_observation_and_action_mask(self) -> None:
         env = self._environment(); vector = self.encoder.encode(env.get_state(), "p1")

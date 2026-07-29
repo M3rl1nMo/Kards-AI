@@ -77,13 +77,15 @@ def main() -> None:
         reports=[]; candidate_scores = {}; champion_scores = {}
         for opponent in ecfg["opponents"]:
             report = RUNS / "evaluations" / f"cycle-{iteration:05d}-candidate-{opponent}.json"; report.parent.mkdir(exist_ok=True)
-            execute(["evaluate.py", "--model", str(candidate), "--games", str(eval_games), "--opponent", opponent, "--report", str(report)])
+            evaluation_args = ["--games", str(eval_games), "--deck-pool", json.dumps(spcfg["deck_pool"]), "--seed", str(ecfg.get("seed", 20260730))]
+            execute(["evaluate.py", "--model", str(candidate), *evaluation_args, "--opponent", opponent, "--report", str(report)])
             candidate_scores[opponent] = json.loads(report.read_text(encoding="utf-8")); reports.append(("candidate", report))
             baseline = RUNS / "evaluations" / f"cycle-{iteration:05d}-champion-{opponent}.json"
-            execute(["evaluate.py", "--model", str(champion), "--games", str(eval_games), "--opponent", opponent, "--report", str(baseline)])
+            execute(["evaluate.py", "--model", str(champion), *evaluation_args, "--opponent", opponent, "--report", str(baseline)])
             champion_scores[opponent] = json.loads(baseline.read_text(encoding="utf-8")); reports.append(("champion", baseline))
         gate_report = RUNS / "evaluations" / f"cycle-{iteration:05d}-champion.json"
-        execute(["evaluate.py", "--model", str(candidate), "--games", str(ecfg.get("champion_games", eval_games)), "--opponent", "model", "--opponent-model", str(champion), "--report", str(gate_report)])
+        gate_args = ["--games", str(ecfg.get("champion_games", eval_games)), "--deck-pool", json.dumps(spcfg["deck_pool"]), "--seed", str(ecfg.get("seed", 20260730))]
+        execute(["evaluate.py", "--model", str(candidate), *gate_args, "--opponent", "model", "--opponent-model", str(champion), "--report", str(gate_report)])
         gate = json.loads(gate_report.read_text(encoding="utf-8"))
         tolerance = float(ecfg.get("external_tolerance", 0.0))
         external_ok = all(candidate_scores[name]["win_rate"] + tolerance >= champion_scores[name]["win_rate"] for name in ecfg["opponents"])
