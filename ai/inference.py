@@ -165,7 +165,8 @@ class RemoteInferenceClient:
         self._free_slots = list(range(shared_spec.slots_per_worker - 1, -1, -1)) if shared_spec else []
         self._shared = SharedInferenceBuffers(shared_spec) if shared_spec else None
         self.metrics = {"request_transport_seconds": 0.0, "serialization_seconds": 0.0,
-                        "deserialization_seconds": 0.0, "inference_wait_seconds": 0.0, "requests": 0.0}
+                        "deserialization_seconds": 0.0, "inference_wait_seconds": 0.0, "requests": 0.0,
+                        "shared_fallback_requests": 0.0, "largest_action_count": 0.0}
 
     def close(self) -> None:
         if self._shared is not None:
@@ -188,15 +189,13 @@ class RemoteInferenceClient:
         request_id = self._next_request; self._next_request += 1
         future: Future = Future(); self._pending[request_id] = future
         self._submitted_at[request_id] = perf_counter(); self.metrics["requests"] += 1
-        if self._shared is not None:
+        count = int(features.shape[0]); self.metrics["largest_action_count"] = max(self.metrics["largest_action_count"], float(count))
+        if self._shared is not None and count <= MAX_ACTIONS:
             # Async MCTS has a bounded number of pending leaves.  Slots are
             # intentionally reused only after ProcessInferenceService replies.
             if not self._free_slots:
                 raise RuntimeError("Shared inference ring exhausted; increase slots_per_worker")
             slot = self._free_slots.pop(); started = perf_counter()
-            count = int(features.shape[0])
-            if count > MAX_ACTIONS:
-                raise ValueError("Legal action count exceeds shared inference capacity")
             np.copyto(self._shared.states[self.worker_id, slot], state.detach().cpu().numpy())
             np.copyto(self._shared.features[self.worker_id, slot, :count], features.detach().cpu().numpy())
             np.copyto(self._shared.masks[self.worker_id, slot, :count], mask.detach().cpu().numpy())
@@ -205,6 +204,12 @@ class RemoteInferenceClient:
             queued = perf_counter(); self.request_queue.put(("shared", self.worker_id, slot, request_id))
             self.metrics["request_transport_seconds"] += perf_counter() - queued
         else:
+            # The shared ring is intentionally fixed-size for the common
+            # fast path.  Rare legal positions with more candidates must not
+            # be pruned or crash self-play; the existing queue protocol is
+            # variable-length and safely carries those requests instead.
+            if self._shared is not None:
+                self.metrics["shared_fallback_requests"] += 1
             started = perf_counter(); payload = (self.worker_id, request_id, state.tolist(), features.tolist(), mask.tolist())
             self.metrics["serialization_seconds"] += perf_counter() - started
             queued = perf_counter(); self.request_queue.put(payload); self.metrics["request_transport_seconds"] += perf_counter() - queued

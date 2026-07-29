@@ -52,7 +52,10 @@ class ActionEncoder:
         """Encode legal candidates, optionally omitting mask-only padding for inference."""
         if not actions:
             raise ValueError("A non-terminal state must expose at least one legal action")
-        if len(actions) > self.max_actions:
+        # Tree search and replay keep only the meaningful legal prefix, so
+        # they can safely represent an arbitrarily large legal action set.
+        # The fixed width is only required by legacy padded consumers.
+        if pad_to_max and len(actions) > self.max_actions:
             raise ValueError("Legal action count exceeds configured MAX_ACTIONS")
         size = self.max_actions if pad_to_max else len(actions)
         features = torch.zeros((size, ACTION_FEATURE_DIM), dtype=torch.float32)

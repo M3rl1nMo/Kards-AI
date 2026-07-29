@@ -8,7 +8,7 @@ import multiprocessing as mp
 import numpy as np
 import torch
 
-from ai.action_encoder import ACTION_FEATURE_DIM, ActionEncoder
+from ai.action_encoder import ACTION_FEATURE_DIM, MAX_ACTIONS, ActionEncoder
 from ai.agents import MCTSAgent, RandomAgent, RuleBasedAgent
 from ai.mcts import MCTS
 from ai.metrics import RunMetrics
@@ -74,6 +74,13 @@ class AITrainingFrameworkTests(unittest.TestCase):
         compact_logits = model(state, compact_features, compact_mask)[0][0]
         torch.testing.assert_close(compact_logits, padded_logits)
 
+    def test_compact_action_encoding_allows_more_than_shared_capacity(self) -> None:
+        action = self._environment().get_available_actions()[0]
+        actions = [action] * (MAX_ACTIONS + 1)
+        features, mask = ActionEncoder().encode_legal_actions(actions, pad_to_max=False)
+        self.assertEqual(features.shape[0], MAX_ACTIONS + 1)
+        self.assertTrue(mask.all())
+
     def test_action_feature_cache_preserves_encoded_values(self) -> None:
         env = self._environment(); action = env.get_available_actions()[0]; codec = ActionEncoder()
         first = codec.encode(action)
@@ -120,6 +127,23 @@ class AITrainingFrameworkTests(unittest.TestCase):
             expected_logits, expected_value = model(state, features, mask)
             torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
             self.assertGreater(client.stats()["requests"], 0)
+            client.close()
+        finally:
+            service.close(); buffers.unlink(); manager.shutdown()
+
+    def test_shared_inference_falls_back_for_large_legal_action_sets(self) -> None:
+        model = KARDSNet(hidden_dim=32).eval()
+        manager = mp.Manager(); requests = manager.Queue(); replies = manager.Queue()
+        buffers = SharedInferenceBuffers.create(1, slots_per_worker=2)
+        service = ProcessInferenceService(model, requests, [replies], max_wait_ms=0, shared_spec=buffers.spec)
+        try:
+            client = RemoteInferenceClient(requests, replies, shared_spec=buffers.spec)
+            state = torch.randn(STATE_DIM); features = torch.randn(MAX_ACTIONS + 1, ACTION_FEATURE_DIM)
+            mask = torch.ones(MAX_ACTIONS + 1, dtype=torch.bool)
+            logits, value = client.evaluate(state, features, mask)
+            expected_logits, expected_value = model(state, features, mask)
+            torch.testing.assert_close(logits, expected_logits[0]); torch.testing.assert_close(value, expected_value[0])
+            self.assertEqual(client.stats()["shared_fallback_requests"], 1.0)
             client.close()
         finally:
             service.close(); buffers.unlink(); manager.shutdown()
