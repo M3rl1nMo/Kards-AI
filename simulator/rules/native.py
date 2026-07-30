@@ -142,7 +142,15 @@ class NativeRuleEngine:
 
     def execute(self, card_id: str, event: str, state, context: EffectContext) -> bool:
         if context.source_unit_id:
-            source = find_unit(state, context.source_unit_id)
+            # ``emit`` deliberately iterates a stable listener snapshot.  A
+            # preceding listener may remove a later source unit, in which
+            # case that later trigger no longer exists and simply fizzles.
+            try:
+                source = find_unit(state, context.source_unit_id)
+            except ActionValidationError:
+                state.event_log.append({"event": "native_rule_source_no_longer_exists", "card_id": card_id,
+                                        "trigger": event, "source_unit_id": context.source_unit_id})
+                return False
             if source is not None and source.status.get("suppressed"):
                 return False
         rule = self.rule_for(card_id)

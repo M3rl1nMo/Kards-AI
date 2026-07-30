@@ -42,6 +42,13 @@ class NativeRuleTests(unittest.TestCase):
         self.assertIn("garrison", state.players["p1"].hand)
         self.assertIn("radar", state.graveyard["p1"])
 
+    def test_removed_listener_source_fizzles_instead_of_aborting_event_dispatch(self) -> None:
+        state = self.state()
+        result = self.engine.execute("radar", "on_play", state,
+                                     EffectContext("p1", "radar", "removed_listener"))
+        self.assertFalse(result)
+        self.assertTrue(any(event.get("event") == "native_rule_source_no_longer_exists" for event in state.event_log))
+
     def test_targeted_order_executes_damage_and_add_card(self) -> None:
         state = self.state()
         PlayCardAction("p1", "home_guard", target_unit_id="enemy").execute(state, self.cards)
