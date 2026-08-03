@@ -1,46 +1,65 @@
-# KARDS AI Simulator
+# KARDS AI
 
-For a fresh Codex or Windows training-machine setup, read
-[`CODEX_HANDOFF_WINDOWS.md`](CODEX_HANDOFF_WINDOWS.md) first.
+An open-source **KARDS AI** project for building a headless card-game simulator, self-play training pipeline, and reinforcement-learning agents for [KARDS](https://www.kards.com/), the World War II collectible card game.
 
-Core, headless rules simulator for KARDS AI training. This repository deliberately
-contains no UI, networking, or client code.
+> **Project status: training is not complete.** The current training run is at approximately **1 million games** and remains an active experiment. The model should not yet be treated as a finished or competitive KARDS player.
 
-## Training storage and performance
+## What this project does
 
-Training artifacts now default to `D:\KardsAI\runs` (set `KARDS_RUNS_DIR` to
-override it). This includes replay data, checkpoints, logs, evaluation reports,
-and the dashboard's input. The replay buffer stores only legal action slots and
-is bounded to 50,000 examples by default; old padded replay files are compacted
-when next loaded and saved. Use `training\run_parallel_selfplay.cmd` to launch
-the unattended loop, `打开监控.cmd` for the dashboard, and `停止训练.cmd` for a
-graceful stop.
+KARDS AI combines a JSON-driven rules simulator with AlphaZero-style reinforcement learning:
 
-For an unattended Windows machine, run `training\setup_d_drive_training.cmd`
-once. It creates a complete D: workspace and virtual environment at
-`D:\KardsAI`; all mutable Python, pip, PyTorch, CUDA, temporary, and training
-files then remain on D:. The C: checkout remains a Git development copy only.
+- Headless KARDS game simulation for repeatable self-play
+- Card and rule data loading from the KARDS card catalog
+- Legal-action masking and fixed observation/action encoders
+- Random, rule-based, neural-network, and PUCT Monte Carlo Tree Search agents
+- Parallel self-play, replay-buffer management, policy/value training, and evaluation
+- Checkpointing, metrics, monitoring, and training-control utilities
+- A modular foundation for improving simulator fidelity and transferring learning toward real KARDS gameplay
 
-## Card data
+## Current training status
 
-`data/source/kards_info_cards.json` is the simulator's only card-data source.
-It is the unmodified kards.info catalog (1488 cards); its native names are used
-throughout the code: `id`, `type`, `kredits`, `operationCost`, `text`, and
-`abilities`. There is no legacy adapter, merged handler file, or parallel card
-schema. Relative image paths are made absolute with `https://kards.info`.
+The AI training pipeline is runnable, but the overall project is unfinished. Approximately **1,000,000 self-play games** have been reached in the current training effort. This milestone demonstrates training progress, not completion: simulator-rule coverage, real-client parity, strategic strength, evaluation breadth, and long-term training stability still require further work.
 
-Static catalog data is separate from runtime game state. Native `text` and
-`abilities` enter the event pipeline through `RuleParser`; `EffectResolver` and
-`HandlerRegistry` remain the reusable game-rule layer.
+Use the readiness reports for the latest limitations and validation evidence:
 
-## Development phases
+- [`AI_TRAINING_READINESS_REPORT.md`](AI_TRAINING_READINESS_REPORT.md)
+- [`CODEX_HANDOFF_WINDOWS.md`](CODEX_HANDOFF_WINDOWS.md)
+- [`docs/simulator_performance.md`](docs/simulator_performance.md)
 
-- [x] Phase 1: card loader and serializable game state
-- [x] Phase 2: actions and turn flow
-- [x] Phase 3: effect engine
-- [x] Phase 4: custom-handler framework
-- [x] Phase 5: simulation test environment
-- [x] Phase 6.1: headquarters model and victory resolution
-- [x] Phase 6.2–6.7: battlefield rules, turn triggers, operations, keywords, deck validation, replay, audit, countermeasures, and scale-test tooling
+## Quick start
 
-Run the current zero-dependency test suite with `python3 -m unittest discover -s tests -v`.
+Create a Python environment and install the training dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-training.txt
+```
+
+Run the test suite:
+
+```bash
+python -m unittest discover -s tests -q
+```
+
+Run a small self-play experiment, train a checkpoint, and evaluate it:
+
+```bash
+python selfplay.py --games 10
+python train.py --config configs/training.yaml
+python evaluate.py --config configs/training.yaml
+```
+
+For the long-running training workflow, monitoring, Windows setup, and artifact locations, see [`CODEX_HANDOFF_WINDOWS.md`](CODEX_HANDOFF_WINDOWS.md).
+
+## Scope and limitations
+
+This repository is a research and engineering project. It contains the simulator and AI training code; it does not provide a KARDS game client, online matchmaking, networking automation, or a guarantee of exact real-client behavior. Simulator-side tests and self-play results must not be interpreted as proof of competitive performance in the live game.
+
+## Keywords
+
+KARDS AI · KARDS bot research · KARDS simulator · World War II card game · reinforcement learning · AlphaZero · self-play · Monte Carlo Tree Search · PUCT MCTS · Python · PyTorch · game AI · collectible card game AI
+
+## License
+
+See the repository files for the applicable project and data licensing information.
