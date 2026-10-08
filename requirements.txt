@@ -1,0 +1,9 @@
+# The rules simulator has no third-party runtime dependencies.
+# It runs on the Python standard library alone (Python >= 3.9).
+#
+# Dev/optional (not required to run or test the simulator):
+#   pytest     # only if you prefer it over `python -m unittest`
+#
+# Note: `tools/build_card_rules.py` and `tools/classify_coverage.py` regenerate
+# data/rules/card_rules.json and docs/rule_coverage.json; they are also
+# standard-library only.
