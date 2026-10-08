@@ -252,10 +252,14 @@ class MulliganAction(Action):
         random.Random((state.rng_seed or 0) + len(state.event_log)).shuffle(player.deck)
         for _ in self.card_ids:
             TurnManager.draw_card(state, self.player_id)
+        # BUG-03（已修复）：最后一次换牌统一启动先手回合，自动路径不再重复启动。
         state.mulligan_pending.remove(self.player_id)
+        state.event_log.append({"event": "mulligan_completed", "player_id": self.player_id, "replaced": len(self.card_ids)})
         if state.mulligan_pending:
             state.current_player = state.mulligan_pending[0]
-        state.event_log.append({"event": "mulligan_completed", "player_id": self.player_id, "replaced": len(self.card_ids)})
+        else:
+            state.current_player = "p1"
+            TurnManager.start_turn(state, "p1", draw_card=False)
         return state
 
 
@@ -517,10 +521,18 @@ def _next_unit_id(state: GameState, card_id: str) -> str:
 def _operation_cost(unit: UnitState, card) -> int:
     if unit.status.get("covert"):
         return 1
-    set_val = next((m["value"] for m in unit.modifiers if m.get("type") == "set_operation_cost"), None)
-    if set_val is not None:
-        return max(0, set_val)
-    return max(0, (card.operationCost or 0) + sum(mod.get("amount", 0) for mod in unit.modifiers if mod.get("type") in {"modify_cost", "modify_operation_cost"}))
+    # BUG-02/09（已修复）：最新设置值作为基准，费用增减仍独立生效。
+    # 设置值不能提前 return，否则会忽略交换后新增的增减费用效果。
+    set_val = next((m["value"] for m in reversed(unit.modifiers)
+                    if m.get("type") == "set_operation_cost"), None)
+    base = (card.operationCost or 0) if set_val is None else set_val
+    return max(0, base + _operation_cost_adjustment(unit))
+
+
+def _operation_cost_adjustment(unit: UnitState) -> int:
+    """Sum independent operation-cost adjustments without applying a floor."""
+    return sum(mod.get("amount", 0) for mod in unit.modifiers
+               if mod.get("type") in {"modify_cost", "modify_operation_cost"})
 
 
 def card_play_cost(state: GameState, player_id: str, card, cards: CardDatabase) -> int:

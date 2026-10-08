@@ -40,6 +40,8 @@ def eligible_card_ids(cards: CardDatabase) -> set[str]:
     rules.  The status filter makes a future non-retired partial card fail
     closed instead of silently entering a training trajectory.
     """
+    # BUG-10（验证缺口）：implemented 是规则标记，不代表全部运行分支已经验证。
+    # 修改方法：用逐卡定向测试和已验证卡池控制训练准入，不能仅凭此标记开放全卡池。
     rules = engine_for(cards)
     return {
         card.id for card in cards
@@ -63,6 +65,8 @@ def _assert_supported_events(events: Iterable[dict]) -> None:
         raise AssertionError("Unsupported effects reached a training trajectory: " + repr(unsupported))
 
 
+# BUG-11（验证缺口）：默认法国为主国，不符合正式主国设置，且仅覆盖单一卡池。
+# 修改方法：正式测试覆盖五个主国及盟国，严格校验国家；将这里保留为历史冒烟测试。
 def run_preflight(episodes: int = 32, max_actions: int = 300, seed: int = 20260724,
                   nation: str = "France") -> PreflightReport:
     """Exercise seeded, legal self-play trajectories without training a model."""
@@ -78,6 +82,8 @@ def run_preflight(episodes: int = 32, max_actions: int = 300, seed: int = 202607
         first_deck = _build_eligible_deck(cards, rng.randrange(2**31), nation)
         second_deck = _build_eligible_deck(cards, rng.randrange(2**31), nation)
         simulator.reset(first_deck, second_deck, nations=(nation, nation), seed=rng.randrange(2**31))
+        # BUG-12（统计缺口）：最后一个动作导致终局时，循环不会再进入顶部统计。
+        # 修改方法：循环结束后按 is_terminal 统计终局，并单列达到上限的 truncated。
         for _ in range(max_actions):
             if simulator.is_terminal():
                 terminal_episodes += 1

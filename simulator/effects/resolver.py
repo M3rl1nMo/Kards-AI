@@ -169,6 +169,9 @@ class EffectResolver:
         elif kind in {"", "keyword"}:
             return  # Source placeholders intentionally have no executable primitive.
         else:
+            # BUG-08（接口已修复）：基础层保留日志，Simulator 默认严格检查并拒绝整局。
+            # 使用方式：训练通过 Simulator.step/step_fast/step_player；直接调用基础层不受保护。
+            # 此日志只证明该执行路径未处理，原因可能是功能缺失、目标丢失或分支条件不匹配。
             state.event_log.append({"event": "unsupported_effect", "type": kind, "source_card_id": context.source_card_id})
 
     def _spawn(self, state: GameState, player_id: str, card_id: str, position: str) -> None:
@@ -241,8 +244,8 @@ class EffectResolver:
             return list(state.players[opponent].units)
         return []
 
-    @staticmethod
-    def _conditions_met(conditions: Any, state: GameState, context: EffectContext) -> bool:
+    # 使用 self.cards 的条件检查必须是实例方法。
+    def _conditions_met(self, conditions: Any, state: GameState, context: EffectContext) -> bool:
         if not conditions or conditions == {}:
             return True
         if isinstance(conditions, Mapping):

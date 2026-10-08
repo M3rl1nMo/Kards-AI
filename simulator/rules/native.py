@@ -1302,6 +1302,8 @@ class NativeRuleEngine:
             else:
                 state.event_log.append({"event": "native_rule_unresolved_card_name", "name": action.card_name, "source_card_id": context.source_card_id})
             return
+        # BUG-08（部分路径未支持）：这个分支仅处理 unit/order，其他筛选条件可能落入兜底。
+        # 修改方法：逐卡核对解析出的筛选条件和数量，补充对应处理及抽牌测试。
         if action.kind == "draw_matching" and action.card_name in {"unit", "order"}:
             player = state.players[context.player_id]
             candidates = [card_id for card_id in player.deck if card_id in self.cards and (self.cards.get(card_id).is_unit if action.card_name == "unit" else self.cards.get(card_id).type == "order")]
@@ -1401,15 +1403,27 @@ class NativeRuleEngine:
             player.resources.kredits -= spent
             state.event_log.append({"event": "kredits_spent", "player_id": owner, "amount": spent})
             return
-        if action.kind == "swap_attack_opcost" and context.source_unit_id:
-            unit = find_unit(state, context.source_unit_id)
+        # BUG-01（已修复）：DILEMMA 是指令，无来源单位；旧代码因此跳过交换。
+        # 修改理由：效果指定目标单位，条件和查找都应使用 target_unit_id。
+        # BUG-09（已修复）：交换使用当前费用，设置值不再屏蔽费用增减。
+        # 修改理由：保留增减修正及其来源，但从新基准扣除已有增减，避免再次叠加。
+        if action.kind == "swap_attack_opcost" and context.target_unit_id:
+            # 延迟导入避免 action -> native -> action 的初始化循环。
+            from simulator.actions.action import _operation_cost, _operation_cost_adjustment
+            unit = find_unit(state, context.target_unit_id)
             card = self.cards.get(unit.card_id)
-            base_op = (card.operationCost or 0) if card else 0
-            for mod in unit.modifiers:
-                if mod.get("type") == "set_operation_cost":
-                    base_op = mod.get("value", base_op)
+            base_op = _operation_cost(unit, card)
             unit.attack, new_op = base_op, unit.attack
-            unit.modifiers.append({"type": "set_operation_cost", "value": new_op})
+            # BUG-02（已修复）：旧代码只追加，读取费用时却取第一条，第二次交换仍用旧值。
+            # 修改理由：删除旧设置记录后写入新费用；保留其他类型修正，支持连续交换。
+            unit.modifiers = [
+                mod for mod in unit.modifiers
+                if mod.get("type") != "set_operation_cost"
+            ]
+            # 例如已有 +1，目标费用为 4：设置基准 3，读取时 3+1=4。
+            # 以后再新增 +1 仍生效；已有修正失效/移除时也能正常重算。
+            unit.modifiers.append({"type": "set_operation_cost",
+                                   "value": new_op - _operation_cost_adjustment(unit)})
             state.event_log.append({"event": "attack_opcost_swapped", "unit_id": unit.instance_id})
             return
         if action.kind == "modify_hand_cost":
@@ -1640,6 +1654,8 @@ class NativeRuleEngine:
         if action.kind in ("move_to_frontline", "move_to_support_line"):
             self._move_units("frontline" if action.kind == "move_to_frontline" else "support_line", action, state, context)
             return
+        # BUG-08（目标路径待排查）：repair 有代码，但缺少目标 ID 时仍会落入未支持分支。
+        # 修改方法：重现 42nd_rifles，核对来源/目标及解析规则；不能断言所有 repair 都没实现。
         if action.kind == "repair" and context.target_unit_id:
             unit = find_unit(state, context.target_unit_id)
             if unit and unit.status.get("cannot") in ("be_repaired", True):
